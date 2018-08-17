@@ -16,8 +16,17 @@ func Integer(num int) string {
 func List(list ...string) string {
 	encoded := "l"
 	for _, str := range list {
-		// str
+		encoded += fmt.Sprintf("%d:%s", len(str), str)
 	}
+	encoded += "e"
+	return encoded
+}
+
+// Dictionarie encodes a dic
+func Dictionarie() string {
+	// TODO
+	// https://github.com/marksamman/bencode ?
+	encoded := "d"
 	encoded += "e"
 	return encoded
 }
