@@ -1,6 +1,9 @@
 package bencoding
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // String encodes a string
 func String(str string) string {
@@ -22,11 +25,26 @@ func List(list ...string) string {
 	return encoded
 }
 
-// Dictionarie encodes a dic
-func Dictionarie() string {
-	// TODO
-	// https://github.com/marksamman/bencode ?
+// Dictionarie encodes a dict
+// https://github.com/marksamman/bencode ?
+func Dictionarie(dict ...string) string {
 	encoded := "d"
+	for _, part := range dict {
+		parts := strings.Split(part, " ")
+		// parts[0] key
+		// parts[1] value
+		encoded += String(parts[0]) // Add the key
+
+		if len(parts) > 2 { // Then its a list
+			// TODO check for dict in dict
+			// remove index since weve already added it
+			parts = append(parts[:0], parts[0+1:]...)
+			encoded += List(parts...)
+		} else { // Its a string or int
+			// TODO check if it's an int
+			encoded += String(parts[1]) // Add the key
+		}
+	}
 	encoded += "e"
 	return encoded
 }
