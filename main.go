@@ -29,11 +29,11 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 
 	t, err := tracker.NewTorrent(infoHash)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		tracker.Error(w, err.Error())
 	}
 
 	if ip != r.RemoteAddr {
-		http.Error(w, "You lied about IP addr", http.StatusBadRequest)
+		tracker.Error(w, "IP address doesn't match")
 	}
 
 	if event == "started" {
@@ -48,14 +48,17 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 
 	peerList, err := t.GetPeerList(numwant)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		tracker.Error(w, err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	c, err := t.Complete()
 	if err != nil {
+		tracker.Error(w, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	i, err := t.Complete()
 	if err != nil {
+		tracker.Error(w, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
@@ -74,6 +77,10 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Alive")
+	})
+
+	http.HandleFunc("/scrape", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Unsupported")
 	})
 
 	http.HandleFunc("/announce", Announce)

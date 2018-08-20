@@ -3,6 +3,7 @@ package tracker
 import (
 	"database/sql"
 	"fmt"
+	"io"
 
 	"github.com/Syc0x00/Trakx/bencoding"
 )
@@ -145,4 +146,11 @@ func (t *Torrent) Incomplete() (int, error) {
 		}
 	}
 	return count, nil
+}
+
+// Error throws a tracker bencoded error
+func Error(w io.Writer, reason string) {
+	d := bencoding.NewDict()
+	d.Add("failure reason", reason)
+	fmt.Fprint(w, d.Get())
 }
