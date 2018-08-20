@@ -2,6 +2,11 @@
 
 Bittorrent tracker written in go.
 
+## How
+
+It uses the go default webserver and MySQL to hold the client list.
+It currently uses my own bencode package but I will most likely move to something else eventually.
+
 ## Resources
 
 [Basic spec](https://wiki.theory.org/index.php/BitTorrentSpecification) super helpful.
