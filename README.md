@@ -1,10 +1,10 @@
 # Trakx
 
-Bittorrent tracker
+Bittorrent tracker written in go.
 
 ## Resources
 
-[Basic spec](https://wiki.theory.org/index.php/BitTorrentSpecification) that was super helpful for bencoding.
+[Basic spec](https://wiki.theory.org/index.php/BitTorrentSpecification) super helpful.
 
 ## Todo
 
