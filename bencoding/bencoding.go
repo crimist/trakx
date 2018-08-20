@@ -1,7 +1,9 @@
 package bencoding
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -27,7 +29,6 @@ func List(list ...string) string {
 }
 
 // Dictionarie encodes a dict
-// https://github.com/marksamman/bencode ?
 func Dictionarie(dict ...string) string {
 	encoded := "d"
 	for _, part := range dict {
@@ -52,4 +53,53 @@ func Dictionarie(dict ...string) string {
 	}
 	encoded += "e"
 	return encoded
+}
+
+// Dict x
+type Dict struct {
+	encoded string
+}
+
+// NewDict x
+func NewDict() Dict {
+	dict := Dict{}
+	dict.encoded += "d"
+	return dict
+}
+
+// Add x
+func (d *Dict) Add(key string, v interface{}) error {
+	d.encoded += String(key) // Add the key
+
+	switch v := v.(type) {
+	case string:
+		d.encoded += String(v)
+	case []interface{}:
+		r := reflect.ValueOf(v)
+		slice := make([]string, r.Len())
+		for i := 0; i < r.Len(); i++ {
+			slice[i] = r.Index(i).String()
+		}
+		d.encoded += List(slice...)
+	case map[string]interface{}:
+		dict := NewDict()
+		for k, v := range v {
+			dict.Add(k, v)
+		}
+		d.encoded += dict.Get()
+	case int, int8, int16, int32, int64:
+		d.encoded += Integer(int(reflect.ValueOf(v).Int()))
+	case uint, uint8, uint16, uint32, uint64:
+		d.encoded += Integer(int(reflect.ValueOf(v).Uint()))
+	default:
+		return errors.New("Invalid type")
+	}
+
+	return nil
+}
+
+// Get ends the dicts and returns it as a string
+func (d *Dict) Get() string {
+	d.encoded += "e"
+	return d.encoded
 }
