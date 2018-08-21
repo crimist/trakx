@@ -7,7 +7,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql" // MySQL driver
 
 	"github.com/Syc0x00/Trakx/bencoding"
 )
@@ -55,7 +55,7 @@ func (t *Torrent) table() error {
 	fmt.Println(t.hash)
 	_, err := db.Exec("SELECT 1 FROM ? LIMIT 1", t.hash)
 	if err != nil { // If error table doesn't exist
-		_, err = db.Query("CREATE TABLE ? (id varchar(40), peerKey varchar(20), ip varchar(255), port smallint unsigned, complete bool)", t.hash)
+		_, err = db.Exec("CREATE TABLE ? (id varchar(40), peerKey varchar(20), ip varchar(255), port smallint unsigned, complete bool)", t.hash)
 		return err
 	}
 	return nil
