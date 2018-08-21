@@ -1,15 +1,13 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 
 	"github.com/Syc0x00/Trakx/bencoding"
 	"github.com/Syc0x00/Trakx/tracker"
+	"github.com/davecgh/go-spew/spew"
 )
-
-var db *sql.DB
 
 // Announce x
 func Announce(w http.ResponseWriter, r *http.Request) {
@@ -27,24 +25,32 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	trackerID := r.URL.Query().Get("trackerid")
 	ip := r.URL.Query().Get("ip")
 
+	spew.Dump(r.URL.Query())
+	spew.Sdump(infoHash, peerID, port, uploaded, downloaded, left, compact, noPeerID, event, ip, numwant, key, trackerID)
+
+	if len(infoHash) != 20 {
+		tracker.Error(w, "invalid hash")
+		return
+	}
+
 	t, err := tracker.NewTorrent(infoHash)
 	if err != nil {
 		tracker.Error(w, err.Error())
+		return
 	}
 
 	if ip != r.RemoteAddr {
 		tracker.Error(w, "IP address doesn't match")
+		return
 	}
 
 	if event == "started" {
 		t.NewPeer(peerID, key, r.RemoteAddr, port, false)
 	} else if event == "stopped" {
-		t.RemovePeer(key)
+		t.RemovePeer(peerID, key)
 	} else if event == "completed" {
 		t.UpdatePeer(peerID, key, r.RemoteAddr, port, true)
 	}
-
-	fmt.Println(infoHash, peerID, port, uploaded, downloaded, left, compact, noPeerID, event, ip, numwant, key, trackerID)
 
 	peerList, err := t.GetPeerList(numwant)
 	if err != nil {
@@ -62,6 +68,7 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
+	// TODO comply with compact
 	d := bencoding.NewDict()
 	// d.Add("tracker id", "ayy lmao") // Tracker id
 	d.Add("interval", 60)  // How often they should GET this
@@ -73,7 +80,14 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	tracker.Init()
+	fmt.Println("OSX:")
+	fmt.Println("\tbrew services start mysql")
+	fmt.Println("\tmysql -uroot")
+
+	db := tracker.Init()
+	defer db.Close() // Cleanup
+
+	go tracker.Clean()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Alive")
@@ -86,6 +100,6 @@ func main() {
 	http.HandleFunc("/announce", Announce)
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 }
