@@ -26,8 +26,9 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Query().Get("key")
 	trackerID := r.URL.Query().Get("trackerid")
 	ip := r.URL.Query().Get("ip")
+	ipaddr := strings.Split(r.RemoteAddr, ":")[0] // Remove port ex: 127.0.0.1:9999
 
-	spew.Dump(r.URL.Query())
+	// So the vars are used
 	spew.Sdump(infoHash, peerID, port, uploaded, downloaded, left, compact, noPeerID, event, ip, numwant, key, trackerID)
 
 	if len(infoHash) != 20 {
@@ -41,53 +42,63 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ip != "" && ip != r.RemoteAddr {
+	if ip != "" && ip != ipaddr {
 		tracker.Error(w, "IP address doesn't match")
 		return
 	}
 
-	ipaddr := strings.Split(r.RemoteAddr, ":")[0] // Remove port ex: 127.0.0.1:9999
-
-	if event == "started" {
-		err = t.NewPeer(peerID, key, ipaddr, port, false)
-		if err != nil {
-			fmt.Println(err)
-		}
-	} else if event == "stopped" {
+	// Remove the peer and return
+	if event == "stopped" {
 		err = t.RemovePeer(peerID, key)
 		if err != nil {
-			fmt.Println(err)
+			tracker.Error(w, err.Error())
 		}
-	} else if event == "completed" {
-		err = t.UpdatePeer(peerID, key, ipaddr, port, true)
-		if err != nil {
-			fmt.Println(err)
-		}
+		return
 	}
 
-	peerList, err := t.GetPeerList(numwant)
-	if err != nil {
-		tracker.Error(w, err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// qBittorrent doesn't send a completed on completion
+	// Instead it sends a started but with left being 0
+	complete := false
+	if event == "completed" || (event == "started" && left == "0") {
+		complete = true
 	}
+	t.Peer(peerID, key, ipaddr, port, complete)
+
+	// Get number complete and incomplete
 	c, err := t.Complete()
 	if err != nil {
 		tracker.Error(w, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	i, err := t.Complete()
+	i, err := t.Incomplete()
 	if err != nil {
 		tracker.Error(w, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	// TODO comply with compact
+	// Encode and send the data
 	d := bencoding.NewDict()
 	// d.Add("tracker id", "ayy lmao") // Tracker id
 	d.Add("interval", 60)  // How often they should GET this
 	d.Add("complete", c)   // Number of seeders
 	d.Add("incomplete", i) // Number of leeches
-	d.Add("peers", peerList)
+
+	// Get the peer list
+	if compact == "1" {
+		peerList, err := t.GetPeerListCompact(numwant)
+		if err != nil {
+			tracker.Error(w, err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		d.Add("peers", peerList)
+	} else {
+		peerList, err := t.GetPeerList(numwant)
+		if err != nil {
+			tracker.Error(w, err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		d.Add("peers", peerList)
+	}
 
 	fmt.Fprint(w, d.Get())
 }
