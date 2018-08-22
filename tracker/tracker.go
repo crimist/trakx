@@ -15,16 +15,16 @@ import (
 var db *sql.DB
 
 // Init x
-func Init() *sql.DB {
+func Init() (*sql.DB, error) {
 	var err error
 	db, err = sql.Open("mysql", "root@/bittorrent")
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 	if err := db.Ping(); err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
-	return db
+	return db, nil
 }
 
 // Clean x
@@ -52,10 +52,10 @@ func NewTorrent(hash string) (Torrent, error) {
 }
 
 func (t *Torrent) table() error {
-	fmt.Println(t.hash)
-	_, err := db.Exec("SELECT 1 FROM ? LIMIT 1", t.hash)
-	if err != nil { // If error table doesn't exist
-		_, err = db.Exec("CREATE TABLE ? (id varchar(40), peerKey varchar(20), ip varchar(255), port smallint unsigned, complete bool)", t.hash)
+	_, err := db.Exec(fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", t.hash))
+	if err != nil { // If error the table doesn't exist
+		// SQli safe because we change it to hex
+		_, err = db.Exec(fmt.Sprintf("CREATE TABLE %s (id varchar(40), peerKey varchar(20), ip varchar(255), port smallint unsigned, complete bool)", t.hash))
 		return err
 	}
 	return nil
@@ -63,7 +63,8 @@ func (t *Torrent) table() error {
 
 // NewPeer creates a new peer in the dp
 func (t *Torrent) NewPeer(id string, key string, ip string, port string, complete bool) error {
-	_, err := db.Exec("INSERT INTO $1 VALUES ($2, $3, $4, $5, $6)", t.hash, id, key, ip, port, complete)
+	query := fmt.Sprintf("INSERT INTO %s VALUES (?, ?, ?, ?, ?)", t.hash)
+	_, err := db.Exec(query, id, key, ip, port, complete)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,8 @@ func (t *Torrent) NewPeer(id string, key string, ip string, port string, complet
 
 // UpdatePeer updates an existing peer in the db
 func (t *Torrent) UpdatePeer(id string, key string, ip string, port string, complete bool) error {
-	_, err := db.Exec("UPDATE $1 SET id = $2, ip = $3, port = $4, complete = $5 WHERE key = $6)", t.hash, id, ip, port, complete, key)
+	query := fmt.Sprintf("UPDATE %s SET id = ?, ip = ?, port = ?, complete = ? WHERE peerKey = ?)", t.hash)
+	_, err := db.Exec(query, id, ip, port, complete, key)
 	if err != nil {
 		return err
 	}
@@ -81,7 +83,8 @@ func (t *Torrent) UpdatePeer(id string, key string, ip string, port string, comp
 
 // RemovePeer removes the peer from the db
 func (t *Torrent) RemovePeer(id string, key string) error {
-	_, err := db.Exec("DELETE FROM $1 WHERE id = $2 AND key = $4", t.hash, id, key)
+	query := fmt.Sprintf("DELETE FROM %s WHERE id = ? AND peerKey = ?", t.hash)
+	_, err := db.Exec(query, id, key)
 	if err != nil {
 		return err
 	}
@@ -95,7 +98,8 @@ func (t *Torrent) GetPeerList(num string) ([]string, error) {
 		num = "9999999" // Unlimited
 	}
 
-	rows, err := db.Query("SELECT id, ip, port FROM $1 ORDER BY RAND() LIMIT $2", t.hash, num)
+	query := fmt.Sprintf("SELECT id, ip, port FROM %s ORDER BY RAND() LIMIT ?", t.hash)
+	rows, err := db.Query(query, num)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +125,7 @@ func (t *Torrent) GetPeerList(num string) ([]string, error) {
 
 // Complete returns the number of peers that are complete
 func (t *Torrent) Complete() (int, error) {
-	rows, err := db.Query("SELECT COUNT(*) FROM ? WHERE complete = true", t.hash)
+	rows, err := db.Query(fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE complete = true", t.hash))
 	if err != nil {
 		return 0, err
 	}
@@ -139,7 +143,7 @@ func (t *Torrent) Complete() (int, error) {
 
 // Incomplete returns the number of peers that are incomplete
 func (t *Torrent) Incomplete() (int, error) {
-	rows, err := db.Query("SELECT COUNT(*) FROM ? WHERE complete = false", t.hash)
+	rows, err := db.Query(fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE complete = false", t.hash))
 	if err != nil {
 		return 0, err
 	}

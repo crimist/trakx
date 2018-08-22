@@ -1,8 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/Syc0x00/Trakx/bencoding"
 	"github.com/Syc0x00/Trakx/tracker"
@@ -39,17 +41,28 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ip != r.RemoteAddr {
+	if ip != "" && ip != r.RemoteAddr {
 		tracker.Error(w, "IP address doesn't match")
 		return
 	}
 
+	ipaddr := strings.Split(r.RemoteAddr, ":")[0] // Remove port ex: 127.0.0.1:9999
+
 	if event == "started" {
-		t.NewPeer(peerID, key, r.RemoteAddr, port, false)
+		err = t.NewPeer(peerID, key, ipaddr, port, false)
+		if err != nil {
+			fmt.Println(err)
+		}
 	} else if event == "stopped" {
-		t.RemovePeer(peerID, key)
+		err = t.RemovePeer(peerID, key)
+		if err != nil {
+			fmt.Println(err)
+		}
 	} else if event == "completed" {
-		t.UpdatePeer(peerID, key, r.RemoteAddr, port, true)
+		err = t.UpdatePeer(peerID, key, ipaddr, port, true)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 
 	peerList, err := t.GetPeerList(numwant)
@@ -80,11 +93,24 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	prod := flag.Bool("x", true, "Production mode")
+	port := flag.String("p", "8080", "HTTP port to serve")
+
+	flag.Parse()
+
+	if *prod == true {
+		fmt.Println("Production")
+	}
+
 	fmt.Println("OSX:")
 	fmt.Println("\tbrew services start mysql")
 	fmt.Println("\tmysql -uroot")
 
-	db := tracker.Init()
+	db, err := tracker.Init()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	defer db.Close() // Cleanup
 
 	go tracker.Clean()
@@ -94,12 +120,12 @@ func main() {
 	})
 
 	http.HandleFunc("/scrape", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Unsupported")
+		fmt.Fprintf(w, "SoonTM")
 	})
 
 	http.HandleFunc("/announce", Announce)
 
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(":"+*port, nil); err != nil {
 		fmt.Println(err)
 	}
 }

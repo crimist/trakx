@@ -38,7 +38,6 @@ func Dictionarie(dict ...string) string {
 		encoded += String(parts[0]) // Add the key
 
 		if len(parts) > 2 { // its a list
-			// TODO check for dict in dict
 			// remove index since weve already added it
 			parts = append(parts[:0], parts[0+1:]...)
 			encoded += List(parts...)
