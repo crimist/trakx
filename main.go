@@ -79,9 +79,9 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	// Encode and send the data
 	d := bencoding.NewDict()
 	// d.Add("tracker id", "ayy lmao") // Tracker id
-	d.Add("interval", 60)  // How often they should GET this
-	d.Add("complete", c)   // Number of seeders
-	d.Add("incomplete", i) // Number of leeches
+	d.Add("interval", 60*5) // How often they should GET this
+	d.Add("complete", c)    // Number of seeders
+	d.Add("incomplete", i)  // Number of leeches
 
 	// Get the peer list
 	if compact == "1" {
@@ -104,7 +104,7 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	prod := flag.Bool("x", true, "Production mode")
+	prod := flag.Bool("x", false, "Production mode")
 	port := flag.String("p", "8080", "HTTP port to serve")
 
 	flag.Parse()

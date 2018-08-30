@@ -31,16 +31,6 @@ func Init() (*sql.DB, error) {
 	return db, nil
 }
 
-// Clean x
-// Have a lastseen timestamp in the mysql DB and if we havn't seen them in 1 hour
-// Remove them
-func Clean() {
-	for {
-		// Cleanup
-		time.Sleep(5 * time.Minute)
-	}
-}
-
 // Torrent x
 type Torrent struct {
 	hash string
@@ -52,6 +42,7 @@ func NewTorrent(hash string) (Torrent, error) {
 		hash: fmt.Sprintf("%X", hash),
 	}
 	err := t.table()
+	go t.clean() // Go attempt a cleanup
 	return t, err
 }
 
@@ -59,10 +50,18 @@ func (t *Torrent) table() error {
 	_, err := db.Exec(fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", t.hash))
 	if err != nil { // If error the table doesn't exist
 		// SQli safe because we change it to hex
-		_, err = db.Exec(fmt.Sprintf("CREATE TABLE %s (id varchar(40), peerKey varchar(20), ip varchar(255), port smallint unsigned, complete bool)", t.hash))
+		_, err = db.Exec(fmt.Sprintf("CREATE TABLE %s (id varchar(40), peerKey varchar(20), ip varchar(255), port smallint unsigned, complete bool, lastSeen bigint	unsigned)", t.hash))
 		return err
 	}
 	return nil
+}
+
+func (t *Torrent) clean() {
+	// If we havn't seen them in x time delete them
+	timeOut := int64(60 * 30) // 15 min
+	query := fmt.Sprintf("DELETE FROM %s WHERE lastSeen < ?", t.hash)
+	_, err := db.Exec(query, time.Now().Unix()-timeOut)
+	fmt.Println(err)
 }
 
 // Peer adds or updates a peer
@@ -71,8 +70,8 @@ func (t *Torrent) Peer(id string, key string, ip string, port string, complete b
 	_, err := db.Exec(query, ip, port, complete, id, key)
 	if err != nil {
 		// They don't exist
-		query := fmt.Sprintf("INSERT INTO %s VALUES (?, ?, ?, ?, ?)", t.hash)
-		_, err = db.Exec(query, id, key, ip, port, complete)
+		query := fmt.Sprintf("INSERT INTO %s VALUES (?, ?, ?, ?, ?, ?)", t.hash)
+		_, err = db.Exec(query, id, key, ip, port, complete, time.Now().Unix())
 	}
 	return err
 }
