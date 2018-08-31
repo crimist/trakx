@@ -4,11 +4,16 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/Syc0x00/Trakx/bencoding"
 	"github.com/Syc0x00/Trakx/tracker"
 	"github.com/davecgh/go-spew/spew"
+)
+
+var (
+	testing = true
 )
 
 // Announce x
@@ -36,15 +41,29 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if port == "" {
+		tracker.Error(w, "no port")
+		return
+	}
+
+	if _, err := strconv.Atoi(port); err != nil {
+		tracker.Error(w, "invalid port")
+		return
+	}
+
 	t, err := tracker.NewTorrent(infoHash)
 	if err != nil {
 		tracker.Error(w, err.Error())
 		return
 	}
 
-	if ip != "" && ip != ipaddr {
-		tracker.Error(w, "IP address doesn't match")
-		return
+	if testing { // In test mode trust given ip
+		ipaddr = ip
+	} else { // In prod use real ip
+		if ip != "" && ip != ipaddr {
+			tracker.Error(w, "IP address doesn't match")
+			return
+		}
 	}
 
 	// Remove the peer and return
@@ -62,7 +81,10 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	if event == "completed" || (event == "started" && left == "0") {
 		complete = true
 	}
-	t.Peer(peerID, key, ipaddr, port, complete)
+	err = t.Peer(peerID, key, ipaddr, port, complete)
+	if err != nil {
+		tracker.Error(w, err.Error())
+	}
 
 	// Get number complete and incomplete
 	c, err := t.Complete()
@@ -111,6 +133,7 @@ func main() {
 
 	if *prod == true {
 		fmt.Println("Production")
+		testing = false
 	}
 
 	fmt.Println("OSX:")

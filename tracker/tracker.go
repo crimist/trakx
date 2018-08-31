@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"runtime/debug"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql" // MySQL driver
@@ -90,10 +89,19 @@ func (t *Torrent) table() error {
 
 // Peer adds or updates a peer
 func (t *Torrent) Peer(id string, key string, ip string, port string, complete bool) error {
-	query := fmt.Sprintf("UPDATE %s SET ip = ?, port = ?, complete = ? WHERE id = ? AND peerKey = ?)", t.hash)
-	_, err := db.Exec(query, ip, port, complete, id, key)
+	fmt.Printf("Peer id=%s key=%s ip=%s port=%s complete=%v\n", id, key, ip, port, complete)
+
+	query := fmt.Sprintf("UPDATE %s SET ip = ?, port = ?, complete = ?, lastSeen = ? WHERE id = ? AND peerKey = ?", t.hash)
+	result, err := db.Exec(query, ip, port, complete, time.Now().Unix(), id, key)
 	if err != nil {
-		// They don't exist
+		return err
+	}
+	affected, err := result.RowsAffected()
+	fmt.Println(affected, err)
+	if err != nil {
+		return err
+	}
+	if affected == 0 { // They don't exist
 		query := fmt.Sprintf("INSERT INTO %s VALUES (?, ?, ?, ?, ?, ?)", t.hash)
 		_, err = db.Exec(query, id, key, ip, port, complete, time.Now().Unix())
 	}
@@ -213,7 +221,6 @@ func (t *Torrent) Incomplete() (int, error) {
 // a stack trace.
 func Error(w io.Writer, reason string) {
 	fmt.Println("Err:", reason)
-	debug.PrintStack()
 
 	d := bencoding.NewDict()
 	d.Add("failure reason", reason)
