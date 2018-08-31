@@ -31,6 +31,39 @@ func Init() (*sql.DB, error) {
 	return db, nil
 }
 
+// Clean auto cleans clients that havn't checked in in a certain amount of time
+func Clean() {
+	for {
+		// Get sql table list
+		rows, err := db.Query("SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='bittorrent'")
+		if err != nil {
+			fmt.Println(err)
+		}
+		tables := []string{}
+		for rows.Next() {
+			var table string
+			err = rows.Scan(&table)
+			if err != nil {
+				fmt.Println(err)
+			}
+			tables = append(tables)
+		}
+
+		// Clean them all
+		for _, table := range tables {
+			timeOut := int64(60 * 30) // 15 min
+			query := fmt.Sprintf("DELETE FROM %s WHERE lastSeen < ?", table)
+			_, err := db.Exec(query, time.Now().Unix()-timeOut)
+			if err != nil {
+				fmt.Println(err)
+			}
+		}
+
+		rows.Close()
+		time.Sleep(5 * time.Minute)
+	}
+}
+
 // Torrent x
 type Torrent struct {
 	hash string
@@ -42,7 +75,6 @@ func NewTorrent(hash string) (Torrent, error) {
 		hash: fmt.Sprintf("%X", hash),
 	}
 	err := t.table()
-	go t.clean() // Go attempt a cleanup
 	return t, err
 }
 
@@ -54,14 +86,6 @@ func (t *Torrent) table() error {
 		return err
 	}
 	return nil
-}
-
-func (t *Torrent) clean() {
-	// If we havn't seen them in x time delete them
-	timeOut := int64(60 * 30) // 15 min
-	query := fmt.Sprintf("DELETE FROM %s WHERE lastSeen < ?", t.hash)
-	_, err := db.Exec(query, time.Now().Unix()-timeOut)
-	fmt.Println(err)
 }
 
 // Peer adds or updates a peer
