@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 
@@ -13,8 +14,8 @@ import (
 
 var client = &http.Client{}
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-_=+[{]}\\|\":;<,>.?'/~`"
 const (
+	letterBytes   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-_=+[{]}\\|\":;<,>.?'/~`"
 	letterIdxBits = 6                    // 6 bits to represent a letter index
 	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
 )
@@ -83,6 +84,7 @@ func TestApp(t *testing.T) {
 }
 
 func BenchmarkApp(b *testing.B) {
+	rand.Seed(time.Now().Unix())
 	for n := 0; n < b.N; n++ {
 		req, _ := http.NewRequest("GET", "http://127.0.0.1:8080/announce", nil)
 		q := req.URL.Query()
