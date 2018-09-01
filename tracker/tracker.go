@@ -89,15 +89,12 @@ func (t *Torrent) table() error {
 
 // Peer adds or updates a peer
 func (t *Torrent) Peer(id string, key string, ip string, port string, complete bool) error {
-	fmt.Printf("Peer id=%s key=%s ip=%s port=%s complete=%v\n", id, key, ip, port, complete)
-
 	query := fmt.Sprintf("UPDATE %s SET ip = ?, port = ?, complete = ?, lastSeen = ? WHERE id = ? AND peerKey = ?", t.hash)
 	result, err := db.Exec(query, ip, port, complete, time.Now().Unix(), id, key)
 	if err != nil {
 		return err
 	}
 	affected, err := result.RowsAffected()
-	fmt.Println(affected, err)
 	if err != nil {
 		return err
 	}
