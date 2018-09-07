@@ -31,7 +31,7 @@ func randStr(n int) string {
 	return string(b)
 }
 
-func Request(infoHash, ip, event, left, peerID, key, port string) error {
+func Request(infoHash, ip, event, left, peerID, key, port string, compact bool) error {
 	// Make the request
 	req, err := http.NewRequest("GET", "http://127.0.0.1:8080/announce", nil)
 	if err != nil {
@@ -45,6 +45,9 @@ func Request(infoHash, ip, event, left, peerID, key, port string) error {
 	q.Add("peer_id", peerID)
 	q.Add("key", key)
 	q.Add("port", port)
+	if compact {
+		q.Add("compact", "1")
+	}
 	req.URL.RawQuery = q.Encode()
 
 	// Send it
@@ -63,6 +66,7 @@ func Request(infoHash, ip, event, left, peerID, key, port string) error {
 	var decoded map[string]interface{}
 	bencode.Unmarshal(body, &decoded)
 	spew.Dump(decoded)
+	spew.Dump(body)
 
 	return nil
 }
@@ -70,15 +74,18 @@ func Request(infoHash, ip, event, left, peerID, key, port string) error {
 func TestApp(t *testing.T) {
 
 	// Make peers
-	Request("QWERTYUIOPASDFGHJKLZ", "1.1.1.1", "started", "100", "peer1", "peer1", "42069")
-	Request("QWERTYUIOPASDFGHJKLZ", "2.2.2.2", "started", "100", "peer2", "peer2", "42069")
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.1", "started", "100", "peer1", "peer1", "42069", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.2", "started", "100", "peer2", "peer2", "42069", false)
 
 	// Update peers
-	Request("QWERTYUIOPASDFGHJKLZ", "1.1.1.11", "started", "80", "peer1", "peer1", "6999")
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.11", "started", "80", "peer1", "peer1", "6999", false)
 
 	// Complete peers
-	Request("QWERTYUIOPASDFGHJKLZ", "2.2.2.2", "started", "0", "peer1", "peer1", "6999")
-	Request("QWERTYUIOPASDFGHJKLZ", "1.1.1.11", "complete", "200", "peer1", "peer1", "6999")
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.2", "started", "0", "peer1", "peer1", "6999", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.11", "complete", "200", "peer1", "peer1", "6999", false)
+
+	// Compact responses
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.3", "started", "0", "peer3", "peer3", "4213", true)
 
 	return
 }

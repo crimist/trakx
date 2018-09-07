@@ -13,6 +13,7 @@ import (
 	_ "github.com/go-sql-driver/mysql" // MySQL driver
 
 	"github.com/Syc0x00/Trakx/bencoding"
+	"github.com/Syc0x00/Trakx/utils"
 )
 
 var db *sql.DB
@@ -50,12 +51,18 @@ func Clean() {
 
 		// Clean them all
 		for _, table := range tables {
-			timeOut := int64(60 * 30) // 15 min
+			timeOut := int64(60 * 10) // 10 min
 			query := fmt.Sprintf("DELETE FROM %s WHERE lastSeen < ?", table)
 			_, err := db.Exec(query, time.Now().Unix()-timeOut)
 			if err != nil {
 				fmt.Println(err)
 			}
+		}
+
+		// Auto delete empty tables
+		_, err = db.Exec("SELECT CONCAT('DROP TABLE ', GROUP_CONCAT(table_name), ';') AS query FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_ROWS = '0' AND TABLE_SCHEMA = 'bittorrent'")
+		if err != nil {
+			fmt.Println(err)
 		}
 
 		rows.Close()
@@ -151,7 +158,7 @@ func (t *Torrent) GetPeerListCompact(num string) (string, error) {
 		num = "9999999" // Unlimited
 	}
 
-	query := fmt.Sprintf("SELECT id, ip, port FROM %s ORDER BY RAND() LIMIT ?", t.hash)
+	query := fmt.Sprintf("SELECT ip, port FROM %s ORDER BY RAND() LIMIT ?", t.hash)
 	rows, err := db.Query(query, num)
 	if err != nil {
 		return "", err
@@ -160,10 +167,9 @@ func (t *Torrent) GetPeerListCompact(num string) (string, error) {
 
 	peerList := ""
 	for rows.Next() {
-		var id string
 		var ip string
 		var port uint16
-		err = rows.Scan(&id, &ip, &port)
+		err = rows.Scan(&ip, &port)
 		if err != nil {
 			return "", err
 		}
@@ -171,8 +177,12 @@ func (t *Torrent) GetPeerListCompact(num string) (string, error) {
 		// Network order
 		var b bytes.Buffer
 		writer := bufio.NewWriter(&b)
-		binary.Write(writer, binary.BigEndian, net.ParseIP(ip))
+
+		ipBytes := utils.IPToInt(net.ParseIP(ip))
+
+		binary.Write(writer, binary.BigEndian, ipBytes)
 		binary.Write(writer, binary.BigEndian, port)
+		writer.Flush()
 		peerList += b.String()
 	}
 	return peerList, nil

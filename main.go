@@ -154,7 +154,7 @@ func main() {
 	})
 
 	http.HandleFunc("/scrape", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "SoonTM")
+		fmt.Fprintf(w, "Soon™")
 	})
 
 	http.HandleFunc("/announce", Announce)
