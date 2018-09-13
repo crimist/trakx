@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	testing = true
+	prod = false
 )
 
 // Announce x
@@ -57,7 +57,7 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if testing { // In test mode trust given ip
+	if !prod { // In test mode trust given ip
 		ipaddr = ip
 	} else { // In prod use real ip
 		if ip != "" && ip != ipaddr {
@@ -126,21 +126,18 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	prod := flag.Bool("x", false, "Production mode")
-	port := flag.String("p", "8080", "HTTP port to serve")
+	prodFlag := flag.Bool("x", false, "Production mode")
+	portFlag := flag.String("p", "8080", "HTTP port to serve")
 
 	flag.Parse()
 
-	if *prod == true {
-		fmt.Println("Production")
-		testing = false
-	}
+	prod = *prodFlag
 
 	fmt.Println("OSX:")
 	fmt.Println("\tbrew services start mysql")
 	fmt.Println("\tmysql -uroot")
 
-	db, err := tracker.Init()
+	db, err := tracker.Init(prod)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -159,7 +156,7 @@ func main() {
 
 	http.HandleFunc("/announce", Announce)
 
-	if err := http.ListenAndServe(":"+*port, nil); err != nil {
+	if err := http.ListenAndServe(":"+*portFlag, nil); err != nil {
 		fmt.Println(err)
 	}
 }

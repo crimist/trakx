@@ -11,15 +11,19 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql" // MySQL driver
+	"go.uber.org/zap"
 
 	"github.com/Syc0x00/Trakx/bencoding"
 	"github.com/Syc0x00/Trakx/utils"
 )
 
-var db *sql.DB
+var (
+	db     *sql.DB
+	logger *zap.Logger
+)
 
 // Init x
-func Init() (*sql.DB, error) {
+func Init(prod bool) (*sql.DB, error) {
 	var err error
 	db, err = sql.Open("mysql", "root@/bittorrent")
 	if err != nil {
@@ -28,44 +32,62 @@ func Init() (*sql.DB, error) {
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
+
+	if prod {
+		logger, err = zap.NewProduction()
+	} else {
+		logger, err = zap.NewDevelopment()
+	}
+	defer logger.Sync()
+
 	return db, nil
 }
 
-// Clean auto cleans clients that havn't checked in in a certain amount of time
+// Clean auto cleans clients that haven't checked in in a certain amount of time
 func Clean() {
 	for {
 		// Get sql table list
 		rows, err := db.Query("SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='bittorrent'")
 		if err != nil {
-			fmt.Println(err)
+			logger.Error(err.Error())
 		}
 		tables := []string{}
 		for rows.Next() {
 			var table string
 			err = rows.Scan(&table)
 			if err != nil {
-				fmt.Println(err)
+				logger.Error(err.Error())
 			}
 			tables = append(tables)
 		}
+		rows.Close()
 
 		// Clean them all
+		deleted := 0
 		for _, table := range tables {
 			timeOut := int64(60 * 10) // 10 min
 			query := fmt.Sprintf("DELETE FROM %s WHERE lastSeen < ?", table)
-			_, err := db.Exec(query, time.Now().Unix()-timeOut)
+			result, err := db.Exec(query, time.Now().Unix()-timeOut)
 			if err != nil {
-				fmt.Println(err)
+				logger.Error(err.Error())
 			}
+			affected, err := result.RowsAffected()
+			if err != nil {
+				logger.Error(err.Error())
+			}
+			deleted += int(affected)
 		}
+
+		logger.Info("Cleaned tables",
+			zap.Int("affected", deleted),
+		)
 
 		// Auto delete empty tables
 		_, err = db.Exec("SELECT CONCAT('DROP TABLE ', GROUP_CONCAT(table_name), ';') AS query FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_ROWS = '0' AND TABLE_SCHEMA = 'bittorrent'")
 		if err != nil {
-			fmt.Println(err)
+			logger.Error(err.Error())
 		}
 
-		rows.Close()
 		time.Sleep(5 * time.Minute)
 	}
 }
@@ -88,7 +110,7 @@ func (t *Torrent) table() error {
 	_, err := db.Exec(fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", t.hash))
 	if err != nil { // If error the table doesn't exist
 		// SQli safe because we change it to hex
-		_, err = db.Exec(fmt.Sprintf("CREATE TABLE %s (id varchar(40), peerKey varchar(20), ip varchar(255), port smallint unsigned, complete bool, lastSeen bigint	unsigned)", t.hash))
+		_, err = db.Exec(fmt.Sprintf("CREATE TABLE %s (id varchar(40), peerKey varchar(20), ip varchar(45), port smallint unsigned, complete bool, lastSeen bigint unsigned)", t.hash))
 		return err
 	}
 	return nil
@@ -108,6 +130,13 @@ func (t *Torrent) Peer(id string, key string, ip string, port string, complete b
 	if affected == 0 { // They don't exist
 		query := fmt.Sprintf("INSERT INTO %s VALUES (?, ?, ?, ?, ?, ?)", t.hash)
 		_, err = db.Exec(query, id, key, ip, port, complete, time.Now().Unix())
+		logger.Info("New peer",
+			zap.String("id", id),
+			zap.String("key", key),
+			zap.String("ip", ip),
+			zap.String("port", port),
+			zap.Bool("complete", complete),
+		)
 	}
 	return err
 }
@@ -227,7 +256,9 @@ func (t *Torrent) Incomplete() (int, error) {
 // Error throws a tracker bencoded error and writes to stdout with
 // a stack trace.
 func Error(w io.Writer, reason string) {
-	fmt.Println("Err:", reason)
+	logger.Error("Error: ",
+		zap.String("reason", reason),
+	)
 
 	d := bencoding.NewDict()
 	d.Add("failure reason", reason)
