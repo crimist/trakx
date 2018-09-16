@@ -35,9 +35,9 @@ It currently uses my own bencode package but I will most likely move to somethin
 
 It uses the database `bittorrent` and creates a table for each torrent. Tables contain all the peers and is named `Hash_x` where `x = hex encoded info hash of torrent`.
 
-Torrent table:
-
 ### Descriptions
+
+Torrent table:
 
 ```en
 +----------+----------------------+------+-----+---------+-------+
