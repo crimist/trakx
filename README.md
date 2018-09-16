@@ -61,3 +61,15 @@ Banned hash table:
 | hash  | varchar(45) | YES  | UNI | NULL    |       |
 +-------+-------------+------+-----+---------+-------+
 ```
+
+## Testing
+
+### Code tests
+
+Just use the good old `go test -v`
+
+### Stress
+
+Use vegeta; it's good.
+
+`echo "GET http://localhost:1337/scrape" | vegeta attack -rate 15000/s -duration=20s | vegeta plot > /tmp/plot.html; open plot.html`
