@@ -28,12 +28,14 @@ It currently uses my own bencode package but I will most likely move to somethin
 * Auto delete empty tables
 * Logging
   * Using zap
+* Support banning hashes
+  * Mainly to comply with dmca
 
 ## Database layout
 
-It uses the database `bittorrent` and creates a table with the info hash converted to capital hex.
+It uses the database `bittorrent` and creates a table with the info hash converted into the string `Hash_x` where x is a captial hex encoded version of the info hash
 
-A torrent table looks like this:
+Torrent table:
 
 ```en
 +----------+----------------------+------+-----+---------+-------+
@@ -41,9 +43,19 @@ A torrent table looks like this:
 +----------+----------------------+------+-----+---------+-------+
 | id       | varchar(40)          | YES  |     | NULL    |       |
 | peerKey  | varchar(20)          | YES  |     | NULL    |       |
-| ip       | varchar(255)         | YES  |     | NULL    |       |
+| ip       | varchar(45)          | YES  |     | NULL    |       |
 | port     | smallint(5) unsigned | YES  |     | NULL    |       |
 | complete | tinyint(1)           | YES  |     | NULL    |       |
 | lastSeen | bigint(20) unsigned  | YES  |     | NULL    |       |
 +----------+----------------------+------+-----+---------+-------+
+```
+
+Banned hash table:
+
+```en
++-------+-------------+------+-----+---------+-------+
+| Field | Type        | Null | Key | Default | Extra |
++-------+-------------+------+-----+---------+-------+
+| hash  | varchar(40) | YES  |     | NULL    |       |
++-------+-------------+------+-----+---------+-------+
 ```

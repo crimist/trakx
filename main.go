@@ -3,13 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/Syc0x00/Trakx/bencoding"
 	"github.com/Syc0x00/Trakx/tracker"
-	"github.com/davecgh/go-spew/spew"
 )
 
 var (
@@ -21,57 +21,65 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	infoHash := r.URL.Query().Get("info_hash")
 	peerID := r.URL.Query().Get("peer_id")
 	port := r.URL.Query().Get("port")
-	uploaded := r.URL.Query().Get("uploaded")
-	downloaded := r.URL.Query().Get("downloaded")
+	// uploaded := r.URL.Query().Get("uploaded")
+	// downloaded := r.URL.Query().Get("downloaded")
 	left := r.URL.Query().Get("left")
 	compact := r.URL.Query().Get("compact")
-	noPeerID := r.URL.Query().Get("no_peer_id")
+	// noPeerID := r.URL.Query().Get("no_peer_id")
 	event := r.URL.Query().Get("event")
 	numwant := r.URL.Query().Get("numwant")
 	key := r.URL.Query().Get("key")
-	trackerID := r.URL.Query().Get("trackerid")
+	// trackerID := r.URL.Query().Get("trackerid")
 	ip := r.URL.Query().Get("ip")
 	ipaddr := strings.Split(r.RemoteAddr, ":")[0] // Remove port ex: 127.0.0.1:9999
 
-	// So the vars are used
-	spew.Sdump(infoHash, peerID, port, uploaded, downloaded, left, compact, noPeerID, event, ip, numwant, key, trackerID)
-
 	if len(infoHash) != 20 {
-		tracker.Error(w, "invalid hash")
+		tracker.Error(w, "Invalid hash", http.StatusBadRequest)
 		return
 	}
 
 	if port == "" {
-		tracker.Error(w, "no port")
+		tracker.Error(w, "No port", http.StatusBadRequest)
 		return
 	}
 
 	if _, err := strconv.Atoi(port); err != nil {
-		tracker.Error(w, "invalid port")
+		tracker.Error(w, "Invalid port", http.StatusBadRequest)
 		return
 	}
 
-	t, err := tracker.NewTorrent(infoHash)
-	if err != nil {
-		tracker.Error(w, err.Error())
-		return
+	t, banErr := tracker.NewTorrent(infoHash)
+	if banErr == tracker.Err {
+		tracker.InternalError(w)
+	} else if banErr == tracker.ErrBanned {
+		tracker.Error(w, "Banned torrent (hash)", http.StatusForbidden)
 	}
 
-	if !prod { // In test mode trust given ip
-		ipaddr = ip
-	} else { // In prod use real ip
+	if prod {
+		// in prod use remote addr
 		if ip != "" && ip != ipaddr {
-			tracker.Error(w, "IP address doesn't match")
+			tracker.Error(w, "IP address doesn't match", http.StatusBadRequest)
 			return
 		}
+	} else {
+		// In testing trust the client provided ip
+		ipaddr = ip
 	}
 
-	// Remove the peer and return
+	// Check if valid IP address
+	validIP := net.ParseIP(ipaddr)
+	if validIP == nil {
+		tracker.Error(w, "Invalid IP address", http.StatusBadRequest)
+		return
+	}
+
+	// If stopped remove the peer and return
 	if event == "stopped" {
-		err = t.RemovePeer(peerID, key)
-		if err != nil {
-			tracker.Error(w, err.Error())
+		if t.RemovePeer(peerID, key) {
+			tracker.InternalError(w)
+			return
 		}
+		fmt.Fprint(w, "Goodbye")
 		return
 	}
 
@@ -81,21 +89,22 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	if event == "completed" || (event == "started" && left == "0") {
 		complete = true
 	}
-	err = t.Peer(peerID, key, ipaddr, port, complete)
-	if err != nil {
-		tracker.Error(w, err.Error())
+
+	if t.Peer(peerID, key, ipaddr, port, complete) {
+		tracker.InternalError(w)
+		return
 	}
 
 	// Get number complete and incomplete
-	c, err := t.Complete()
-	if err != nil {
-		tracker.Error(w, err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	c := t.Complete()
+	if c == -1 {
+		tracker.InternalError(w)
+		return
 	}
-	i, err := t.Incomplete()
-	if err != nil {
-		tracker.Error(w, err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	i := t.Incomplete()
+	if i == -1 {
+		tracker.InternalError(w)
+		return
 	}
 
 	// Encode and send the data
@@ -107,17 +116,17 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 
 	// Get the peer list
 	if compact == "1" {
-		peerList, err := t.GetPeerListCompact(numwant)
-		if err != nil {
-			tracker.Error(w, err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		peerList, failed := t.GetPeerListCompact(numwant)
+		if failed {
+			tracker.InternalError(w)
+			return
 		}
 		d.Add("peers", peerList)
 	} else {
-		peerList, err := t.GetPeerList(numwant)
-		if err != nil {
-			tracker.Error(w, err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		peerList, failed := t.GetPeerList(numwant)
+		if failed {
+			tracker.InternalError(w)
+			return
 		}
 		d.Add("peers", peerList)
 	}
@@ -127,15 +136,11 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	prodFlag := flag.Bool("x", false, "Production mode")
-	portFlag := flag.String("p", "8080", "HTTP port to serve")
+	portFlag := flag.String("p", "1337", "HTTP port to serve")
 
 	flag.Parse()
 
 	prod = *prodFlag
-
-	fmt.Println("OSX:")
-	fmt.Println("\tbrew services start mysql")
-	fmt.Println("\tmysql -uroot")
 
 	db, err := tracker.Init(prod)
 	if err != nil {
@@ -151,7 +156,9 @@ func main() {
 	})
 
 	http.HandleFunc("/scrape", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Soon™")
+		w.WriteHeader(http.StatusTeapot)
+		message := "I'm a teapot\n             ;,'\n     _o_    ;:;'\n ,-.'---`.__ ;\n((j`=====',-'\n `-\\     /\n    `-=-'     This tracker doesn't support /scrape\n"
+		fmt.Fprintf(w, message)
 	})
 
 	http.HandleFunc("/announce", Announce)

@@ -6,8 +6,8 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"net"
+	"net/http"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql" // MySQL driver
@@ -25,6 +25,7 @@ var (
 // Init x
 func Init(prod bool) (*sql.DB, error) {
 	var err error
+	// open mysql conn
 	db, err = sql.Open("mysql", "root@/bittorrent")
 	if err != nil {
 		return nil, err
@@ -33,6 +34,7 @@ func Init(prod bool) (*sql.DB, error) {
 		return nil, err
 	}
 
+	// init logger
 	if prod {
 		logger, err = zap.NewProduction()
 	} else {
@@ -40,14 +42,17 @@ func Init(prod bool) (*sql.DB, error) {
 	}
 	defer logger.Sync()
 
+	// init the banned hashes table
+	initBanTable()
+
 	return db, nil
 }
 
 // Clean auto cleans clients that haven't checked in in a certain amount of time
 func Clean() {
 	for {
-		// Get sql table list
-		rows, err := db.Query("SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='bittorrent'")
+		// Get all hash_ tables
+		rows, err := db.Query("SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='bittorrent' AND TABLE_NAME LIKE 'Hash_%'")
 		if err != nil {
 			logger.Error(err.Error())
 		}
@@ -58,28 +63,23 @@ func Clean() {
 			if err != nil {
 				logger.Error(err.Error())
 			}
-			tables = append(tables)
+			tables = append(tables, table)
 		}
 		rows.Close()
 
 		// Clean them all
-		deleted := 0
 		for _, table := range tables {
 			timeOut := int64(60 * 10) // 10 min
 			query := fmt.Sprintf("DELETE FROM %s WHERE lastSeen < ?", table)
-			result, err := db.Exec(query, time.Now().Unix()-timeOut)
+			_, err := db.Exec(query, time.Now().Unix()-timeOut)
 			if err != nil {
 				logger.Error(err.Error())
 			}
-			affected, err := result.RowsAffected()
-			if err != nil {
-				logger.Error(err.Error())
-			}
-			deleted += int(affected)
 		}
 
 		logger.Info("Cleaned tables",
-			zap.Int("affected", deleted),
+			zap.Int("table #", len(tables)),
+			zap.Strings("tables", tables),
 		)
 
 		// Auto delete empty tables
@@ -98,38 +98,62 @@ type Torrent struct {
 }
 
 // NewTorrent x
-func NewTorrent(hash string) (Torrent, error) {
+func NewTorrent(hash string) (*Torrent, BanErr) {
 	t := Torrent{
-		hash: fmt.Sprintf("%X", hash),
+		hash: EncodeInfoHash(hash),
 	}
-	err := t.table()
-	return t, err
+
+	// If it's a banned hash say fuck off
+	isBanned := IsBannedHash(t.hash)
+	if isBanned == -1 {
+		return nil, Err
+	} else if isBanned == 1 {
+		// banned hash
+		return nil, ErrBanned
+	}
+
+	if t.table() { // if it failed
+		return nil, Err
+	}
+	return &t, ErrOK
 }
 
-func (t *Torrent) table() error {
+func (t *Torrent) table() bool {
 	_, err := db.Exec(fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", t.hash))
 	if err != nil { // If error the table doesn't exist
 		// SQli safe because we change it to hex
 		_, err = db.Exec(fmt.Sprintf("CREATE TABLE %s (id varchar(40), peerKey varchar(20), ip varchar(45), port smallint unsigned, complete bool, lastSeen bigint unsigned)", t.hash))
-		return err
+		if err != nil {
+			logger.Error(err.Error())
+			return true
+		}
+		logger.Info("New torrent",
+			zap.String("hash", t.hash),
+		)
 	}
-	return nil
+	return false
 }
 
 // Peer adds or updates a peer
-func (t *Torrent) Peer(id string, key string, ip string, port string, complete bool) error {
+func (t *Torrent) Peer(id string, key string, ip string, port string, complete bool) bool {
 	query := fmt.Sprintf("UPDATE %s SET ip = ?, port = ?, complete = ?, lastSeen = ? WHERE id = ? AND peerKey = ?", t.hash)
 	result, err := db.Exec(query, ip, port, complete, time.Now().Unix(), id, key)
 	if err != nil {
-		return err
+		logger.Error(err.Error())
+		return true
 	}
 	affected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		logger.Error(err.Error())
+		return true
 	}
 	if affected == 0 { // They don't exist
 		query := fmt.Sprintf("INSERT INTO %s VALUES (?, ?, ?, ?, ?, ?)", t.hash)
 		_, err = db.Exec(query, id, key, ip, port, complete, time.Now().Unix())
+		if err != nil {
+			logger.Error(err.Error())
+			return true
+		}
 		logger.Info("New peer",
 			zap.String("id", id),
 			zap.String("key", key),
@@ -138,19 +162,23 @@ func (t *Torrent) Peer(id string, key string, ip string, port string, complete b
 			zap.Bool("complete", complete),
 		)
 	}
-	return err
+	return false
 }
 
 // RemovePeer removes the peer from the db
-func (t *Torrent) RemovePeer(id string, key string) error {
+func (t *Torrent) RemovePeer(id string, key string) bool {
 	query := fmt.Sprintf("DELETE FROM %s WHERE id = ? AND peerKey = ?", t.hash)
 	_, err := db.Exec(query, id, key)
-	return err
+	if err != nil {
+		logger.Error(err.Error())
+		return true
+	}
+	return false
 }
 
 // GetPeerList gets numwant peers from the db
 // If numwanst is unspecfied then it is all peers
-func (t *Torrent) GetPeerList(num string) ([]string, error) {
+func (t *Torrent) GetPeerList(num string) ([]string, bool) {
 	if num == "" || num == "0" {
 		num = "9999999" // Unlimited
 	}
@@ -158,7 +186,8 @@ func (t *Torrent) GetPeerList(num string) ([]string, error) {
 	query := fmt.Sprintf("SELECT id, ip, port FROM %s ORDER BY RAND() LIMIT ?", t.hash)
 	rows, err := db.Query(query, num)
 	if err != nil {
-		return nil, err
+		logger.Error(err.Error())
+		return nil, true
 	}
 	defer rows.Close()
 
@@ -169,7 +198,8 @@ func (t *Torrent) GetPeerList(num string) ([]string, error) {
 		var port uint16
 		err = rows.Scan(&id, &ip, &port)
 		if err != nil {
-			return nil, err
+			logger.Error(err.Error())
+			return nil, true
 		}
 		peer := bencoding.NewDict()
 		peer.Add("peer id", id)
@@ -177,12 +207,12 @@ func (t *Torrent) GetPeerList(num string) ([]string, error) {
 		peer.Add("port", port)
 		peerList = append(peerList, peer.Get())
 	}
-	return peerList, nil
+	return peerList, false
 }
 
 // GetPeerListCompact gets numwant peers from the db in the compact format
 // If numwanst is unspecfied then it is all peers
-func (t *Torrent) GetPeerListCompact(num string) (string, error) {
+func (t *Torrent) GetPeerListCompact(num string) (string, bool) {
 	if num == "" || num == "0" {
 		num = "9999999" // Unlimited
 	}
@@ -190,7 +220,8 @@ func (t *Torrent) GetPeerListCompact(num string) (string, error) {
 	query := fmt.Sprintf("SELECT ip, port FROM %s ORDER BY RAND() LIMIT ?", t.hash)
 	rows, err := db.Query(query, num)
 	if err != nil {
-		return "", err
+		logger.Error(err.Error())
+		return "", true
 	}
 	defer rows.Close()
 
@@ -200,7 +231,8 @@ func (t *Torrent) GetPeerListCompact(num string) (string, error) {
 		var port uint16
 		err = rows.Scan(&ip, &port)
 		if err != nil {
-			return "", err
+			logger.Error(err.Error())
+			return "", true
 		}
 
 		// Network order
@@ -214,77 +246,58 @@ func (t *Torrent) GetPeerListCompact(num string) (string, error) {
 		writer.Flush()
 		peerList += b.String()
 	}
-	return peerList, nil
+	return peerList, false
 }
 
 // Complete returns the number of peers that are complete
-func (t *Torrent) Complete() (int, error) {
+// returns -1 on failure
+func (t *Torrent) Complete() int {
 	rows, err := db.Query(fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE complete = true", t.hash))
 	if err != nil {
-		return 0, err
+		logger.Error(err.Error())
+		return -1
 	}
 	defer rows.Close()
 
 	var count int
-
 	for rows.Next() {
 		if err := rows.Scan(&count); err != nil {
-			return 0, err
+			logger.Error(err.Error())
+			return -1
 		}
 	}
-	return count, nil
+	return count
 }
 
 // Incomplete returns the number of peers that are incomplete
-func (t *Torrent) Incomplete() (int, error) {
+// returns -1 on failure
+func (t *Torrent) Incomplete() int {
 	rows, err := db.Query(fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE complete = false", t.hash))
 	if err != nil {
-		return 0, err
+		logger.Error(err.Error())
+		return -1
 	}
 	defer rows.Close()
 
 	var count int
-
 	for rows.Next() {
 		if err := rows.Scan(&count); err != nil {
-			return 0, err
+			logger.Error(err.Error())
+			return -1
 		}
 	}
-	return count, nil
+	return count
 }
 
-// Error throws a tracker bencoded error and writes to stdout with
-// a stack trace.
-func Error(w io.Writer, reason string) {
-	logger.Error("Error: ",
-		zap.String("reason", reason),
-	)
-
+// Error throws a tracker bencoded error
+func Error(w http.ResponseWriter, reason string, status int) {
 	d := bencoding.NewDict()
 	d.Add("failure reason", reason)
+	w.WriteHeader(status)
 	fmt.Fprint(w, d.Get())
 }
 
-// Delete soon if 100% unneeded
-
-/*
-// NewPeer creates a new peer in the dp
-func (t *Torrent) NewPeer(id string, key string, ip string, port string, complete bool) error {
-	query := fmt.Sprintf("INSERT INTO %s VALUES (?, ?, ?, ?, ?)", t.hash)
-	_, err := db.Exec(query, id, key, ip, port, complete)
-	if err != nil {
-		return err
-	}
-	return nil
+// InternalError is a wrapper to tell the client I fucked up
+func InternalError(w http.ResponseWriter) {
+	Error(w, "Internal Server Error", http.StatusInternalServerError)
 }
-
-// UpdatePeer updates an existing peer in the db
-func (t *Torrent) UpdatePeer(id string, key string, ip string, port string, complete bool) error {
-	query := fmt.Sprintf("UPDATE %s SET id = ?, ip = ?, port = ?, complete = ? WHERE peerKey = ?)", t.hash)
-	_, err := db.Exec(query, id, ip, port, complete, key)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-*/
