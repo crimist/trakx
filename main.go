@@ -33,21 +33,46 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	ip := r.URL.Query().Get("ip")
 	ipaddr := strings.Split(r.RemoteAddr, ":")[0] // Remove port ex: 127.0.0.1:9999
 
+	// Check info hash
 	if len(infoHash) != 20 {
 		tracker.Error(w, "Invalid hash", http.StatusBadRequest)
 		return
 	}
 
+	// Check peer id
+	if len(peerID) != 20 {
+		tracker.Error(w, "Invalid peer ID, must be 20 bytes.", http.StatusBadRequest)
+		return
+	}
+
+	// Check valid port
 	if port == "" {
 		tracker.Error(w, "No port", http.StatusBadRequest)
 		return
 	}
-
-	if _, err := strconv.Atoi(port); err != nil {
-		tracker.Error(w, "Invalid port", http.StatusBadRequest)
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		tracker.Error(w, "Port not int", http.StatusBadRequest)
+		return
+	}
+	if portInt > 65535 || portInt < 1 {
+		tracker.Error(w, "Port not uint16", http.StatusBadRequest)
 		return
 	}
 
+	// Check valid event
+	if event != "started" && event != "stopped" && event != "completed" {
+		tracker.Error(w, "Invalid event", http.StatusBadRequest)
+		return
+	}
+
+	// Check left is int
+	if _, err := strconv.Atoi(left); err != nil {
+		tracker.Error(w, "Left not int", http.StatusBadRequest)
+		return
+	}
+
+	// Go go go
 	t, banErr := tracker.NewTorrent(infoHash)
 	if banErr == tracker.Err {
 		tracker.InternalError(w)
@@ -152,7 +177,7 @@ func main() {
 	go tracker.Clean()
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Alive")
+		fmt.Fprintf(w, "This is an open p2p tracker; Feel free to add it.")
 	})
 
 	http.HandleFunc("/scrape", func(w http.ResponseWriter, r *http.Request) {
