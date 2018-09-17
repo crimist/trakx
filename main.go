@@ -160,22 +160,22 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Get flags
 	prodFlag := flag.Bool("x", false, "Production mode")
 	portFlag := flag.String("p", "1337", "HTTP port to serve")
-
 	flag.Parse()
-
 	prod = *prodFlag
 
+	// Init dbs ect.
 	db, err := tracker.Init(prod)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	defer db.Close() // Cleanup
+	defer db.Close()
+	go tracker.Clean() // Cleans dbs
 
-	go tracker.Clean()
-
+	// Global handler
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "This is an open p2p tracker; Feel free to add it.")
 	})
