@@ -1,6 +1,7 @@
 package tracker_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -65,7 +66,14 @@ func Request(infoHash, ip, event, left, peerID, key, port string, compact bool) 
 
 	var decoded map[string]interface{}
 	bencode.Unmarshal(body, &decoded)
+	fmt.Println("--------------------------------------")
 	spew.Dump(peerID, decoded, resp.StatusCode)
+
+	switch v := decoded["peers"].(type) {
+	case string:
+		spew.Dump([]byte(v))
+	default:
+	}
 
 	return nil
 }
@@ -73,34 +81,33 @@ func Request(infoHash, ip, event, left, peerID, key, port string, compact bool) 
 func TestApp(t *testing.T) {
 
 	// Make peers
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.1", "started", "100", "peer1", "peer1", "42069", false)
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.2", "started", "100", "peer2", "peer2", "42069", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.1", "started", "100", "AAAAAAAAAAAAAAAPEER1", "peer1", "42069", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.2", "started", "100", "AAAAAAAAAAAAAAAPEER2", "peer2", "42069", false)
 
 	// Update peers
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.11", "started", "80", "peer1", "peer1", "6999", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.11", "started", "80", "AAAAAAAAAAAAAAAPEER1", "peer1", "6999", false)
 
 	// Complete peers
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.2", "started", "0", "peer1", "peer1", "6999", false)
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.11", "complete", "200", "peer1", "peer1", "6999", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.2", "started", "0", "AAAAAAAAAAAAAAAPEER1", "peer1", "6999", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.11", "completed", "200", "AAAAAAAAAAAAAAAPEER1", "peer1", "6999", false)
 
 	// Compact responses
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.3", "started", "0", "peer3", "peer3", "4213", true)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.3", "started", "0", "AAAAAAAAAAAAAAAPEER3", "peer3", "4213", true)
 
 	// Ipv6
-	Request("QWERTYUIOPASDFGHJKLZ", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "started", "0", "peer4", "peer4", "8765", true)
+	Request("QWERTYUIOPASDFGHJKLZ", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "started", "0", "AAAAAAAAAAAAAAAPEER4", "peer4", "8765", true)
 
 	// Test banned hashes
-	Request("8C4947E96C7C9F770AA3", "192.168.1.4", "started", "0", "peer5", "peer5", "1111", false)
+	Request("8C4947E96C7C9F770AA3", "192.168.1.4", "started", "0", "AAAAAAAAAAAAAAAPEER5", "peer5", "1111", false)
 
 	// Remove them all
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.1", "stopped", "100", "peer1", "peer1", "42069", false)
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.2", "stopped", "100", "peer2", "peer2", "42069", false)
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.11", "stopped", "80", "peer1", "peer1", "6999", false)
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.2", "stopped", "0", "peer1", "peer1", "6999", false)
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.11", "stopped", "200", "peer1", "peer1", "6999", false)
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.3", "stopped", "0", "peer3", "peer3", "4213", true)
-	Request("QWERTYUIOPASDFGHJKLZ", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "stopped", "0", "peer4", "peer4", "8765", true)
-	Request("8C4947E96C7C9F770AA3", "192.168.1.4", "stopped", "0", "peer5", "peer5", "1111", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.1", "stopped", "100", "AAAAAAAAAAAAAAAPEER1", "peer1", "42069", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.2", "stopped", "100", "AAAAAAAAAAAAAAAPEER2", "peer2", "42069", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.11", "stopped", "80", "AAAAAAAAAAAAAAAPEER1", "peer1", "6999", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.2", "stopped", "0", "AAAAAAAAAAAAAAAPEER1", "peer1", "6999", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.11", "stopped", "200", "AAAAAAAAAAAAAAAPEER1", "peer1", "6999", false)
+	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.3", "stopped", "0", "AAAAAAAAAAAAAAAPEER3", "peer3", "4213", true)
+	Request("QWERTYUIOPASDFGHJKLZ", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "stopped", "0", "AAAAAAAAAAAAAAAPEER4", "peer4", "8765", true)
 
 	return
 }

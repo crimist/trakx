@@ -98,7 +98,7 @@ type Torrent struct {
 }
 
 // NewTorrent x
-func NewTorrent(hash string) (*Torrent, BanErr) {
+func NewTorrent(hash string) (Torrent, BanErr) {
 	t := Torrent{
 		hash: EncodeInfoHash(hash),
 	}
@@ -106,16 +106,16 @@ func NewTorrent(hash string) (*Torrent, BanErr) {
 	// If it's a banned hash say fuck off
 	isBanned := IsBannedHash(t.hash)
 	if isBanned == -1 {
-		return nil, Err
+		return t, Err
 	} else if isBanned == 1 {
 		// banned hash
-		return nil, ErrBanned
+		return t, ErrBanned
 	}
 
 	if t.table() { // if it failed
-		return nil, Err
+		return t, Err
 	}
-	return &t, ErrOK
+	return t, ErrOK
 }
 
 func (t *Torrent) table() bool {
