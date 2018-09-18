@@ -6,7 +6,6 @@ import (
 	"math/rand"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/davecgh/go-spew/spew"
 
@@ -110,23 +109,4 @@ func TestApp(t *testing.T) {
 	Request("QWERTYUIOPASDFGHJKLZ", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "stopped", "0", "AAAAAAAAAAAAAAAPEER4", "peer4", "8765", true)
 
 	return
-}
-
-func BenchmarkApp(b *testing.B) {
-	rand.Seed(time.Now().Unix())
-	for n := 0; n < b.N; n++ {
-		req, _ := http.NewRequest("GET", "http://127.0.0.1:8080/announce", nil)
-		q := req.URL.Query()
-		q.Add("info_hash", "QWERTYUIOPASDFGHJKLZ")
-		q.Add("ip", "69.69.69.69")
-		q.Add("event", "started")
-		q.Add("left", "100")
-		q.Add("peer_id", randStr(20)) // random
-		q.Add("key", randStr(20))     // random
-		q.Add("port", "69")
-		req.URL.RawQuery = q.Encode()
-
-		// Send it
-		client.Do(req)
-	}
 }
