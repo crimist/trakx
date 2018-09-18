@@ -76,8 +76,10 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	t, banErr := tracker.NewTorrent(infoHash)
 	if banErr == tracker.Err {
 		tracker.InternalError(w)
+		return
 	} else if banErr == tracker.ErrBanned {
 		tracker.Error(w, "Banned torrent (hash)", http.StatusForbidden)
+		return
 	}
 
 	if prod {
@@ -91,10 +93,14 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		ipaddr = ip
 	}
 
-	// Check if valid IP address
+	// Check if valid IPv4 address
 	validIP := net.ParseIP(ipaddr)
 	if validIP == nil {
 		tracker.Error(w, "Invalid IP address", http.StatusBadRequest)
+		return
+	}
+	if strings.Contains(ipaddr, ":") { // We don't support ipv6
+		tracker.Error(w, "IPv6 unsupported", http.StatusBadRequest)
 		return
 	}
 
