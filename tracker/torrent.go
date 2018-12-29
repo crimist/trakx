@@ -59,7 +59,7 @@ func (t *Torrent) table() TrackErr {
 }
 
 // Peer adds or updates a peer
-func (t *Torrent) Peer(id string, key string, ip string, port string, complete bool) TrackErr {
+func (t *Torrent) Peer(id string, key string, ip string, port uint16, complete bool) TrackErr {
 	// Update peer
 	query := fmt.Sprintf("UPDATE %s SET ip = ?, port = ?, complete = ?, lastSeen = ? WHERE id = ? AND peerKey = ?", t.hash)
 	result, err := db.Exec(query, ip, port, complete, time.Now().Unix(), id, key)
@@ -88,7 +88,7 @@ func (t *Torrent) Peer(id string, key string, ip string, port string, complete b
 			zap.String("id", id),
 			zap.String("key", key),
 			zap.String("ip", ip),
-			zap.String("port", port),
+			zap.Uint16("port", port),
 			zap.Bool("complete", complete),
 		)
 	}
@@ -109,10 +109,10 @@ func (t *Torrent) RemovePeer(id string, key string) TrackErr {
 }
 
 // GetPeerList gets numwant peers from the db
-func (t *Torrent) GetPeerList(num string) ([]string, TrackErr) {
+func (t *Torrent) GetPeerList(num uint64) ([]string, TrackErr) {
 	// If they don't specify how many peers they want default to all
-	if num == "" || num == "0" {
-		num = "9999999"
+	if num == 0 {
+		num = 18446744073709551615
 	}
 
 	query := fmt.Sprintf("SELECT id, ip, port FROM %s ORDER BY RAND() LIMIT ?", t.hash)
@@ -144,10 +144,10 @@ func (t *Torrent) GetPeerList(num string) ([]string, TrackErr) {
 }
 
 // GetPeerListCompact gets numwant peers from the db in the compact format
-func (t *Torrent) GetPeerListCompact(num string) (string, TrackErr) {
+func (t *Torrent) GetPeerListCompact(num uint64) (string, TrackErr) {
 	// If they don't specify how many peers they want default to all
-	if num == "" || num == "0" {
-		num = "9999999"
+	if num == 0 {
+		num = 18446744073709551615
 	}
 
 	query := fmt.Sprintf("SELECT ip, port FROM %s ORDER BY RAND() LIMIT ?", t.hash)

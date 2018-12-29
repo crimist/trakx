@@ -69,6 +69,7 @@ func Clean() {
 		rows, err := db.Query("SELECT DISTINCT TABLE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='bittorrent' AND TABLE_NAME LIKE 'Hash_%'")
 		if err != nil {
 			logger.Error(err.Error())
+			continue
 		}
 		tables := []string{}
 		for rows.Next() {
@@ -76,6 +77,7 @@ func Clean() {
 			err = rows.Scan(&table)
 			if err != nil {
 				logger.Error(err.Error())
+				continue
 			}
 			tables = append(tables, table)
 		}
@@ -86,11 +88,13 @@ func Clean() {
 			result, err := db.Exec(fmt.Sprintf("DELETE FROM %s WHERE lastSeen < ?", table), time.Now().Unix()-int64(60*10))
 			if err != nil {
 				logger.Error(err.Error())
+				continue
 			}
 
 			affected, err := result.RowsAffected()
 			if err != nil {
 				logger.Warn(err.Error())
+				continue
 			}
 
 			logger.Info("Cleaned table",
@@ -103,11 +107,13 @@ func Clean() {
 		result, err := db.Exec("SELECT CONCAT('DROP TABLE ', GROUP_CONCAT(table_name), ';') AS query FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_ROWS = '0' AND TABLE_SCHEMA = 'bittorrent'")
 		if err != nil {
 			logger.Error(err.Error())
+			continue
 		}
 
 		affected, err := result.RowsAffected()
 		if err != nil {
 			logger.Warn(err.Error())
+			continue
 		}
 
 		logger.Info("Deleted empty tables",
