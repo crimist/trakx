@@ -13,6 +13,7 @@ It currently uses my own bencode package but I will most likely move to somethin
 
 ## Todo
 
+* Use an orm?
 * Try using https://github.com/go-torrent/bencode
 * Docker for easy testing
 * Support Ipv6

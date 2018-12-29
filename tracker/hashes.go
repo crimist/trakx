@@ -56,7 +56,7 @@ func initBanTable() {
 	}
 }
 
-// IsBannedHash chekcs if the hash is banned
+// IsBannedHash checks if the hash is banned
 // 0 = not banned
 // 1 = banned
 // -1 = failure
