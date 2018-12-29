@@ -57,21 +57,18 @@ func initBanTable() {
 }
 
 // IsBannedHash checks if the hash is banned
-// 0 = not banned
-// 1 = banned
-// -1 = failure
-func IsBannedHash(hash string) BanErr {
+func IsBannedHash(hash string) TrackErr {
 	// sql lookup in hash db
 	rows, err := db.Query("SELECT * FROM banned WHERE hash = ?", hash)
 	if err != nil {
 		logger.Error(err.Error())
-		return Err
+		return Error
 	}
 	defer rows.Close()
 
 	if rows.Next() {
-		return ErrBanned
+		return Banned
 	}
 
-	return ErrOK
+	return OK
 }
