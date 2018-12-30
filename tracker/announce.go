@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -31,14 +32,13 @@ type announce struct {
 	compact    bool
 	noPeerID   string // ignored
 	event      string
-	numwant    uint64
+	numwant    int64
 	key        string
 	trackerID  string // ignored
 
-	ip       string
 	complete bool
 
-	torrent Torrent
+	peer Peer
 
 	w http.ResponseWriter
 	r *http.Request
@@ -68,54 +68,55 @@ func NewAnnounce(
 	}
 
 	// IP
-	a.ip = strings.Split(r.RemoteAddr, ":")[0]
+	IP := strings.Split(r.RemoteAddr, ":")[0]
 	if env == Dev && providedIP != "" {
-		a.ip = providedIP
+		IP = providedIP
 	}
-	if net.ParseIP(a.ip) == nil {
-		a.ThrowErr("Invalid IP address")
+	if net.ParseIP(IP) == nil {
+		a.ClientError("Invalid IP address")
 		return nil
 	}
-	if strings.Contains(a.ip, ":") {
+	if strings.Contains(IP, ":") {
 		// We don't support ipv6
-		a.ThrowErr("IPv6 unsupported")
+		a.ClientError("IPv6 unsupported")
 		return nil
 	}
 
 	// InfoHash
 	if len(infoHash) != 20 {
-		a.ThrowErr("Invalid infohash")
+		a.ClientError("Invalid infohash")
 		return nil
 	}
-	a.infoHash = infoHash
 
 	// PeerID
 	if len(peerID) != 20 {
-		a.ThrowErr("Invalid peer ID")
+		a.ClientError("Invalid peer ID")
 		return nil
 	}
-	a.peerID = peerID
+	if IsBanned(infoHash) == Banned {
+		a.ClientError("Banned hash")
+		return nil
+	}
 
 	// Port
 	if port == "" {
-		a.ThrowErr("provide a port")
+		a.ClientError("provide a port")
 		return nil
 	}
 	portInt, err := strconv.Atoi(port)
 	if err != nil {
-		a.ThrowErr("port not valid number")
+		a.ClientError("port not valid number")
 		return nil
 	}
 	if portInt > 65535 || portInt < 1 {
-		a.ThrowErr("invalid port number")
+		a.ClientError("invalid port number")
 		return nil
 	}
-	a.port = uint16(portInt)
 
 	// Left
 	leftInt, err := strconv.ParseUint(left, 10, 64)
 	if err != nil {
-		a.ThrowErr("Invalid left")
+		a.ClientError("Invalid left")
 		return nil
 	}
 	a.left = leftInt
@@ -124,7 +125,7 @@ func NewAnnounce(
 	if uploaded != "" {
 		uploadedInt, err := strconv.ParseUint(uploaded, 10, 64)
 		if err != nil {
-			a.ThrowErr("Invalid uploaded")
+			a.ClientError("Invalid uploaded")
 			return nil
 		}
 		a.uploaded = uploadedInt
@@ -134,7 +135,7 @@ func NewAnnounce(
 	if downloaded != "" {
 		downloadedInt, err := strconv.ParseUint(downloaded, 10, 64)
 		if err != nil {
-			a.ThrowErr("Invalid downloaded")
+			a.ClientError("Invalid downloaded")
 			return nil
 		}
 		a.downloaded = downloadedInt
@@ -146,19 +147,17 @@ func NewAnnounce(
 
 	// Numwant
 	if numwant != "" {
-		numwantInt, err := strconv.ParseUint(numwant, 10, 64)
+		numwantInt, err := strconv.ParseInt(numwant, 10, 64)
 		if err != nil {
-			a.ThrowErr("Invalid numwant")
+			a.ClientError("Invalid numwant")
 			return nil
 		}
 		a.numwant = numwantInt
 	}
 
-	// Complete
-	// qBittorrent doesn't send a completed on completion
-	// Instead it sends a started but with left being 0
+	complete := false
 	if a.event == "completed" || (event == "started" && left == "0") {
-		a.complete = true
+		complete = true
 	}
 
 	a.event = event
@@ -166,54 +165,53 @@ func NewAnnounce(
 	a.key = key
 	a.trackerID = trackerID
 
-	t, tError := NewTorrent(infoHash)
-	if tError == Error {
-		a.InternalError()
-		return nil
-	} else if tError == Banned {
-		a.ThrowErr("Banned hash (torrent)")
-		return nil
+	a.peer = Peer{
+		ID:       peerID,
+		PeerKey:  key,
+		Hash:     infoHash,
+		IP:       IP,
+		Port:     uint16(portInt),
+		Complete: complete,
+		LastSeen: time.Now().Unix(),
 	}
-	a.torrent = t
 
 	return &a
 }
 
-// ThrowErr throws a tracker bencoded error to the client
-func (a *announce) ThrowErr(reason string) {
+func (a *announce) error(reason string) {
 	d := bencoding.NewDict()
 	d.Add("failure reason", reason)
 	fmt.Fprint(a.w, d.Get())
+}
 
+func (a *announce) warn(reason string) {
+	d := bencoding.NewDict()
+	d.Add("warning message", reason)
+	fmt.Fprint(a.w, d.Get())
+}
+
+func (a *announce) ClientError(reason string) {
+	a.error(reason)
 	logger.Info("Client Error",
-		zap.String("ip", a.ip),
+		zap.String("ip", a.peer.IP),
 		zap.String("reason", reason),
 	)
 }
 
-// ThrowWarn throws a tracker bencoded warning to the client
-func (a *announce) ThrowWarn(reason string) {
-	d := bencoding.NewDict()
-	d.Add("warning message", reason)
-	fmt.Fprint(a.w, d.Get())
-
+func (a *announce) ClientWarn(reason string) {
+	a.warn(reason)
 	logger.Info("Client Warn",
-		zap.String("ip", a.ip),
+		zap.String("ip", a.peer.IP),
 		zap.String("reason", reason),
 	)
 }
 
 // InternalError is a wrapper to tell the client I fucked up
-func (a *announce) InternalError() {
-	a.ThrowErr("Internal Server Error")
-}
-
-func (a *announce) RemovePeer() TrackErr {
-	return a.torrent.RemovePeer(a.peerID, a.key)
-}
-
-func (a *announce) Peer() TrackErr {
-	return a.torrent.Peer(a.peerID, a.key, a.ip, a.port, a.complete)
+func (a *announce) InternalError(err error) {
+	a.error("Internal Server Error")
+	logger.Info("Internal Server Error",
+		zap.Error(err),
+	)
 }
 
 // Announce x
@@ -241,28 +239,28 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 
 	// If stopped remove the peer and return
 	if a.event == "stopped" {
-		if a.RemovePeer() != OK {
-			a.InternalError()
+		if err := a.peer.Delete(); err != nil {
+			a.InternalError(err)
 			return
 		}
 		fmt.Fprint(w, "Goodbye")
 		return
 	}
 
-	if a.Peer() != OK {
-		a.InternalError()
+	if err := a.peer.Save(); err != nil {
+		a.InternalError(err)
 		return
 	}
 
-	// Get number complete and incomplete
-	c := a.torrent.Complete()
-	if c == -1 {
-		a.InternalError()
+	c, err := Complete()
+	if err != nil {
+		a.InternalError(err)
 		return
 	}
-	i := a.torrent.Incomplete()
-	if i == -1 {
-		a.InternalError()
+
+	i, err := Incomplete()
+	if err != nil {
+		a.InternalError(err)
 		return
 	}
 
@@ -275,16 +273,16 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 
 	// Get the peer list
 	if a.compact == true {
-		peerList, tErr := a.torrent.GetPeerListCompact(a.numwant)
-		if tErr != OK {
-			a.InternalError()
+		peerList, err := PeerListCompact(a.numwant)
+		if err != nil {
+			a.InternalError(err)
 			return
 		}
 		d.Add("peers", peerList)
 	} else {
-		peerList, tErr := a.torrent.GetPeerList(a.numwant)
-		if tErr != OK {
-			a.InternalError()
+		peerList, err := PeerList(a.numwant)
+		if err != nil {
+			a.InternalError(err)
 			return
 		}
 		d.Add("peers", peerList)

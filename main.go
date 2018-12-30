@@ -42,8 +42,7 @@ func main() {
 	// Init dbs ect.
 	db, err := tracker.Init(*prodFlag)
 	if err != nil {
-		fmt.Println(err)
-		return
+		panic(err)
 	}
 
 	// Auto close dbs on exit
@@ -59,6 +58,6 @@ func main() {
 
 	// Serve
 	if err := http.ListenAndServe(":"+*portFlag, nil); err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 }
