@@ -91,6 +91,14 @@ func (t *Torrent) Peer(id string, key string, ip string, port uint16, complete b
 			zap.Uint16("port", port),
 			zap.Bool("complete", complete),
 		)
+	} else {
+		logger.Info("Update peer",
+			zap.String("id", id),
+			zap.String("key", key),
+			zap.String("ip", ip),
+			zap.Uint16("port", port),
+			zap.Bool("complete", complete),
+		)
 	}
 
 	return OK

@@ -73,55 +73,49 @@ func NewAnnounce(
 		a.ip = providedIP
 	}
 	if net.ParseIP(a.ip) == nil {
-		a.ThrowErr("Invalid IP address", http.StatusBadRequest)
+		a.ThrowErr("Invalid IP address")
 		return nil
 	}
-	if strings.Contains(a.ip, ":") { // We don't support ipv6
-		a.ThrowErr("IPv6 unsupported", http.StatusBadRequest)
+	if strings.Contains(a.ip, ":") {
+		// We don't support ipv6
+		a.ThrowErr("IPv6 unsupported")
 		return nil
 	}
 
 	// InfoHash
 	if len(infoHash) != 20 {
-		a.ThrowErr("Invalid infohash", http.StatusBadRequest)
+		a.ThrowErr("Invalid infohash")
 		return nil
 	}
 	a.infoHash = infoHash
 
 	// PeerID
 	if len(peerID) != 20 {
-		a.ThrowErr("Invalid peer ID", http.StatusBadRequest)
+		a.ThrowErr("Invalid peer ID")
 		return nil
 	}
 	a.peerID = peerID
 
 	// Port
 	if port == "" {
-		a.ThrowErr("provide a port", http.StatusBadRequest)
+		a.ThrowErr("provide a port")
 		return nil
 	}
 	portInt, err := strconv.Atoi(port)
 	if err != nil {
-		a.ThrowErr("port not valid number", http.StatusBadRequest)
+		a.ThrowErr("port not valid number")
 		return nil
 	}
 	if portInt > 65535 || portInt < 1 {
-		a.ThrowErr("invalid port number", http.StatusBadRequest)
+		a.ThrowErr("invalid port number")
 		return nil
 	}
 	a.port = uint16(portInt)
 
-	// Event
-	if event != "started" && event != "stopped" && event != "completed" {
-		a.ThrowErr("Invalid event", http.StatusBadRequest)
-		return nil
-	}
-	a.event = event
-
 	// Left
 	leftInt, err := strconv.ParseUint(left, 10, 64)
 	if err != nil {
-		a.ThrowErr("Invalid left", http.StatusBadRequest)
+		a.ThrowErr("Invalid left")
 		return nil
 	}
 	a.left = leftInt
@@ -130,7 +124,7 @@ func NewAnnounce(
 	if uploaded != "" {
 		uploadedInt, err := strconv.ParseUint(uploaded, 10, 64)
 		if err != nil {
-			a.ThrowErr("Invalid uploaded", http.StatusBadRequest)
+			a.ThrowErr("Invalid uploaded")
 			return nil
 		}
 		a.uploaded = uploadedInt
@@ -140,7 +134,7 @@ func NewAnnounce(
 	if downloaded != "" {
 		downloadedInt, err := strconv.ParseUint(downloaded, 10, 64)
 		if err != nil {
-			a.ThrowErr("Invalid downloaded", http.StatusBadRequest)
+			a.ThrowErr("Invalid downloaded")
 			return nil
 		}
 		a.downloaded = downloadedInt
@@ -154,7 +148,7 @@ func NewAnnounce(
 	if numwant != "" {
 		numwantInt, err := strconv.ParseUint(numwant, 10, 64)
 		if err != nil {
-			a.ThrowErr("Invalid numwant", http.StatusBadRequest)
+			a.ThrowErr("Invalid numwant")
 			return nil
 		}
 		a.numwant = numwantInt
@@ -167,6 +161,7 @@ func NewAnnounce(
 		a.complete = true
 	}
 
+	a.event = event
 	a.noPeerID = noPeerID
 	a.key = key
 	a.trackerID = trackerID
@@ -176,7 +171,7 @@ func NewAnnounce(
 		a.InternalError()
 		return nil
 	} else if tError == Banned {
-		a.ThrowErr("Banned hash (torrent)", http.StatusForbidden)
+		a.ThrowErr("Banned hash (torrent)")
 		return nil
 	}
 	a.torrent = t
@@ -185,22 +180,32 @@ func NewAnnounce(
 }
 
 // ThrowErr throws a tracker bencoded error to the client
-func (a *announce) ThrowErr(reason string, status int) {
+func (a *announce) ThrowErr(reason string) {
 	d := bencoding.NewDict()
 	d.Add("failure reason", reason)
-	a.w.WriteHeader(status)
 	fmt.Fprint(a.w, d.Get())
 
 	logger.Info("Client Error",
 		zap.String("ip", a.ip),
 		zap.String("reason", reason),
-		zap.Int("status", status),
+	)
+}
+
+// ThrowWarn throws a tracker bencoded warning to the client
+func (a *announce) ThrowWarn(reason string) {
+	d := bencoding.NewDict()
+	d.Add("warning message", reason)
+	fmt.Fprint(a.w, d.Get())
+
+	logger.Info("Client Warn",
+		zap.String("ip", a.ip),
+		zap.String("reason", reason),
 	)
 }
 
 // InternalError is a wrapper to tell the client I fucked up
 func (a *announce) InternalError() {
-	a.ThrowErr("Internal Server Error", http.StatusInternalServerError)
+	a.ThrowErr("Internal Server Error")
 }
 
 func (a *announce) RemovePeer() TrackErr {
