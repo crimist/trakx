@@ -47,6 +47,9 @@ func Init(isProd bool) (*gorm.DB, error) {
 func Clean() {
 	for c := time.Tick(5 * time.Minute); ; <-c {
 		// Delete if hasn't checked in in 30 min
-		db.Where("last_seen < ?", time.Now().Unix()-int64(60*30)).Delete(&Peer{})
+		affected := db.Where("last_seen < ?", time.Now().Unix()-int64(60*30)).Delete(&Peer{}).RowsAffected
+		logger.Info("Cleaned peers",
+			zap.Int64("count", affected),
+		)
 	}
 }

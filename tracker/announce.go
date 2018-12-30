@@ -13,15 +13,6 @@ import (
 	"github.com/Syc0x00/Trakx/bencoding"
 )
 
-type event int
-
-const (
-	// if event != "started" && event != "stopped" && event != "completed" {
-	started event = iota
-	stopped
-	completed
-)
-
 type announce struct {
 	infoHash   string
 	peerID     string
@@ -36,12 +27,9 @@ type announce struct {
 	key        string
 	trackerID  string // ignored
 
-	complete bool
-
 	peer Peer
-
-	w http.ResponseWriter
-	r *http.Request
+	w    http.ResponseWriter
+	r    *http.Request
 }
 
 // NewAnnounce does something
@@ -93,6 +81,9 @@ func NewAnnounce(
 		a.ClientError("Invalid peer ID")
 		return nil
 	}
+
+	// InfoHash
+	infoHash = EncodeHash(infoHash)
 	if IsBanned(infoHash) == Banned {
 		a.ClientError("Banned hash")
 		return nil
@@ -156,7 +147,7 @@ func NewAnnounce(
 	}
 
 	complete := false
-	if a.event == "completed" || (event == "started" && left == "0") {
+	if event == "completed" || a.left == 0 {
 		complete = true
 	}
 

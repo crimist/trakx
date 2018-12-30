@@ -24,6 +24,7 @@ func Incomplete() (int, error) {
 	return len(peers), db.Error
 }
 
+// PeerList x
 func PeerList(num int64) ([]string, error) {
 	var peerList []string
 	var peers []Peer
@@ -43,6 +44,7 @@ func PeerList(num int64) ([]string, error) {
 	return peerList, db.Error
 }
 
+// PeerListCompact x
 func PeerListCompact(num int64) (string, error) {
 	var peerList string
 	var peers []Peer

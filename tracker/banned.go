@@ -42,17 +42,8 @@ func initBans() error {
 		}
 
 		entry := Ban{
-			Hash:   split[0],
+			Hash:   EncodeHash(split[0]),
 			Reason: reason,
-		}
-
-		// Check if it's a valid hash
-		if len(entry.Hash) != 20 {
-			logger.Error("Invalid hash in banlist",
-				zap.String("hash", entry.Hash),
-				zap.Int("len", len(entry.Hash)),
-			)
-			continue
 		}
 
 		db.Create(&entry)
