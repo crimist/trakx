@@ -21,7 +21,7 @@ type announce struct {
 	downloaded uint64 // ignored
 	left       uint64
 	compact    bool
-	noPeerID   string // ignored
+	noPeerID   bool
 	event      string
 	numwant    int64
 	key        string
@@ -151,14 +151,17 @@ func NewAnnounce(
 		complete = true
 	}
 
+	if noPeerID == "1" {
+		a.noPeerID = true
+	}
+
 	a.event = event
-	a.noPeerID = noPeerID
 	a.key = key
 	a.trackerID = trackerID
 
 	a.peer = Peer{
 		ID:       peerID,
-		PeerKey:  key,
+		Key:      key,
 		Hash:     infoHash,
 		IP:       IP,
 		Port:     uint16(portInt),
@@ -271,7 +274,7 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		}
 		d.Add("peers", peerList)
 	} else {
-		peerList, err := PeerList(a.numwant)
+		peerList, err := PeerList(a.numwant, a.noPeerID)
 		if err != nil {
 			a.InternalError(err)
 			return

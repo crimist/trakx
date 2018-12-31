@@ -6,8 +6,8 @@ import (
 
 // Peer :clap:
 type Peer struct {
-	ID       string
-	PeerKey  string `gorm:"primary_key;unique"`
+	ID       string `gorm:"primary_key;unique"`
+	Key      string
 	Hash     string
 	IP       string
 	Port     uint16
@@ -28,6 +28,12 @@ func (p *Peer) Save() error {
 		zap.Any("Peer", p),
 	)
 	return db.FirstOrCreate(p).Save(p).Error
+	/* // Better?
+	if err := db.FirstOrCreate(p).Error; err != nil {
+		return err
+	}
+	return db.Where("id = ? AND peer_key = ?", p.ID, p.PeerKey).Save(p).Error
+	*/
 }
 
 // Delete deletes peer

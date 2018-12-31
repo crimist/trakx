@@ -6,3 +6,7 @@ import "encoding/base64"
 func EncodeHash(hash string) string {
 	return base64.StdEncoding.EncodeToString([]byte(hash))
 }
+
+func EncodeID(id string) string {
+	return base64.StdEncoding.EncodeToString([]byte(id))
+}

@@ -10,6 +10,12 @@ Bittorrent tracker written in go.
 
 ## Todo
 
+### High Priority
+
+* Encode `peer_id` and `key`
+
+### Low Priority
+
 * Support Ipv6
   * http://www.bittorrent.org/beps/bep_0007.html
 * Test in realistic scenario

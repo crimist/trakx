@@ -25,7 +25,7 @@ func Incomplete() (int, error) {
 }
 
 // PeerList x
-func PeerList(num int64) ([]string, error) {
+func PeerList(num int64, noPeerID bool) ([]string, error) {
 	var peerList []string
 	var peers []Peer
 	if num == 0 {
@@ -35,7 +35,10 @@ func PeerList(num int64) ([]string, error) {
 	db.Limit(num).Find(&peers)
 	for _, peer := range peers {
 		dict := bencoding.NewDict()
-		dict.Add("peer id", peer.ID)
+		// if they don't want peerid
+		if noPeerID == false {
+			dict.Add("peer id", peer.ID)
+		}
 		dict.Add("ip", peer.IP)
 		dict.Add("port", peer.Port)
 		peerList = append(peerList, dict.Get())
