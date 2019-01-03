@@ -11,7 +11,7 @@ import (
 
 // Ban holds banned hashes
 type Ban struct {
-	Hash   []byte `gorm:"unique"`
+	Hash   Hash `gorm:"unique"`
 	Reason string
 }
 
@@ -64,14 +64,4 @@ func initBans() error {
 	}
 
 	return nil
-}
-
-// IsBanned checks if the given hash is banned
-func IsBanned(hash []byte) TrackErr {
-	ban := Ban{}
-	db.Where("hash = ?", hash).First(&ban)
-	if ban.Hash != nil {
-		return Banned
-	}
-	return OK
 }

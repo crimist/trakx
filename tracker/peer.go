@@ -7,11 +7,11 @@ import (
 	"go.uber.org/zap"
 )
 
-// Peer :clap:
+// Peer holds peer information stores in the database
 type Peer struct {
 	ID       []byte `gorm:"primary_key;unique;not_null"`
 	Key      []byte
-	Hash     []byte
+	Hash     Hash
 	IP       string
 	Port     uint16
 	Complete bool
@@ -25,8 +25,8 @@ func initPeer() {
 	}
 }
 
+// checkKey checks if the key is set and if it is valid
 func (p *Peer) checkKey() error {
-	// Check if key
 	pDB := Peer{}
 	db.Where("id = ?", p.ID).First(&pDB)
 	if p.Key != nil {

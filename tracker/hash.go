@@ -10,26 +10,38 @@ import (
 	"github.com/Syc0x00/Trakx/utils"
 )
 
+// Hash is the infohash of a torrent
+type Hash []byte
+
+// Banned checks if the hash is banned
+func (h *Hash) Banned() bool {
+	ban := Ban{}
+	db.Where("hash = ?", h).First(&ban)
+
+	// If Ban.Hash isn't nill than it's banned
+	return (ban.Hash != nil)
+}
+
 // Complete returns the number of peers that are complete
-func Complete(hash []byte) (int, error) {
+func (h *Hash) Complete() (int, error) {
 	var peers []Peer
-	err := db.Where("complete = true AND hash = ?", hash).Find(&peers).Error
+	err := db.Where("complete = true AND hash = ?", h).Find(&peers).Error
 	return len(peers), err
 }
 
 // Incomplete returns the number of peers that are incomplete
-func Incomplete(hash []byte) (int, error) {
+func (h *Hash) Incomplete() (int, error) {
 	var peers []Peer
-	err := db.Where("complete = false AND hash = ?", hash).Find(&peers).Error
+	err := db.Where("complete = false AND hash = ?", h).Find(&peers).Error
 	return len(peers), err
 }
 
-// PeerList x
-func PeerList(hash []byte, num int64, noPeerID bool) ([]string, error) {
+// PeerList returns the peerlist bencoded
+func (h *Hash) PeerList(num int64, noPeerID bool) ([]string, error) {
 	var peerList []string
 	var peers []Peer
 
-	db.Where("hash = ?", hash).Limit(num).Find(&peers)
+	db.Where("hash = ?", h).Limit(num).Find(&peers)
 	for _, peer := range peers {
 		dict := bencoding.NewDict()
 		// if they don't want peerid
@@ -44,12 +56,12 @@ func PeerList(hash []byte, num int64, noPeerID bool) ([]string, error) {
 	return peerList, db.Error
 }
 
-// PeerListCompact x
-func PeerListCompact(hash []byte, num int64) (string, error) {
+// PeerListCompact returns the peer list as byte encoded
+func (h *Hash) PeerListCompact(num int64) (string, error) {
 	var peerList string
 	var peers []Peer
 
-	db.Where("hash = ?", hash).Limit(num).Find(&peers)
+	db.Where("hash = ?", h).Limit(num).Find(&peers)
 	for _, peer := range peers {
 		// Network order
 		var b bytes.Buffer

@@ -231,7 +231,7 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check for banned hash
-	if IsBanned(a.peer.Hash) == Banned {
+	if a.peer.Hash.Banned() {
 		a.ClientError("Banned hash")
 		return
 	}
@@ -251,13 +251,13 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c, err := Complete(a.peer.Hash)
+	c, err := a.peer.Hash.Complete()
 	if err != nil {
 		a.InternalError(err)
 		return
 	}
 
-	i, err := Incomplete(a.peer.Hash)
+	i, err := a.peer.Hash.Incomplete()
 	if err != nil {
 		a.InternalError(err)
 		return
@@ -272,14 +272,14 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 
 	// Get the peer list
 	if a.compact == true {
-		peerList, err := PeerListCompact(a.peer.Hash, a.numwant)
+		peerList, err := a.peer.Hash.PeerListCompact(a.numwant)
 		if err != nil {
 			a.InternalError(err)
 			return
 		}
 		d.Add("peers", peerList)
 	} else {
-		peerList, err := PeerList(a.peer.Hash, a.numwant, a.noPeerID)
+		peerList, err := a.peer.Hash.PeerList(a.numwant, a.noPeerID)
 		if err != nil {
 			a.InternalError(err)
 			return
