@@ -2,11 +2,7 @@ package tracker
 
 import "encoding/base64"
 
-// EncodeHash encodes the hash into something we can actually store in the db
-func EncodeHash(hash string) string {
-	return base64.StdEncoding.EncodeToString([]byte(hash))
-}
-
-func EncodeID(id string) string {
-	return base64.StdEncoding.EncodeToString([]byte(id))
+// EncodeStr encodes the give string into values that can be stored in the db
+func EncodeStr(str string) string {
+	return base64.StdEncoding.EncodeToString([]byte(str))
 }

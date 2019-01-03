@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"bufio"
+	"net/url"
 	"os"
 	"strings"
 
@@ -10,7 +11,7 @@ import (
 
 // Ban holds banned hashes
 type Ban struct {
-	Hash   string `gorm:"unique"`
+	Hash   []byte `gorm:"unique"`
 	Reason string
 }
 
@@ -31,7 +32,7 @@ func initBans() error {
 		line := scanner.Text()
 
 		// Ignore comments
-		if strings.HasPrefix(line, "//") || line == "" {
+		if strings.HasPrefix(line, "//") || strings.HasPrefix(line, "#") || len(line) < 20 {
 			continue
 		}
 
@@ -41,14 +42,20 @@ func initBans() error {
 			reason = split[1] // If a reason was provided use it
 		}
 
+		hash, err := url.QueryUnescape(split[0])
+		if err != nil {
+			logger.Error(err.Error())
+			continue
+		}
+
 		entry := Ban{
-			Hash:   EncodeHash(split[0]),
+			Hash:   []byte(hash),
 			Reason: reason,
 		}
 
 		db.Create(&entry)
 		logger.Info("Banned",
-			zap.String("hash", entry.Hash),
+			zap.ByteString("hash", entry.Hash[:]),
 		)
 	}
 
@@ -60,10 +67,10 @@ func initBans() error {
 }
 
 // IsBanned checks if the given hash is banned
-func IsBanned(hash string) TrackErr {
+func IsBanned(hash []byte) TrackErr {
 	ban := Ban{}
 	db.Where("hash = ?", hash).First(&ban)
-	if ban.Hash != "" {
+	if ban.Hash != nil {
 		return Banned
 	}
 	return OK

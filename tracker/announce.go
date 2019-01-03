@@ -27,6 +27,8 @@ type announce struct {
 	key        string
 	trackerID  string // ignored
 
+	IP string
+
 	peer Peer
 	w    http.ResponseWriter
 	r    *http.Request
@@ -56,16 +58,16 @@ func NewAnnounce(
 	}
 
 	// IP
-	IP := strings.Split(r.RemoteAddr, ":")[0]
-	if env == Dev && providedIP != "" {
-		IP = providedIP
-	}
-	if net.ParseIP(IP) == nil {
+	IP, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
 		a.ClientError("Invalid IP address")
 		return nil
 	}
+	a.IP = IP
+	if env == Dev && providedIP != "" {
+		IP = providedIP
+	}
 	if strings.Contains(IP, ":") {
-		// We don't support ipv6
 		a.ClientError("IPv6 unsupported")
 		return nil
 	}
@@ -79,13 +81,6 @@ func NewAnnounce(
 	// PeerID
 	if len(peerID) != 20 {
 		a.ClientError("Invalid peer ID")
-		return nil
-	}
-
-	// InfoHash
-	infoHash = EncodeHash(infoHash)
-	if IsBanned(infoHash) == Banned {
-		a.ClientError("Banned hash")
 		return nil
 	}
 
@@ -144,6 +139,9 @@ func NewAnnounce(
 			return nil
 		}
 		a.numwant = numwantInt
+	} else {
+		// default to 200
+		a.numwant = 200
 	}
 
 	complete := false
@@ -160,9 +158,9 @@ func NewAnnounce(
 	a.trackerID = trackerID
 
 	a.peer = Peer{
-		ID:       peerID,
-		Key:      key,
-		Hash:     infoHash,
+		ID:       []byte(peerID),
+		Key:      []byte(key),
+		Hash:     []byte(infoHash),
 		IP:       IP,
 		Port:     uint16(portInt),
 		Complete: complete,
@@ -187,7 +185,7 @@ func (a *announce) warn(reason string) {
 func (a *announce) ClientError(reason string) {
 	a.error(reason)
 	logger.Info("Client Error",
-		zap.String("ip", a.peer.IP),
+		zap.String("ip", a.IP),
 		zap.String("reason", reason),
 	)
 }
@@ -195,7 +193,7 @@ func (a *announce) ClientError(reason string) {
 func (a *announce) ClientWarn(reason string) {
 	a.warn(reason)
 	logger.Info("Client Warn",
-		zap.String("ip", a.peer.IP),
+		zap.String("ip", a.IP),
 		zap.String("reason", reason),
 	)
 }
@@ -205,6 +203,7 @@ func (a *announce) InternalError(err error) {
 	a.error("Internal Server Error")
 	logger.Info("Internal Server Error",
 		zap.Error(err),
+		zap.Stack("stacktrace"),
 	)
 }
 
@@ -231,6 +230,12 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check for banned hash
+	if IsBanned(a.peer.Hash) == Banned {
+		a.ClientError("Banned hash")
+		return
+	}
+
 	// If stopped remove the peer and return
 	if a.event == "stopped" {
 		if err := a.peer.Delete(); err != nil {
@@ -246,13 +251,13 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c, err := Complete()
+	c, err := Complete(a.peer.Hash)
 	if err != nil {
 		a.InternalError(err)
 		return
 	}
 
-	i, err := Incomplete()
+	i, err := Incomplete(a.peer.Hash)
 	if err != nil {
 		a.InternalError(err)
 		return
@@ -267,14 +272,14 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 
 	// Get the peer list
 	if a.compact == true {
-		peerList, err := PeerListCompact(a.numwant)
+		peerList, err := PeerListCompact(a.peer.Hash, a.numwant)
 		if err != nil {
 			a.InternalError(err)
 			return
 		}
 		d.Add("peers", peerList)
 	} else {
-		peerList, err := PeerList(a.numwant, a.noPeerID)
+		peerList, err := PeerList(a.peer.Hash, a.numwant, a.noPeerID)
 		if err != nil {
 			a.InternalError(err)
 			return

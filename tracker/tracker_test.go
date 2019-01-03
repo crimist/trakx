@@ -65,7 +65,7 @@ func Request(infoHash, ip, event, left, peerID, key, port string, compact bool) 
 
 	var decoded map[string]interface{}
 	bencode.Unmarshal(body, &decoded)
-	fmt.Println("--------------------------------------")
+	fmt.Println("\n--------------------------------------")
 	spew.Dump(peerID, decoded, resp.StatusCode)
 
 	switch v := decoded["peers"].(type) {
@@ -78,26 +78,27 @@ func Request(infoHash, ip, event, left, peerID, key, port string, compact bool) 
 }
 
 func TestApp(t *testing.T) {
+	// t.Skip()
 
 	// Make peers
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.1", "started", "100", "AAAAAAAAAAAAAAAPEER1", "peer1", "42069", false)
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.2", "started", "100", "AAAAAAAAAAAAAAAPEER2", "peer2", "42069", false)
+	Request("ABCDEFGHIJKLMNOPQRST", "1.1.1.1", "started", "100", "PEER1_______________", "peer1", "8000", false)
+	Request("ABCDEFGHIJKLMNOPQRST", "2.2.2.2", "started", "100", "PEER2_______________", "peer2", "8000", false)
 
 	// Update peers
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.11", "started", "80", "AAAAAAAAAAAAAAAPEER1", "peer1", "6999", false)
+	Request("ABCDEFGHIJKLMNOPQRST", "11.11.11.11", "started", "50", "PEER1_______________", "peer1", "8888", false)
 
 	// Complete peers
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.2", "started", "0", "AAAAAAAAAAAAAAAPEER1", "peer1", "6999", false)
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.11", "completed", "200", "AAAAAAAAAAAAAAAPEER1", "peer1", "6999", false)
+	Request("ABCDEFGHIJKLMNOPQRST", "11.11.11.11", "started", "0", "PEER1_______________", "peer1", "8888", false)
+	Request("ABCDEFGHIJKLMNOPQRST", "192.168.1.11", "completed", "0", "PEER2_______________", "peer2", "8080", false)
 
 	// Compact responses
-	Request("QWERTYUIOPASDFGHJKLZ", "192.168.1.3", "started", "0", "AAAAAAAAAAAAAAAPEER3", "peer3", "4213", true)
+	Request("ABCDEFGHIJKLMNOPQRST", "192.168.1.3", "started", "0", "PEER3_______________", "peer3", "8080", true)
 
 	// Ipv6
-	Request("QWERTYUIOPASDFGHJKLZ", "2001:0db8:85a3:0000:0000:8a2e:0370:7334", "started", "0", "AAAAAAAAAAAAAAAPEER4", "peer4", "8765", true)
+	Request("ABCDEFGHIJKLMNOPQRST", "::1", "started", "100", "PEER4_______________", "peer4", "8080", false)
 
 	// Test banned hashes
-	Request("8C4947E96C7C9F770AA3", "192.168.1.4", "started", "0", "AAAAAAAAAAAAAAAPEER5", "peer5", "1111", false)
+	Request("8C4947E96C7C9F770AA3", "192.168.1.4", "started", "100", "PEER5_______________", "peer5", "1111", false)
 
 	return
 }

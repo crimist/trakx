@@ -11,28 +11,25 @@ import (
 )
 
 // Complete returns the number of peers that are complete
-func Complete() (int, error) {
+func Complete(hash []byte) (int, error) {
 	var peers []Peer
-	db.Where("complete = true").Find(&peers)
-	return len(peers), db.Error
+	err := db.Where("complete = true AND hash = ?", hash).Find(&peers).Error
+	return len(peers), err
 }
 
 // Incomplete returns the number of peers that are incomplete
-func Incomplete() (int, error) {
+func Incomplete(hash []byte) (int, error) {
 	var peers []Peer
-	db.Where("complete = false").Find(&peers)
-	return len(peers), db.Error
+	err := db.Where("complete = false AND hash = ?", hash).Find(&peers).Error
+	return len(peers), err
 }
 
 // PeerList x
-func PeerList(num int64, noPeerID bool) ([]string, error) {
+func PeerList(hash []byte, num int64, noPeerID bool) ([]string, error) {
 	var peerList []string
 	var peers []Peer
-	if num == 0 {
-		num = 200 // If not specified default to 200
-	}
 
-	db.Limit(num).Find(&peers)
+	db.Where("hash = ?", hash).Limit(num).Find(&peers)
 	for _, peer := range peers {
 		dict := bencoding.NewDict()
 		// if they don't want peerid
@@ -48,21 +45,17 @@ func PeerList(num int64, noPeerID bool) ([]string, error) {
 }
 
 // PeerListCompact x
-func PeerListCompact(num int64) (string, error) {
+func PeerListCompact(hash []byte, num int64) (string, error) {
 	var peerList string
 	var peers []Peer
-	if num == 0 {
-		num = 200 // If not specified default to 200
-	}
 
-	db.Limit(num).Find(&peers)
+	db.Where("hash = ?", hash).Limit(num).Find(&peers)
 	for _, peer := range peers {
 		// Network order
 		var b bytes.Buffer
 		writer := bufio.NewWriter(&b)
-		ipBytes := utils.IPToInt(net.ParseIP(peer.IP))
 
-		binary.Write(writer, binary.BigEndian, ipBytes)
+		binary.Write(writer, binary.BigEndian, utils.IPToInt(net.ParseIP(peer.IP)))
 		binary.Write(writer, binary.BigEndian, peer.Port)
 		writer.Flush()
 

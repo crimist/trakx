@@ -20,19 +20,20 @@ var (
 func Init(isProd bool) (*gorm.DB, error) {
 	var err error
 
+	db, err = gorm.Open("mysql", "root@/bittorrent")
+	if err != nil {
+		return nil, err
+	}
+
 	if isProd == true {
 		env = Prod
 		logger, err = zap.NewProduction()
 	} else {
 		env = Dev
 		logger, err = zap.NewDevelopment()
+		db.LogMode(true) // Debug gorm
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
-	db, err = gorm.Open("mysql", "root@/bittorrent")
 	if err != nil {
 		return nil, err
 	}
