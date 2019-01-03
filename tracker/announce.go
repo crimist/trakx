@@ -203,7 +203,6 @@ func (a *announce) InternalError(err error) {
 	a.error("Internal Server Error")
 	logger.Info("Internal Server Error",
 		zap.Error(err),
-		zap.Stack("stacktrace"),
 	)
 }
 
