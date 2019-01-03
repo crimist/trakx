@@ -10,8 +10,7 @@ Bittorrent tracker written in go.
 
 ## Todo
 
-* Move `PeerListCompact` and `PeerList` to `func (p *Peer)`
+* Clean up `announce.go` and the peer list/count funcs too
 * Add testing
 * Support Ipv6
   * http://www.bittorrent.org/beps/bep_0007.html
-* Clean up `announce.go`
