@@ -9,7 +9,7 @@ import (
 
 // Peer holds peer information stores in the database
 type Peer struct {
-	ID       []byte `gorm:"primary_key;unique;not_null"`
+	ID       []byte `gorm:"primary_key"`
 	Key      []byte
 	Hash     Hash
 	IP       string
