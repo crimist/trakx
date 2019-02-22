@@ -20,10 +20,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func dmca(w http.ResponseWriter, r *http.Request) {
-	resp := dmcaStyle
-	resp += "<h>LUL</h1>"
-
-	fmt.Fprintf(w, resp)
+	http.Redirect(w, r, "https://www.youtube.com/watch?v=BwSts2s4ba4", http.StatusMovedPermanently)
 }
 
 func scrape(w http.ResponseWriter, r *http.Request) {
