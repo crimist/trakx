@@ -42,10 +42,10 @@ func main() {
 		panic(err)
 	}
 
-	// Auto close dbs on exit
 	defer db.Close()
-	// Start cleaner ticker
 	go tracker.Clean()
+	stats := tracker.Stats{Directory: "/var/www/html/"}
+	go stats.Generator()
 
 	// Handlers
 	http.HandleFunc("/", index)
