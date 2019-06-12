@@ -4,6 +4,7 @@ import (
 	"expvar"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 func getUniqePeer() int64 {
@@ -66,7 +67,7 @@ func Expvar() {
 
 	go http.ListenAndServe("127.0.0.1:8080", nil) // only on localhost
 
-    tick := time.NewTicker(1 * time.Second)
+	tick := time.NewTicker(1 * time.Second)
 	for {
 		select {
 		case <-tick.C:
