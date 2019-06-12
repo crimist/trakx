@@ -10,7 +10,7 @@ import (
 
 const (
 	trackerTimeout  = 60 * 45 // 45 min
-	trackerInterval = 60 * 10 // 10 min
+	trackerInterval = 60 * 15 // 15 min
 )
 
 var (
