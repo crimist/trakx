@@ -24,16 +24,16 @@ func (h *Hash) Banned() bool {
 
 // Complete returns the number of peers that are complete
 func (h *Hash) Complete() (int, error) {
-	var peers []Peer
-	err := db.Where("complete = true AND hash = ?", h).Find(&peers).Error
-	return len(peers), err
+	var count int
+	err := db.Model(&Peer{}).Where("complete = true AND hash = ?", h).Count(&count).Error
+	return count, err
 }
 
 // Incomplete returns the number of peers that are incomplete
 func (h *Hash) Incomplete() (int, error) {
-	var peers []Peer
-	err := db.Where("complete = false AND hash = ?", h).Find(&peers).Error
-	return len(peers), err
+	var count int
+	err := db.Model(&Peer{}).Where("complete = false AND hash = ?", h).Count(&count).Error
+	return count, err
 }
 
 // PeerList returns the peerlist bencoded
