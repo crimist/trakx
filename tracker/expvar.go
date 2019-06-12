@@ -52,15 +52,10 @@ func Expvar() {
 	uniqueIP := expvar.NewInt("ip.unique")
 	uniqueHash := expvar.NewInt("hash.unique")
 	uniquePeer := expvar.NewInt("peer.unique")
-
 	seeds := expvar.NewInt("tracker.seeds")
 	leeches := expvar.NewInt("tracker.leeches")
 
-	stats := expvar.NewMap("stats")
-	stats.Set("seeds", new(expvar.Int))
-	stats.Set("leeches", new(expvar.Int))
-
-	go http.ListenAndServe("127.0.0.1:8080", nil) // only on localhost
+	go http.ListenAndServe("127.0.0.1:1338", nil) // only on localhost
 
 	tick := time.NewTicker(1 * time.Second)
 	for {
@@ -69,12 +64,8 @@ func Expvar() {
 			uniqueIP.Set(getUniqeIP())
 			uniqueHash.Set(getUniqeHash())
 			uniquePeer.Set(getUniqePeer())
-
 			seeds.Set(getSeeds())
 			leeches.Set(getLeeches())
-
-			stats.Add("seeds", getSeeds())
-			stats.Add("leeches", getLeeches())
 		}
 	}
 }

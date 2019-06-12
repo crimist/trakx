@@ -49,13 +49,14 @@ func main() {
 	// go stats.Generator()
 
 	// Handlers
-	http.HandleFunc("/", index)
-	http.HandleFunc("/dmca", dmca)
-	http.HandleFunc("/scrape", scrape)
-	http.HandleFunc("/announce", tracker.Announce)
+	trackerMux := http.NewServeMux()
+	trackerMux.HandleFunc("/", index)
+	trackerMux.HandleFunc("/dmca", dmca)
+	trackerMux.HandleFunc("/scrape", scrape)
+	trackerMux.HandleFunc("/announce", tracker.Announce)
 
 	// Serve
-	if err := http.ListenAndServe(":"+*portFlag, nil); err != nil {
+	if err := http.ListenAndServe(":"+*portFlag, trackerMux); err != nil {
 		panic(err)
 	}
 }
