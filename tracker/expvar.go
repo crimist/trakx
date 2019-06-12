@@ -12,7 +12,7 @@ func getUniqePeer() int64 {
 	if err != nil {
 		logger.Error("err", zap.Error(err))
 	}
-	return len(peers)
+	return int64(len(peers))
 }
 
 func getUniqeHash() int64 {
@@ -21,7 +21,7 @@ func getUniqeHash() int64 {
 	if err != nil {
 		logger.Error("err", zap.Error(err))
 	}
-	return len(peers)
+	return int64(len(peers))
 }
 
 func getUniqeIP() int64 {
@@ -30,7 +30,7 @@ func getUniqeIP() int64 {
 	if err != nil {
 		logger.Error("err", zap.Error(err))
 	}
-	return len(peers)
+	return int64(len(peers))
 }
 
 func getSeeds() int64 {
@@ -39,7 +39,7 @@ func getSeeds() int64 {
 	if err != nil {
 		logger.Error("err", zap.Error(err))
 	}
-	return len(peers)
+	return int64(len(peers))
 }
 
 func getLeeches() int64 {
@@ -48,7 +48,7 @@ func getLeeches() int64 {
 	if err != nil {
 		logger.Error("err", zap.Error(err))
 	}
-	return len(peers)
+	return int64(len(peers))
 }
 
 // Expvar is for netdata
@@ -66,10 +66,11 @@ func Expvar() {
 
 	go http.ListenAndServe("127.0.0.1:8080", nil) // only on localhost
 
+    tick := time.NewTicker(1 * time.Second)
 	for {
 		select {
 		case <-tick.C:
-			uniqueIP.Set(getUniqeIp())
+			uniqueIP.Set(getUniqeIP())
 			uniqueHash.Set(getUniqeHash())
 			uniquePeer.Set(getUniqePeer())
 
