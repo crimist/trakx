@@ -47,11 +47,16 @@ func getLeeches() int64 {
 	return int64(num)
 }
 
+var (
+	expvarCleaned int64
+)
+
 // Expvar is for netdata
 func Expvar() {
 	uniqueIP := expvar.NewInt("ip.unique")
 	uniqueHash := expvar.NewInt("hash.unique")
 	uniquePeer := expvar.NewInt("peer.unique")
+	cleaned := expvar.NewInt("tracker.cleaned")
 	seeds := expvar.NewInt("tracker.seeds")
 	leeches := expvar.NewInt("tracker.leeches")
 
@@ -66,6 +71,7 @@ func Expvar() {
 			uniquePeer.Set(getUniqePeer())
 			seeds.Set(getSeeds())
 			leeches.Set(getLeeches())
+			cleaned.Set(expvarCleaned)
 		}
 	}
 }
