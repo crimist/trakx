@@ -12,39 +12,61 @@ Bittorrent tracker written in go.
 Trakx:
   name : 'Trakx'
   url  : 'http://localhost:1338/debug/vars'
-  collect_memstats: true
+  collect_memstats: false
   extra_charts:
-    - id: "ip_unique"
+    - id: "tracker_hits_per_sec"
+      options:
+        name: hits per second
+        title: "Number of hits per second"
+        units: Hits/s
+        family: performance
+        context: expvar.tracker.hitspersec
+        chart_type: line
+      lines:
+        - {expvar_key: 'tracker.hitspersec', expvar_type: int, id: hits/s}
+    - id: "tracker_hits"
+      options:
+        name: hits
+        title: "Total number of hits"
+        units: Hits
+        family: performance
+        context: expvar.tracker.hits
+        chart_type: line
+      lines:
+        - {expvar_key: 'tracker.hits', expvar_type: int, id: hits}
+    - id: "tracker_peers"
+      options:
+        name: peers
+        title: "Number of entries for peers, seeds, and leeches"
+        units: Peers
+        family: peers
+        context: expvar.tracker
+        chart_type: line
+      lines:
+        - {expvar_key: 'tracker.peers', expvar_type: int, id: peers}
+        - {expvar_key: 'tracker.seeds', expvar_type: int, id: seeds}
+        - {expvar_key: 'tracker.leeches', expvar_type: float, id: leeches}
+    - id: "tracker_ips"
       options:
         name: IPs
         title: "Number of unique IPs"
         units: IPs
         family: IPs
-        context: expvar.ip.unique
+        context: expvar.tracker.ips
         chart_type: line
       lines:
-        - {expvar_key: 'ip.unique', expvar_type: int, id: ips}
-    - id: "hash_unique"
+        - {expvar_key: 'tracker.ips', expvar_type: int, id: ips}
+    - id: "tracker_hashes"
       options:
         name: hashes
         title: "Number of unique hashes"
         units: Hashes
         family: hashes
-        context: expvar.hash.unique
+        context: expvar.tracker.hashes
         chart_type: line
       lines:
-        - {expvar_key: 'hash.unique', expvar_type: int, id: hashes}
-    - id: "peer_unique"
-      options:
-        name: peers
-        title: "Number of unique peers"
-        units: Peers
-        family: peers
-        context: expvar.peer.unique
-        chart_type: line
-      lines:
-        - {expvar_key: 'peer.unique', expvar_type: int, id: peers}
-    - id: "cleaned"
+        - {expvar_key: 'tracker.hashes', expvar_type: int, id: hashes}
+    - id: "tracker_cleaned"
       options:
         name: cleaned
         title: "Number of peers cleaned since program ran"
@@ -54,17 +76,6 @@ Trakx:
         chart_type: line
       lines:
         - {expvar_key: 'tracker.cleaned', expvar_type: int, id: cleaned}
-    - id: "tracker_stats"
-      options:
-        name: stats
-        title: "Tracker stats"
-        units: Peers
-        family: stats
-        context: expvar.tracker
-        chart_type: line
-      lines:
-        - {expvar_key: 'tracker.seeds', expvar_type: int, id: seeds}
-        - {expvar_key: 'tracker.leeches', expvar_type: float, id: leeches}
 ```
 
 ## Resources

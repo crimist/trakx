@@ -49,29 +49,34 @@ func getLeeches() int64 {
 
 var (
 	expvarCleaned int64
+	expvarHits    int64
 )
 
 // Expvar is for netdata
 func Expvar() {
-	uniqueIP := expvar.NewInt("ip.unique")
-	uniqueHash := expvar.NewInt("hash.unique")
-	uniquePeer := expvar.NewInt("peer.unique")
+	var oldHits int64
+
+	uniqueIP := expvar.NewInt("tracker.ips")
+	uniqueHash := expvar.NewInt("tracker.hashes")
+	uniquePeer := expvar.NewInt("tracker.peers")
 	cleaned := expvar.NewInt("tracker.cleaned")
 	seeds := expvar.NewInt("tracker.seeds")
 	leeches := expvar.NewInt("tracker.leeches")
+	hits := expvar.NewInt("tracker.hits")
+	hitsPerSec := expvar.NewInt("tracker.hitspersec")
 
 	go http.ListenAndServe("127.0.0.1:1338", nil) // only on localhost
 
-	tick := time.NewTicker(1 * time.Second)
-	for {
-		select {
-		case <-tick.C:
-			uniqueIP.Set(getUniqeIP())
-			uniqueHash.Set(getUniqeHash())
-			uniquePeer.Set(getUniqePeer())
-			seeds.Set(getSeeds())
-			leeches.Set(getLeeches())
-			cleaned.Set(expvarCleaned)
-		}
+	for c := time.Tick(1 * time.Minute); ; <-c {
+		uniqueIP.Set(getUniqeIP())
+		uniqueHash.Set(getUniqeHash())
+		uniquePeer.Set(getUniqePeer())
+		seeds.Set(getSeeds())
+		leeches.Set(getLeeches())
+		cleaned.Set(expvarCleaned)
+		hits.Set(expvarHits)
+		hitsPerSec.Set(expvarHits - oldHits)
+
+		oldHits = expvarHits
 	}
 }

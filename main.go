@@ -17,7 +17,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 	resp += "<p>http://nibba.trade:1337/announce</p>"
 	resp += "<p>Message me if you've got issues. Discord: <3#1527 / Email: tracker@nibba.trade</p>"
 	resp += "<a href='/dmca'>DMCA?</a>"
-	
+
 	fmt.Fprintf(w, resp)
 }
 

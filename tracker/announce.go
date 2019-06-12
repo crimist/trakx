@@ -205,6 +205,7 @@ func (a *announce) InternalError(err error) {
 
 // Announce x
 func Announce(w http.ResponseWriter, r *http.Request) {
+	expvarHits++
 	a := NewAnnounce(
 		r.URL.Query().Get("info_hash"),
 		r.URL.Query().Get("peer_id"),

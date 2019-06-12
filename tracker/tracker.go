@@ -52,7 +52,7 @@ func Init(isProd bool) (*gorm.DB, error) {
 
 // Clean removes clients that haven't checked in recently
 func Clean() {
-	for c := time.Tick(5 * time.Minute); ; <-c {
+	for c := time.Tick(1 * time.Minute); ; <-c {
 		affected := db.Where("last_seen < ?", time.Now().Unix()-int64(trackerTimeout)).Delete(&Peer{}).RowsAffected
 		logger.Info("Cleaned peers", zap.Int64("count", affected))
 		expvarCleaned += affected
