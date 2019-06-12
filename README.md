@@ -16,3 +16,6 @@ Bittorrent tracker written in go.
 * Add testing
 * Support Ipv6
   * http://www.bittorrent.org/beps/bep_0007.html
+* Proper zap config
+* Netdata graph
+  * https://docs.netdata.cloud/collectors/python.d.plugin/go_expvar/

@@ -8,9 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
-
 	"github.com/Syc0x00/Trakx/bencoding"
+	"go.uber.org/zap"
 )
 
 type announce struct {
@@ -60,7 +59,8 @@ func NewAnnounce(
 	// IP
 	IP, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		a.ClientError("Invalid IP address")
+		a.ClientError("Invalid IP address, how the fuck?")
+		logger.Error("net.SplitHostPort failed", zap.Error(err))
 		return nil
 	}
 	a.IP = IP
@@ -74,13 +74,13 @@ func NewAnnounce(
 
 	// InfoHash
 	if len(infoHash) != 20 {
-		a.ClientError("Invalid infohash")
+		a.ClientError("Invalid infohash", zap.Int("infoHash len", len(infoHash)))
 		return nil
 	}
 
 	// PeerID
 	if len(peerID) != 20 {
-		a.ClientError("Invalid peer ID")
+		a.ClientError("Invalid peer ID", zap.Int("peerID len", len(peerID)))
 		return nil
 	}
 
@@ -91,18 +91,18 @@ func NewAnnounce(
 	}
 	portInt, err := strconv.Atoi(port)
 	if err != nil {
-		a.ClientError("port not valid number")
+		a.ClientError("port not valid number", zap.String("port", port))
 		return nil
 	}
 	if portInt > 65535 || portInt < 1 {
-		a.ClientError("invalid port number")
+		a.ClientError("invalid port number", zap.Int("port", portInt))
 		return nil
 	}
 
 	// Left
 	leftInt, err := strconv.ParseUint(left, 10, 64)
 	if err != nil {
-		a.ClientError("Invalid left")
+		a.ClientError("Invalid left", zap.String("left", left))
 		return nil
 	}
 	a.left = leftInt
@@ -111,7 +111,7 @@ func NewAnnounce(
 	if uploaded != "" {
 		uploadedInt, err := strconv.ParseUint(uploaded, 10, 64)
 		if err != nil {
-			a.ClientError("Invalid uploaded")
+			a.ClientError("Invalid uploaded", zap.String("uploaded", uploaded))
 			return nil
 		}
 		a.uploaded = uploadedInt
@@ -121,7 +121,7 @@ func NewAnnounce(
 	if downloaded != "" {
 		downloadedInt, err := strconv.ParseUint(downloaded, 10, 64)
 		if err != nil {
-			a.ClientError("Invalid downloaded")
+			a.ClientError("Invalid downloaded", zap.String("downloaded", downloaded))
 			return nil
 		}
 		a.downloaded = downloadedInt
@@ -135,7 +135,7 @@ func NewAnnounce(
 	if numwant != "" {
 		numwantInt, err := strconv.ParseInt(numwant, 10, 64)
 		if err != nil {
-			a.ClientError("Invalid numwant")
+			a.ClientError("Invalid numwant", zap.String("numwant", numwant))
 			return nil
 		}
 		a.numwant = numwantInt
@@ -182,11 +182,12 @@ func (a *announce) warn(reason string) {
 	fmt.Fprint(a.w, d.Get())
 }
 
-func (a *announce) ClientError(reason string) {
+func (a *announce) ClientError(reason string, fields ...zap.Field) {
 	a.error(reason)
 	logger.Info("Client Error",
 		zap.String("ip", a.IP),
 		zap.String("reason", reason),
+		fields,
 	)
 }
 
@@ -201,9 +202,7 @@ func (a *announce) ClientWarn(reason string) {
 // InternalError is a wrapper to tell the client I fucked up
 func (a *announce) InternalError(err error) {
 	a.error("Internal Server Error")
-	logger.Info("Internal Server Error",
-		zap.Error(err),
-	)
+	logger.Error("Internal Server Error", zap.Error(err))
 }
 
 // Announce x
@@ -262,14 +261,13 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Encode and send the data
+	// Bencode response
 	d := bencoding.NewDict()
-	// d.Add("tracker id", "ayy lmao") // Tracker id
-	d.Add("interval", 60*5) // How often they should GET this
-	d.Add("complete", c)    // Number of seeders
-	d.Add("incomplete", i)  // Number of leeches
+	d.Add("interval", trackerInterval) // Announce interval
+	d.Add("complete", c)               // Seeders
+	d.Add("incomplete", i)             // Leeches
 
-	// Get the peer list
+	// Add peer list
 	if a.compact == true {
 		peerList, err := a.peer.Hash.PeerListCompact(a.numwant)
 		if err != nil {

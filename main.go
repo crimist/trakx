@@ -44,8 +44,9 @@ func main() {
 
 	defer db.Close()
 	go tracker.Clean()
-	stats := tracker.Stats{Directory: "/var/www/html/"}
-	go stats.Generator()
+	go tracker.Expvar()
+	// stats := tracker.Stats{Directory: "/var/www/html/"}
+	// go stats.Generator()
 
 	// Handlers
 	http.HandleFunc("/", index)
