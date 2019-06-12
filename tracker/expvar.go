@@ -67,7 +67,7 @@ func Expvar() {
 
 	go http.ListenAndServe("127.0.0.1:1338", nil) // only on localhost
 
-	for c := time.Tick(1 * time.Minute); ; <-c {
+	for c := time.Tick(1 * time.Second); ; <-c {
 		uniqueIP.Set(getUniqeIP())
 		uniqueHash.Set(getUniqeHash())
 		uniquePeer.Set(getUniqePeer())
