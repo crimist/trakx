@@ -8,48 +8,43 @@ import (
 )
 
 func getUniqePeer() int64 {
-	var peers []Peer
-	err := db.Find(&peers).Error
-	if err != nil {
+	var num uint
+	if err := db.Model(&Peer{}).Count(&num).Error; err != nil {
 		logger.Error("err", zap.Error(err))
 	}
-	return int64(len(peers))
+	return int64(num)
 }
 
 func getUniqeHash() int64 {
-	var peers []Peer
-	err := db.Select("DISTRINCT(hash)").Find(&peers).Error
-	if err != nil {
+	var num uint
+	if err := db.Model(&Peer{}).Select("count(distinct(peers.hash))").Count(&num).Error; err != nil {
 		logger.Error("err", zap.Error(err))
 	}
-	return int64(len(peers))
+	return int64(num)
 }
 
 func getUniqeIP() int64 {
-	var peers []Peer
-	err := db.Select("DISTRINCT(ip)").Find(&peers).Error
-	if err != nil {
+	var num uint
+	if err := db.Model(&Peer{}).Select("count(distinct(peers.ip))").Count(&num).Error; err != nil {
 		logger.Error("err", zap.Error(err))
 	}
-	return int64(len(peers))
+	return int64(num)
 }
 
 func getSeeds() int64 {
-	var peers []Peer
-	err := db.Where("complete = true").Find(&peers).Error
-	if err != nil {
+	var num uint
+	if err := db.Model(&Peer{}).Where("complete = true").Count(&num).Error; err != nil {
 		logger.Error("err", zap.Error(err))
 	}
-	return int64(len(peers))
+	return int64(num)
 }
 
 func getLeeches() int64 {
-	var peers []Peer
-	err := db.Where("complete = false").Find(&peers).Error
-	if err != nil {
+	var num uint
+	if err := db.Model(&Peer{}).Where("complete = false").Count(&num).Error; err != nil {
 		logger.Error("err", zap.Error(err))
 	}
-	return int64(len(peers))
+	return int64(num)
 }
 
 // Expvar is for netdata

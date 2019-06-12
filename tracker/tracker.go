@@ -38,7 +38,7 @@ func Init(isProd bool) (*gorm.DB, error) {
 		db.LogMode(true) // Debug gorm
 	}
 
-	cfg.OutputPaths = append(cfg.OutputPaths, "/var/log/trakx.log")
+	cfg.OutputPaths = append(cfg.OutputPaths, "trakx.log")
 	logger, err = cfg.Build()
 	if err != nil {
 		return nil, err
