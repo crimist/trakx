@@ -37,13 +37,22 @@ Trakx:
     - id: "tracker_peers"
       options:
         name: peers
-        title: "Number of entries for peers, seeds, and leeches"
+        title: "Number of peers"
+        units: Peers
+        family: peers
+        context: expvar.tracker.peers
+        chart_type: line
+      lines:
+        - {expvar_key: 'tracker.peers', expvar_type: int, id: peers}
+     - id: "tracker_complete"
+      options:
+        name: completed
+        title: "Number of seeds / leeches"
         units: Peers
         family: peers
         context: expvar.tracker
         chart_type: line
       lines:
-        - {expvar_key: 'tracker.peers', expvar_type: int, id: peers}
         - {expvar_key: 'tracker.seeds', expvar_type: int, id: seeds}
         - {expvar_key: 'tracker.leeches', expvar_type: float, id: leeches}
     - id: "tracker_ips"
