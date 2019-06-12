@@ -184,8 +184,8 @@ func (a *announce) warn(reason string) {
 
 func (a *announce) ClientError(reason string, fields ...zap.Field) {
 	a.error(reason)
-	fields += zap.String("ip", a.IP)
-	fields += zap.String("reason", reason)
+	fields = append(fields, zap.String("ip", a.IP))
+	fields = append(fields, zap.String("reason", reason))
 	logger.Info("Client Error", fields...)
 }
 
