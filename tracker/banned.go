@@ -11,14 +11,31 @@ import (
 
 // Ban holds banned hashes
 type Ban struct {
-	Hash   Hash `gorm:"unique"`
-	Reason string
+	Hash   Hash   `db:"hash"`
+	Reason string `db:"reason"`
 }
 
 func initBans() error {
-	// Wipe table
-	db.DropTableIfExists(&Ban{})
-	db.CreateTable(&Ban{})
+	bantable := `
+	CREATE TABLE IF NOT EXISTS bans (
+		hash varbinary(255) UNIQUE,
+		reason varchar(255)
+	)
+	`
+
+	if _, err := db.Exec(bantable); err != nil {
+		panic(err)
+	}
+	result, err := db.Exec("DELETE FROM bans")
+	if err != nil {
+		panic(err)
+	} else {
+		count, err := result.RowsAffected()
+		if err != nil {
+			panic(err)
+		}
+		logger.Info("Cleared bans", zap.Int64("Count", count))
+	}
 
 	file, err := os.Open("banlist")
 	if err != nil {
@@ -53,7 +70,7 @@ func initBans() error {
 			Reason: reason,
 		}
 
-		db.Create(&entry)
+		db.Exec("INSERT INTO bans (hash, reason) VALUES (?, ?)", entry.Hash, entry.Reason)
 		logger.Info("Banned",
 			zap.ByteString("hash", entry.Hash[:]),
 		)

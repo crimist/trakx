@@ -3,8 +3,8 @@ package tracker
 import (
 	"time"
 
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql" // gorm mysql
+	_ "github.com/go-sql-driver/mysql" // mysql driver
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -15,17 +15,17 @@ const (
 )
 
 var (
-	db     *gorm.DB
+	db     *sqlx.DB
 	logger *zap.Logger
 	env    Enviroment
 )
 
 // Init initiates all the things the tracker needs
-func Init(isProd bool) (*gorm.DB, error) {
+func Init(isProd bool) (*sqlx.DB, error) {
 	var err error
 	var cfg zap.Config
 
-	db, err = gorm.Open("mysql", "root@/trakx")
+	db, err = sqlx.Open("mysql", "root@/trakx")
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,6 @@ func Init(isProd bool) (*gorm.DB, error) {
 	} else {
 		env = Dev
 		cfg = zap.NewDevelopmentConfig()
-		db.LogMode(true) // Debug gorm
 	}
 
 	cfg.OutputPaths = append(cfg.OutputPaths, "trakx.log")
@@ -45,7 +44,7 @@ func Init(isProd bool) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	initPeer()
+	initPeerTable()
 	initBans()
 
 	return db, nil
@@ -54,7 +53,14 @@ func Init(isProd bool) (*gorm.DB, error) {
 // Clean removes clients that haven't checked in recently
 func Clean() {
 	for c := time.Tick(trackerCleanInterval); ; <-c {
-		affected := db.Where("last_seen < ?", time.Now().Unix()-int64(trackerTimeout)).Delete(&Peer{}).RowsAffected
+		result, err := db.Exec("DELETE from `peers` WHERE (last_seen < ?)", time.Now().Unix()-int64(trackerTimeout))
+		if err != nil {
+			logger.Error("Peer delete", zap.Error(err))
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			logger.Error("Affected", zap.Error(err))
+		}
 		logger.Info("Cleaned peers", zap.Int64("count", affected))
 		expvarCleaned += affected
 	}

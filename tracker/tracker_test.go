@@ -93,11 +93,14 @@ func TestApp(t *testing.T) {
 	// Compact responses
 	Request("ABCDEFGHIJKLMNOPQRST", "192.168.1.3", "started", "0", "PEER3_______________", "peer3", "8080", true)
 
-	// Ipv6
+	// Should fail; ipv6
 	Request("ABCDEFGHIJKLMNOPQRST", "::1", "started", "100", "PEER4_______________", "peer4", "8080", false)
 
-	// Test banned hashes
+	// Should fail; banned hash
 	Request("8C4947E96C7C9F770AA3", "192.168.1.4", "started", "100", "PEER5_______________", "peer5", "1111", false)
+
+	// Should fail; wrong key on delete
+	Request("ABCDEFGHIJKLMNOPQRST", "2.2.2.2", "stopped", "0", "PEER2_______________", "WRONGKEY", "8000", false)
 
 	return
 }

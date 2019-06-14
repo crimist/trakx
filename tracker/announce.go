@@ -59,7 +59,7 @@ func NewAnnounce(
 	// IP
 	IP, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		a.ClientError("Invalid IP address, how the fuck?")
+		a.ClientError("Invalid IP address, how the fuck does this happen?")
 		logger.Error("net.SplitHostPort failed", zap.Error(err))
 		return nil
 	}
@@ -236,7 +236,11 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	// If stopped remove the peer and return
 	if a.event == "stopped" {
 		if err := a.peer.Delete(); err != nil {
-			a.InternalError(err)
+			if err.Error() == "Invalid key" { // Todo: make a custom error type for this kinda shit
+				a.ClientError(err.Error())
+			} else {
+				a.InternalError(err)
+			}
 			return
 		}
 		fmt.Fprint(w, "Goodbye")

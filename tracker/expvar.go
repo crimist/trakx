@@ -1,50 +1,57 @@
 package tracker
 
 import (
+	"database/sql"
 	"expvar"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func getUniqePeer() int64 {
-	var num uint
-	if err := db.Model(&Peer{}).Count(&num).Error; err != nil {
+	var num int64
+	row := db.QueryRow("SELECT count(*) FROM peers")
+	if err := row.Scan(&num); err != nil && err != sql.ErrNoRows {
 		logger.Error("err", zap.Error(err))
 	}
-	return int64(num)
+	return num
 }
 
 func getUniqeHash() int64 {
-	var num uint
-	if err := db.Model(&Peer{}).Select("count(distinct(peers.hash))").Count(&num).Error; err != nil {
+	var num int64
+	row := db.QueryRow("SELECT count(distinct(hash)) FROM peers")
+	if err := row.Scan(&num); err != nil && err != sql.ErrNoRows {
 		logger.Error("err", zap.Error(err))
 	}
-	return int64(num)
+	return num
 }
 
 func getUniqeIP() int64 {
-	var num uint
-	if err := db.Model(&Peer{}).Select("count(distinct(peers.ip))").Count(&num).Error; err != nil {
+	var num int64
+	row := db.QueryRow("SELECT count(distinct(ip)) FROM peers")
+	if err := row.Scan(&num); err != nil && err != sql.ErrNoRows {
 		logger.Error("err", zap.Error(err))
 	}
-	return int64(num)
+	return num
 }
 
 func getSeeds() int64 {
-	var num uint
-	if err := db.Model(&Peer{}).Where("complete = true").Count(&num).Error; err != nil {
+	var num int64
+	row := db.QueryRow("SELECT count(*) FROM peers WHERE (complete = true)")
+	if err := row.Scan(&num); err != nil && err != sql.ErrNoRows {
 		logger.Error("err", zap.Error(err))
 	}
-	return int64(num)
+	return num
 }
 
 func getLeeches() int64 {
-	var num uint
-	if err := db.Model(&Peer{}).Where("complete = false").Count(&num).Error; err != nil {
+	var num int64
+	row := db.QueryRow("SELECT count(*) FROM peers WHERE (complete = false)")
+	if err := row.Scan(&num); err != nil && err != sql.ErrNoRows {
 		logger.Error("err", zap.Error(err))
 	}
-	return int64(num)
+	return num
 }
 
 var (
