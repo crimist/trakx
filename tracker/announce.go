@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/Syc0x00/Trakx/bencoding"
 	"go.uber.org/zap"
 )
@@ -256,9 +255,9 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 
 	// Bencode response
 	d := bencoding.NewDict()
-	d.Add("interval", trackerInterval) // Announce interval
-	d.Add("complete", c)               // Seeders
-	d.Add("incomplete", i)             // Leeches
+	d.Add("interval", trackerAnnounceInterval) // Announce interval
+	d.Add("complete", c)                       // Seeders
+	d.Add("incomplete", i)                     // Leeches
 
 	// Add peer list
 	if a.compact == true {
@@ -270,6 +269,4 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w, d.Get())
-
-	spew.Dump(db)
 }
