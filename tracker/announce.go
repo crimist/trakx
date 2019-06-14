@@ -230,8 +230,6 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	var id ID
 	copy(id[:], a.peerID)
 
-	logger.Info("ID", zap.Any("ID", id), zap.Any("peerID", a.peerID))
-
 	// If stopped remove the peer and return
 	if a.event == "stopped" {
 		if err := a.peer.Delete(id); err != nil {
@@ -269,8 +267,4 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w, d.Get())
-
-	for id, peer := range db {
-		logger.Info("peers", zap.ByteString("id", id[:]), zap.Any("peer", peer))
-	}
 }
