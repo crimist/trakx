@@ -3,8 +3,6 @@ package tracker
 import (
 	"time"
 
-	_ "github.com/go-sql-driver/mysql" // mysql driver
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -14,21 +12,19 @@ const (
 	trackerCleanInterval = 3 * time.Minute
 )
 
+type ID [20]byte
+
 var (
-	db     *sqlx.DB
+	db     map[ID]Peer
 	logger *zap.Logger
 	env    Enviroment
 )
 
 // Init initiates all the things the tracker needs
-func Init(isProd bool) (*sqlx.DB, error) {
+func Init(isProd bool) (error) {
 	var err error
 	var cfg zap.Config
-
-	db, err = sqlx.Open("mysql", "root@/trakx")
-	if err != nil {
-		return nil, err
-	}
+	db = make(map[ID]Peer)
 
 	if isProd == true {
 		env = Prod
@@ -40,28 +36,18 @@ func Init(isProd bool) (*sqlx.DB, error) {
 
 	cfg.OutputPaths = append(cfg.OutputPaths, "trakx.log")
 	logger, err = cfg.Build()
-	if err != nil {
-		return nil, err
-	}
-
-	initPeerTable()
-	initBans()
-
-	return db, nil
+	
+	return err
 }
 
 // Clean removes clients that haven't checked in recently
 func Clean() {
 	for c := time.Tick(trackerCleanInterval); ; <-c {
-		result, err := db.Exec("DELETE from `peers` WHERE (last_seen < ?)", time.Now().Unix()-int64(trackerTimeout))
-		if err != nil {
-			logger.Error("Peer delete", zap.Error(err))
+		for key, val := range db {
+			if val.LastSeen < time.Now().Unix()-int64(trackerTimeout) {
+				delete(db, key)
+				expvarCleaned++
+			}
 		}
-		affected, err := result.RowsAffected()
-		if err != nil {
-			logger.Error("Affected", zap.Error(err))
-		}
-		logger.Info("Cleaned peers", zap.Int64("count", affected))
-		expvarCleaned += affected
 	}
 }

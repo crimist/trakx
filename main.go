@@ -50,13 +50,11 @@ func main() {
 		fmt.Printf("Limit: %v\n", limit.Cur)
 	}
 
-	// Init dbs ect.
-	db, err := tracker.Init(*prodFlag)
+	err := tracker.Init(*prodFlag)
 	if err != nil {
 		panic(err)
 	}
 
-	defer db.Close()
 	go tracker.Clean()
 	go tracker.Expvar()
 	// stats := tracker.Stats{Directory: "/var/www/html/"}

@@ -158,7 +158,6 @@ func NewAnnounce(
 	a.trackerID = trackerID
 
 	a.peer = Peer{
-		ID:       []byte(peerID),
 		Key:      []byte(key),
 		Hash:     []byte(infoHash),
 		IP:       IP,
@@ -227,17 +226,12 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/* Fuck the police
-	// Check for banned hash
-	if a.peer.Hash.Banned() {
-		a.ClientError("Banned hash")
-		return
-	}
-	*/
+	var id ID
+	copy(id[:], a.peerID)
 
 	// If stopped remove the peer and return
 	if a.event == "stopped" {
-		if err := a.peer.Delete(); err != nil {
+		if err := a.peer.Delete(id); err != nil {
 			if err.Error() == "Invalid key" { // Todo: make a custom error type for this kinda shit
 				a.ClientError(err.Error())
 			} else {
@@ -249,22 +243,12 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.peer.Save(); err != nil {
+	if err := a.peer.Save(id); err != nil {
 		a.InternalError(err)
 		return
 	}
 
-	c, err := a.peer.Hash.Complete()
-	if err != nil {
-		a.InternalError(err)
-		return
-	}
-
-	i, err := a.peer.Hash.Incomplete()
-	if err != nil {
-		a.InternalError(err)
-		return
-	}
+	c, i := a.peer.Hash.Complete()
 
 	// Bencode response
 	d := bencoding.NewDict()
@@ -274,18 +258,10 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 
 	// Add peer list
 	if a.compact == true {
-		peerList, err := a.peer.Hash.PeerListCompact(a.numwant)
-		if err != nil {
-			a.InternalError(err)
-			return
-		}
+		peerList := a.peer.Hash.PeerListCompact(a.numwant)
 		d.Add("peers", peerList)
 	} else {
-		peerList, err := a.peer.Hash.PeerList(a.numwant, a.noPeerID)
-		if err != nil {
-			a.InternalError(err)
-			return
-		}
+		peerList := a.peer.Hash.PeerList(a.numwant, a.noPeerID)
 		d.Add("peers", peerList)
 	}
 
