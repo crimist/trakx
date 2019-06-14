@@ -227,11 +227,13 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	/* Fuck the police
 	// Check for banned hash
 	if a.peer.Hash.Banned() {
 		a.ClientError("Banned hash")
 		return
 	}
+	*/
 
 	// If stopped remove the peer and return
 	if a.event == "stopped" {
