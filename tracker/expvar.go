@@ -4,67 +4,36 @@ import (
 	"expvar"
 	"net/http"
 	"time"
-	"bytes"
 )
 
-func getUniqePeer() int64 {
-	return int64(len(db))
-}
+func getInfo() (peers, hashes, ips, seeds, leeches int64) {
+	ipArr := []string{}
 
-func getUniqeHash() int64 {
-	count := []Hash{}
-	
-	for _, val := range db {
-		count = func() []Hash {
-			for _, e := range count {
-				if bytes.Equal(e, val.Hash) {
-					return count
+	for _, peermap := range db {
+		peers += int64(len(peermap))
+
+		for _, peer := range peermap {
+			ipArr = func() []string {
+				for _, ip := range ipArr {
+					if ip == peer.IP {
+						return ipArr
+					}
 				}
+				return append(ipArr, peer.IP)
+			}()
+
+			if peer.Complete == true {
+				seeds++
+			} else {
+				leeches++
 			}
-			return append(count, val.Hash)
-		}()
-	}
-
-	return int64(len(count))
-}
-
-func getUniqeIP() int64 {
-	count := []string{}
-	
-	for _, val := range db {
-		count = func() []string {
-			for _, e := range count {
-				if e == val.IP {
-					return count
-				}
-			}
-			return append(count, val.IP)
-		}()
-	}
-
-	return int64(len(count))
-}
-
-func getSeeds() int64 {
-	var count int64
-	for _, val := range db {
-		if val.Complete == true {
-			count++
 		}
 	}
 
-	return count
-}
+	hashes = int64(len(db))
+	ips = int64(len(ipArr))
 
-func getLeeches() int64 {
-	var count int64
-	for _, val := range db {
-		if val.Complete == false {
-			count++
-		}
-	}
-
-	return count
+	return peers, hashes, ips, seeds, leeches
 }
 
 var (
@@ -88,11 +57,12 @@ func Expvar() {
 	go http.ListenAndServe("127.0.0.1:1338", nil) // only on localhost
 
 	for c := time.Tick(1 * time.Second); ; <-c {
-		uniqueIP.Set(getUniqeIP())
-		uniqueHash.Set(getUniqeHash())
-		uniquePeer.Set(getUniqePeer())
-		seeds.Set(getSeeds())
-		leeches.Set(getLeeches())
+		peers, hashes, ips, s, l := getInfo()
+		uniqueIP.Set(ips)
+		uniqueHash.Set(hashes)
+		uniquePeer.Set(peers)
+		seeds.Set(s)
+		leeches.Set(l)
 		cleaned.Set(expvarCleaned)
 		hits.Set(expvarHits)
 		hitsPerSec.Set(expvarHits - oldHits)

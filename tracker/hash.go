@@ -5,31 +5,23 @@ import (
 	"bytes"
 	"encoding/binary"
 	"net"
-	
+
 	"github.com/Syc0x00/Trakx/bencoding"
 	"github.com/Syc0x00/Trakx/utils"
 )
 
 // Hash is the infohash of a torrent
-type Hash []byte
+type Hash [20]byte
 
-// Banned checks if the hash is banned
-func (h *Hash) Banned() bool {
-	return false
-}
+// Complete returns number of complete and incomplete peers associated with the hash
+func (h *Hash) Complete() (complete, incomplete int) {
+	peerMap, _ := db[*h]
 
-func (h *Hash) Complete() (int, int) {
-	complete := 0
-	incomplete := 0
-
-
-	for _, val := range db {
-		if bytes.Equal(val.Hash, *h) {
-			if val.Complete == true {
-				complete++
-			} else {
-				incomplete++
-			}
+	for _, peer := range peerMap {
+		if peer.Complete == true {
+			complete++
+		} else {
+			incomplete++
 		}
 	}
 
@@ -37,42 +29,39 @@ func (h *Hash) Complete() (int, int) {
 }
 
 // PeerList returns the peerlist bencoded
-func (h *Hash) PeerList(num int64, noPeerID bool) ([]string) {
+func (h *Hash) PeerList(num int64, noPeerID bool) []string {
 	var peerList []string
+	peerMap, _ := db[*h]
 
-	for id, peer := range db {
-		if bytes.Equal(peer.Hash, *h) {
-			dict := bencoding.NewDict()
-			if noPeerID == false {
-				dict.Add("peer id", id)
-			}
-			dict.Add("ip", peer.IP)
-			dict.Add("port", peer.Port)
-
-			peerList = append(peerList, dict.Get())
+	for id, peer := range peerMap {
+		dict := bencoding.NewDict()
+		if noPeerID == false {
+			dict.Add("peer id", id)
 		}
+		dict.Add("ip", peer.IP)
+		dict.Add("port", peer.Port)
+
+		peerList = append(peerList, dict.Get())
 	}
 
 	return peerList
 }
 
-// PeerListCompact returns the peer list as byte encoded
-func (h *Hash) PeerListCompact(num int64) (string) {
+// PeerListCompact returns the peer list byte encoded
+func (h *Hash) PeerListCompact(num int64) string {
 	var peerList string
+	peerMap, _ := db[*h]
 
+	for _, peer := range peerMap {
+		var b bytes.Buffer
+		writer := bufio.NewWriter(&b)
 
-	for _, peer := range db {
-		if bytes.Equal(peer.Hash, *h) {
-			var b bytes.Buffer
-			writer := bufio.NewWriter(&b)
+		// Network order
+		binary.Write(writer, binary.BigEndian, utils.IPToInt(net.ParseIP(peer.IP)))
+		binary.Write(writer, binary.BigEndian, peer.Port)
+		writer.Flush()
 
-			// Network order
-			binary.Write(writer, binary.BigEndian, utils.IPToInt(net.ParseIP(peer.IP)))
-			binary.Write(writer, binary.BigEndian, peer.Port)
-			writer.Flush()
-
-			peerList += b.String()
-		}
+		peerList += b.String()
 	}
 
 	return peerList

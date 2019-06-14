@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"runtime"
 	"syscall"
 
 	"github.com/Syc0x00/Trakx/tracker"
@@ -43,7 +44,13 @@ func main() {
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
 		panic(err)
 	}
-	limit.Cur = limit.Max
+
+	if runtime.GOOS == "darwin" {
+		limit.Cur = 24576
+	} else {
+		limit.Cur = limit.Max
+	}
+
 	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
 		panic(err)
 	} else {
