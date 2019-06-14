@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/Syc0x00/Trakx/bencoding"
 	"go.uber.org/zap"
 )
@@ -242,7 +243,7 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		fmt.Fprint(w, "Goodbye")
+		fmt.Fprint(w, "See you space cowboy...")
 		return
 	}
 
@@ -269,4 +270,6 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w, d.Get())
+
+	spew.Dump(db)
 }

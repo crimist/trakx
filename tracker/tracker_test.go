@@ -82,6 +82,8 @@ func TestApp(t *testing.T) {
 	// Make peers
 	Request("ABCDEFGHIJKLMNOPQRST", "1.1.1.1", "started", "100", "PEER1_______________", "peer1", "8000", false)
 	Request("ABCDEFGHIJKLMNOPQRST", "2.2.2.2", "started", "100", "PEER2_______________", "peer2", "8000", false)
+	Request("ASD12313121231313233", "1.1.1.1", "started", "200", "PEER1_______________", "peer1", "8000", false)
+	Request("ASD12313154545454233", "1.1.1.1", "started", "300", "PEER1_______________", "peer1", "8000", false)
 
 	// Update peers
 	Request("ABCDEFGHIJKLMNOPQRST", "11.11.11.11", "started", "50", "PEER1_______________", "peer1", "8888", false)
@@ -96,11 +98,8 @@ func TestApp(t *testing.T) {
 	// Should fail; ipv6
 	Request("ABCDEFGHIJKLMNOPQRST", "::1", "started", "100", "PEER4_______________", "peer4", "8080", false)
 
-	// Should fail; banned hash
-	Request("8C4947E96C7C9F770AA3", "192.168.1.4", "started", "100", "PEER5_______________", "peer5", "1111", false)
-
-	// Should fail; wrong key on delete
-	Request("ABCDEFGHIJKLMNOPQRST", "2.2.2.2", "stopped", "0", "PEER2_______________", "WRONGKEY", "8000", false)
+	// Delete peer
+	Request("ABCDEFGHIJKLMNOPQRST", "2.2.2.2", "stopped", "0", "PEER2_______________", "wrong_key", "8000", false)
 
 	return
 }
