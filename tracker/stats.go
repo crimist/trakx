@@ -10,6 +10,8 @@ import (
 	"github.com/wcharczuk/go-chart/drawing"
 )
 
+// !!! Not planning to implement. easier to link a netdata bage
+
 // Stats provides information for the index page
 type Stats struct {
 	Directory string

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"syscall"
 
 	"github.com/Syc0x00/Trakx/tracker"
 )
@@ -37,6 +38,17 @@ func main() {
 	prodFlag := flag.Bool("x", false, "Production mode")
 	portFlag := flag.String("p", "1337", "HTTP port to serve")
 	flag.Parse()
+
+	var limit syscall.Rlimit
+	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
+		panic(err)
+	}
+	limit.Cur = limit.Max
+	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
+		panic(err)
+	} else {
+		fmt.Printf("Limit: %v\n", limit.Cur)
+	}
 
 	// Init dbs ect.
 	db, err := tracker.Init(*prodFlag)
