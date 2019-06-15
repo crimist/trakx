@@ -30,6 +30,34 @@ func randStr(n int) string {
 	return string(b)
 }
 
+func reqFast(infoHash, ip, event, left, peerID, key, port string, compact bool) error {
+	req, err := http.NewRequest("GET", "http://127.0.0.1:1337/announce", nil)
+	if err != nil {
+		return err
+	}
+
+	q := req.URL.Query()
+	q.Add("info_hash", infoHash)
+	q.Add("ip", ip)
+	q.Add("event", event)
+	q.Add("left", left)
+	q.Add("peer_id", peerID)
+	q.Add("key", key)
+	q.Add("port", port)
+	if compact {
+		q.Add("compact", "1")
+	}
+	req.URL.RawQuery = q.Encode()
+
+	_, err = client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
 func Request(infoHash, ip, event, left, peerID, key, port string, compact bool) error {
 	// Make the request
 	req, err := http.NewRequest("GET", "http://127.0.0.1:1337/announce", nil)
@@ -77,8 +105,6 @@ func Request(infoHash, ip, event, left, peerID, key, port string, compact bool) 
 }
 
 func TestApp(t *testing.T) {
-	// t.Skip()
-
 	// Make peers
 	Request("ABCDEFGHIJKLMNOPQRST", "1.1.1.1", "started", "100", "PEER1_______________", "peer1", "8000", false)
 	Request("ABCDEFGHIJKLMNOPQRST", "2.2.2.2", "started", "100", "PEER2_______________", "peer2", "8000", false)

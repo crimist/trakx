@@ -33,7 +33,11 @@ func (h *Hash) PeerList(num int64, noPeerID bool) []string {
 	var peerList []string
 	peerMap, _ := db[*h]
 
+	var i int64
 	for id, peer := range peerMap {
+		if i == num {
+			break
+		}
 		dict := bencoding.NewDict()
 		if noPeerID == false {
 			dict.Add("peer id", id)
@@ -42,6 +46,7 @@ func (h *Hash) PeerList(num int64, noPeerID bool) []string {
 		dict.Add("port", peer.Port)
 
 		peerList = append(peerList, dict.Get())
+		i++
 	}
 
 	return peerList
@@ -52,7 +57,11 @@ func (h *Hash) PeerListCompact(num int64) string {
 	var peerList string
 	peerMap, _ := db[*h]
 
+	var i int64
 	for _, peer := range peerMap {
+		if i == num {
+			break
+		}
 		var b bytes.Buffer
 		writer := bufio.NewWriter(&b)
 
@@ -62,6 +71,7 @@ func (h *Hash) PeerListCompact(num int64) string {
 		writer.Flush()
 
 		peerList += b.String()
+		i++
 	}
 
 	return peerList

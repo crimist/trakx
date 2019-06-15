@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/Syc0x00/Trakx/tracker"
 )
@@ -62,10 +63,8 @@ func main() {
 		panic(err)
 	}
 
-	go tracker.Clean()
+	go tracker.Cleaner()
 	go tracker.Expvar()
-	// stats := tracker.Stats{Directory: "/var/www/html/"}
-	// go stats.Generator()
 
 	// Handlers
 	trackerMux := http.NewServeMux()
@@ -74,8 +73,16 @@ func main() {
 	trackerMux.HandleFunc("/scrape", scrape)
 	trackerMux.HandleFunc("/announce", tracker.Announce)
 
+	// Server
+	server := http.Server {
+		Addr: ":"+*portFlag,
+		Handler: trackerMux,
+		ReadTimeout: 5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+	}
+
 	// Serve
-	if err := http.ListenAndServe(":"+*portFlag, trackerMux); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		panic(err)
 	}
 }
