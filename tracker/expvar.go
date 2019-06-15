@@ -10,21 +10,13 @@ func getInfo() (int64, int64, int64, int64, int64) {
 	var peers int64
 	var seeds int64
 	var leeches int64
-	ipArr := []string{}
+	ipmap := make(map[string]bool)
 
 	for _, peermap := range db {
 		peers += int64(len(peermap))
 
 		for _, peer := range peermap {
-			ipArr = func() []string {
-				for _, ip := range ipArr {
-					if ip == peer.IP {
-						return ipArr
-					}
-				}
-				return append(ipArr, peer.IP)
-			}()
-
+			ipmap[peer.IP] = true
 			if peer.Complete == true {
 				seeds++
 			} else {
@@ -34,15 +26,15 @@ func getInfo() (int64, int64, int64, int64, int64) {
 	}
 
 	hashes := int64(len(db))
-	ips := int64(len(ipArr))
+	ips := int64(len(ipmap))
 
 	return peers, hashes, ips, seeds, leeches
 }
 
 var (
-	expvarCleaned int64
-	expvarHits    int64
-	expvarErrs    int64
+	expvarCleaned    int64
+	expvarHits       int64
+	expvarErrs       int64
 )
 
 // Expvar is for netdata

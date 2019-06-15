@@ -199,6 +199,7 @@ func (a *announce) ClientWarn(reason string) {
 
 // InternalError is a wrapper to tell the client I fucked up
 func (a *announce) InternalError(err error) {
+	expvarErrs++
 	a.error("Internal Server Error")
 	logger.Error("Internal Server Error", zap.Error(err))
 }
