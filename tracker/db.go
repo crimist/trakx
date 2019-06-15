@@ -62,7 +62,7 @@ func (d *Database) Load() {
 		}
 	}
 
-	if !loadtemp {
+	if infoFull != nil && infoTemp != nil {
 		if infoTemp.ModTime().UnixNano() > infoFull.ModTime().UnixNano() {
 			loadtemp = true
 		}
