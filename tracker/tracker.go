@@ -16,6 +16,7 @@ const (
 	trackerCleanInterval    = 3 * time.Minute
 	trackerWriteDBInterval  = 5 * time.Minute
 	trackerDBFilename       = "trakx.db"
+	trackerDBTempFilename   = "trakx.db.tmp"
 )
 
 var (
@@ -49,7 +50,7 @@ func Init(isProd bool) error {
 		sig := <-c
 		logger.Info("Got signal", zap.Any("Signal", sig))
 
-		db.Write()
+		db.Write(false)
 
 		os.Exit(128 + int(sig.(syscall.Signal)))
 	}()
@@ -63,7 +64,7 @@ func Init(isProd bool) error {
 func Writer() {
 	time.Sleep(1 * time.Second)
 	for c := time.Tick(trackerWriteDBInterval); ; <-c {
-		db.Write()
+		db.Write(true)
 	}
 }
 

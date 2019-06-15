@@ -32,9 +32,9 @@ func getInfo() (int64, int64, int64, int64, int64) {
 }
 
 var (
-	expvarCleaned    int64
-	expvarHits       int64
-	expvarErrs       int64
+	expvarCleaned int64
+	expvarHits    int64
+	expvarErrs    int64
 )
 
 // Expvar is for netdata
