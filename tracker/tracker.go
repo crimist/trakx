@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	trackerCleanTimeout     = 45 * time.Minute
-	trackerAnnounceInterval = 20 * time.Minute
+	trackerCleanTimeout     = 45 * 60 // 45 min
+	trackerAnnounceInterval = 20 * 60 // 20 min
 	trackerCleanInterval    = 3 * time.Minute
 	trackerWriteDBInterval  = 5 * time.Minute
 	trackerDBFilename       = "trakx.db"
