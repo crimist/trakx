@@ -46,7 +46,7 @@ func (d *Database) Load() {
 			logger.Info("No full database")
 			loadtemp = true
 		} else {
-			logger.Panic("os.Stat", zap.Error(err))
+			logger.Error("os.Stat", zap.Error(err))
 		}
 	}
 	infoTemp, err := os.Stat(trackerDBFilename + ".tmp")
@@ -58,7 +58,7 @@ func (d *Database) Load() {
 				return
 			}
 		} else {
-			logger.Panic("os.Stat", zap.Error(err))
+			logger.Error("os.Stat", zap.Error(err))
 		}
 	}
 
