@@ -38,11 +38,12 @@ func (d *Database) load(filename string) error {
 
 // Load loads a database into memory
 func (d *Database) Load() {
-	var loadtemp bool
+	loadtemp := false
 
 	infoFull, err := os.Stat(trackerDBFilename)
 	if err != nil {
 		if os.IsNotExist(err) {
+			logger.Info("No full database")
 			loadtemp = true
 		} else {
 			logger.Panic("os.Stat", zap.Error(err))
@@ -51,6 +52,7 @@ func (d *Database) Load() {
 	infoTemp, err := os.Stat(trackerDBFilename + ".tmp")
 	if err != nil {
 		if os.IsNotExist(err) {
+			logger.Info("No temp database")
 			if loadtemp {
 				logger.Info("No database found")
 				return
