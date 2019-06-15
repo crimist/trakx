@@ -57,7 +57,6 @@ func reqFast(infoHash, ip, event, left, peerID, key, port string, compact bool) 
 	return nil
 }
 
-
 func Request(infoHash, ip, event, left, peerID, key, port string, compact bool) error {
 	// Make the request
 	req, err := http.NewRequest("GET", "http://127.0.0.1:1337/announce", nil)

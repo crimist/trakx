@@ -1,11 +1,11 @@
 package tracker
 
 import (
+	"bytes"
 	"encoding/gob"
 	"io/ioutil"
 	"os"
 	"time"
-	"bytes"
 
 	"go.uber.org/zap"
 )

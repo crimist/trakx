@@ -74,10 +74,10 @@ func main() {
 	trackerMux.HandleFunc("/announce", tracker.Announce)
 
 	// Server
-	server := http.Server {
-		Addr: ":"+*portFlag,
-		Handler: trackerMux,
-		ReadTimeout: 5 * time.Second,
+	server := http.Server{
+		Addr:         ":" + *portFlag,
+		Handler:      trackerMux,
+		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 	}
 

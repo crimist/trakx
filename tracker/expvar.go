@@ -61,9 +61,11 @@ func Expvar() {
 	errors := expvar.NewInt("tracker.errors")
 	errorsPerSec := expvar.NewInt("tracker.errorspersec")
 
-	go http.ListenAndServe("127.0.0.1:1338", nil) // only on localhost
+	go http.ListenAndServe("127.0.0.1:"+trackerExpvarPort, nil) // only on localhost
 
-	for c := time.Tick(1 * time.Second); ; <-c {
+	nextTime := time.Now().Truncate(time.Second)
+
+	for {
 		peers, hashes, ips, s, l := getInfo()
 
 		uniqueIP.Set(ips)
@@ -79,5 +81,8 @@ func Expvar() {
 
 		oldHits = expvarHits
 		errsold = expvarErrs
+
+		nextTime = nextTime.Add(time.Second)
+		time.Sleep(time.Until(nextTime))
 	}
 }

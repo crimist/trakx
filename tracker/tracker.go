@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	trackerExpvarPort       = "1338"
 	trackerCleanTimeout     = 45 * 60 // 45 min
 	trackerAnnounceInterval = 20 * 60 // 20 min
 	trackerCleanInterval    = 3 * time.Minute
@@ -53,17 +54,22 @@ func Init(isProd bool) error {
 		os.Exit(128 + int(sig.(syscall.Signal)))
 	}()
 
-	go func() {
-		for c := time.Tick(trackerWriteDBInterval); ; <-c {
-			db.Write()
-		}
-	}()
+	go Writer()
 
 	return err
 }
 
+// Writer runs db.Write() every trackerWriteDBInterval
+func Writer() {
+	time.Sleep(1 * time.Second)
+	for c := time.Tick(trackerWriteDBInterval); ; <-c {
+		db.Write()
+	}
+}
+
 // Cleaner removes clients that haven't checked in recently
 func Cleaner() {
+	time.Sleep(1 * time.Second)
 	for c := time.Tick(trackerCleanInterval); ; <-c {
 		db.Clean()
 	}
