@@ -50,9 +50,11 @@ func (d *Database) Load() {
 	}
 	infoTemp, err := os.Stat(trackerDBFilename + ".tmp")
 	if err != nil {
-		if os.IsNotExist(err) && loadtemp {
-			logger.Info("No database found")
-			return
+		if os.IsNotExist(err) {
+			if loadtemp {
+				logger.Info("No database found")
+				return
+			}
 		} else {
 			logger.Panic("os.Stat", zap.Error(err))
 		}
