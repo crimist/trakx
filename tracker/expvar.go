@@ -32,9 +32,10 @@ func getInfo() (int64, int64, int64, int64, int64) {
 }
 
 var (
-	expvarCleaned int64
-	expvarHits    int64
-	expvarErrs    int64
+	expvarCleanedPeers  int64
+	expvarCleanedHashes int64
+	expvarHits          int64
+	expvarErrs          int64
 )
 
 // Expvar is for netdata
@@ -45,7 +46,8 @@ func Expvar() {
 	uniqueIP := expvar.NewInt("tracker.ips")
 	uniqueHash := expvar.NewInt("tracker.hashes")
 	uniquePeer := expvar.NewInt("tracker.peers")
-	cleaned := expvar.NewInt("tracker.cleaned")
+	cleanedPeers := expvar.NewInt("tracker.cleaned.peers")
+	cleanedHashes := expvar.NewInt("tracker.cleaned.hashes")
 	seeds := expvar.NewInt("tracker.seeds")
 	leeches := expvar.NewInt("tracker.leeches")
 	hits := expvar.NewInt("tracker.hits")
@@ -65,7 +67,8 @@ func Expvar() {
 		uniquePeer.Set(peers)
 		seeds.Set(s)
 		leeches.Set(l)
-		cleaned.Set(expvarCleaned)
+		cleanedPeers.Set(expvarCleanedPeers)
+		cleanedHashes.Set(expvarCleanedHashes)
 		hits.Set(expvarHits)
 		hitsPerSec.Set(expvarHits - oldHits)
 		errors.Set(expvarErrs)

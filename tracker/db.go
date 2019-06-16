@@ -18,11 +18,12 @@ func (d *Database) Clean() {
 		for id, peer := range peermap {
 			if peer.LastSeen < time.Now().Unix()-int64(trackerCleanTimeout) {
 				delete(peermap, id)
-				expvarCleaned++
+				expvarCleanedPeers++
 			}
 		}
 		if len(peermap) == 0 {
 			delete(db, hash)
+			expvarCleanedHashes++
 		}
 	}
 }
