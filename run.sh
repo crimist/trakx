@@ -1,2 +1,3 @@
-screen -dm bash -c "go run main.go -x; exec sh"
+echo "Running Trakx. Git pull and then ^C within the screen to restart the service with new code"
+screen -dm bash -c "while true; do go run main.go -x; done"
 screen -list
