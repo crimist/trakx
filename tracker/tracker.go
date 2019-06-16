@@ -17,6 +17,7 @@ const (
 	trackerWriteDBInterval  = 5 * time.Minute
 	trackerDBFilename       = "trakx.db"
 	trackerDBTempFilename   = "trakx.db.tmp"
+	trackerDefaultNumwant   = 300
 )
 
 var (

@@ -68,34 +68,34 @@ func NewAnnounce(
 		IP = providedIP
 	}
 	if strings.Contains(IP, ":") {
-		a.ClientError("IPv6 unsupported")
+		a.ClientError("IPv6 unsupported", zap.String("ip", IP))
 		return nil
 	}
 
 	// InfoHash
 	if len(infoHash) != 20 {
-		a.ClientError("Invalid infohash", zap.Int("infoHash len", len(infoHash)))
+		a.ClientError("Invalid infohash", zap.Int("infoHash len", len(infoHash)), zap.Any("infohash", infoHash))
 		return nil
 	}
 
 	// PeerID
 	if len(peerID) != 20 {
-		a.ClientError("Invalid peer ID", zap.Int("peerID len", len(peerID)))
+		a.ClientError("Invalid peerid", zap.Int("peerid len", len(peerID)), zap.Any("peerid", peerID))
 		return nil
 	}
 
 	// Port
 	if port == "" {
-		a.ClientError("provide a port")
+		a.ClientError("Invalid port")
 		return nil
 	}
 	portInt, err := strconv.Atoi(port)
 	if err != nil {
-		a.ClientError("port not valid number", zap.String("port", port))
+		a.ClientError("Invalid port", zap.String("port", port))
 		return nil
 	}
 	if portInt > 65535 || portInt < 1 {
-		a.ClientError("invalid port number", zap.Int("port", portInt))
+		a.ClientError("Invalid port", zap.Int("port", portInt))
 		return nil
 	}
 
@@ -140,8 +140,7 @@ func NewAnnounce(
 		}
 		a.numwant = numwantInt
 	} else {
-		// default to 200
-		a.numwant = 200
+		a.numwant = trackerDefaultNumwant
 	}
 
 	complete := false
