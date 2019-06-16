@@ -55,7 +55,7 @@ func main() {
 	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
 		panic(err)
 	} else {
-		fmt.Printf("Limit: %v\n", limit.Cur)
+		fmt.Printf("Set limit to %v\n", limit.Cur)
 	}
 
 	err := tracker.Init(*prodFlag)
