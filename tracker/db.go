@@ -12,6 +12,7 @@ import (
 
 type Database map[Hash]map[PeerID]Peer
 
+// Clean removes all peers that haven't checked in in trackerCleanTimeout
 func (d *Database) Clean() {
 	for hash, peermap := range db {
 		for id, peer := range peermap {

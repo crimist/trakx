@@ -17,15 +17,19 @@ type Peer struct {
 
 // Save creates or updates peer
 func (p *Peer) Save(h Hash, id PeerID) error {
-	logger.Info("Save",
-		zap.Any("hash", h),
-		zap.Any("peerid", id),
-		zap.Any("Peer", p),
-	)
+	if env == Dev {
+		logger.Info("Save",
+			zap.Any("hash", h),
+			zap.Any("peerid", id),
+			zap.Any("Peer", p),
+		)
+	}
 
 	// Create map if it doesn't exist
 	if _, ok := db[h]; !ok {
-		logger.Info("Created hash map", zap.ByteString("hash", h[:]))
+		if env == Dev {
+			logger.Info("Created hash map", zap.ByteString("hash", h[:]))
+		}
 		db[h] = make(map[PeerID]Peer)
 	}
 
@@ -36,9 +40,11 @@ func (p *Peer) Save(h Hash, id PeerID) error {
 
 // Delete deletes peer
 func (p *Peer) Delete(h Hash, id PeerID) error {
-	logger.Info("Delete",
-		zap.Any("Peer", p),
-	)
+	if env == Dev {
+		logger.Info("Delete",
+			zap.Any("Peer", p),
+		)
+	}
 
 	delete(db, h)
 	return nil

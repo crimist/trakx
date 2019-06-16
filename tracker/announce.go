@@ -184,17 +184,21 @@ func (a *announce) warn(reason string) {
 
 func (a *announce) ClientError(reason string, fields ...zap.Field) {
 	a.error(reason)
-	fields = append(fields, zap.String("ip", a.IP))
-	fields = append(fields, zap.String("reason", reason))
-	logger.Info("Client Error", fields...)
+	if env == Dev {
+		fields = append(fields, zap.String("ip", a.IP))
+		fields = append(fields, zap.String("reason", reason))
+		logger.Info("Client Error", fields...)
+	}
 }
 
 func (a *announce) ClientWarn(reason string) {
 	a.warn(reason)
-	logger.Info("Client Warn",
-		zap.String("ip", a.IP),
-		zap.String("reason", reason),
-	)
+	if env == Dev {
+		logger.Info("Client Warn",
+			zap.String("ip", a.IP),
+			zap.String("reason", reason),
+		)
+	}
 }
 
 // InternalError is a wrapper to tell the client I fucked up

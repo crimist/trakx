@@ -11,7 +11,6 @@ Bittorrent tracker written in go.
 ## Resources
 
 * [Basic spec](https://wiki.theory.org/index.php/BitTorrentSpecification) - Protocol
-* [Gorm](https://github.com/jinzhu/gorm/) - ORM paired with mariadb
 * [Zap](https://godoc.org/go.uber.org/zap) - Logging
 
 ## Todo
@@ -20,5 +19,4 @@ Bittorrent tracker written in go.
 * Support Ipv6
   * http://www.bittorrent.org/beps/bep_0007.html
 * Proper zap config
-* Better storage
-  * Map map of peers? Write to file on close / every 1 min?
+
