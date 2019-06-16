@@ -1,67 +1,46 @@
 package tracker
 
 import (
-	"database/sql"
 	"expvar"
 	"net/http"
 	"time"
-
-	"go.uber.org/zap"
 )
 
-func getUniqePeer() int64 {
-	var num int64
-	row := db.QueryRow("SELECT count(*) FROM peers")
-	if err := row.Scan(&num); err != nil && err != sql.ErrNoRows {
-		logger.Error("err", zap.Error(err))
-	}
-	return num
-}
+func getInfo() (int64, int64, int64, int64, int64) {
+	var peers int64
+	var seeds int64
+	var leeches int64
+	ipmap := make(map[string]bool)
 
-func getUniqeHash() int64 {
-	var num int64
-	row := db.QueryRow("SELECT count(distinct(hash)) FROM peers")
-	if err := row.Scan(&num); err != nil && err != sql.ErrNoRows {
-		logger.Error("err", zap.Error(err))
-	}
-	return num
-}
+	for _, peermap := range db {
+		peers += int64(len(peermap))
 
-func getUniqeIP() int64 {
-	var num int64
-	row := db.QueryRow("SELECT count(distinct(ip)) FROM peers")
-	if err := row.Scan(&num); err != nil && err != sql.ErrNoRows {
-		logger.Error("err", zap.Error(err))
+		for _, peer := range peermap {
+			ipmap[peer.IP] = true
+			if peer.Complete == true {
+				seeds++
+			} else {
+				leeches++
+			}
+		}
 	}
-	return num
-}
 
-func getSeeds() int64 {
-	var num int64
-	row := db.QueryRow("SELECT count(*) FROM peers WHERE (complete = true)")
-	if err := row.Scan(&num); err != nil && err != sql.ErrNoRows {
-		logger.Error("err", zap.Error(err))
-	}
-	return num
-}
+	hashes := int64(len(db))
+	ips := int64(len(ipmap))
 
-func getLeeches() int64 {
-	var num int64
-	row := db.QueryRow("SELECT count(*) FROM peers WHERE (complete = false)")
-	if err := row.Scan(&num); err != nil && err != sql.ErrNoRows {
-		logger.Error("err", zap.Error(err))
-	}
-	return num
+	return peers, hashes, ips, seeds, leeches
 }
 
 var (
 	expvarCleaned int64
 	expvarHits    int64
+	expvarErrs    int64
 )
 
 // Expvar is for netdata
 func Expvar() {
 	var oldHits int64
+	var errsold int64
 
 	uniqueIP := expvar.NewInt("tracker.ips")
 	uniqueHash := expvar.NewInt("tracker.hashes")
@@ -71,19 +50,31 @@ func Expvar() {
 	leeches := expvar.NewInt("tracker.leeches")
 	hits := expvar.NewInt("tracker.hits")
 	hitsPerSec := expvar.NewInt("tracker.hitspersec")
+	errors := expvar.NewInt("tracker.errors")
+	errorsPerSec := expvar.NewInt("tracker.errorspersec")
 
-	go http.ListenAndServe("127.0.0.1:1338", nil) // only on localhost
+	go http.ListenAndServe("127.0.0.1:"+trackerExpvarPort, nil) // only on localhost
 
-	for c := time.Tick(1 * time.Second); ; <-c {
-		uniqueIP.Set(getUniqeIP())
-		uniqueHash.Set(getUniqeHash())
-		uniquePeer.Set(getUniqePeer())
-		seeds.Set(getSeeds())
-		leeches.Set(getLeeches())
+	nextTime := time.Now().Truncate(time.Second)
+
+	for {
+		peers, hashes, ips, s, l := getInfo()
+
+		uniqueIP.Set(ips)
+		uniqueHash.Set(hashes)
+		uniquePeer.Set(peers)
+		seeds.Set(s)
+		leeches.Set(l)
 		cleaned.Set(expvarCleaned)
 		hits.Set(expvarHits)
 		hitsPerSec.Set(expvarHits - oldHits)
+		errors.Set(expvarErrs)
+		errorsPerSec.Set(expvarErrs - errsold)
 
 		oldHits = expvarHits
+		errsold = expvarErrs
+
+		nextTime = nextTime.Add(time.Second)
+		time.Sleep(time.Until(nextTime))
 	}
 }

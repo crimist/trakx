@@ -3,7 +3,6 @@ package tracker
 import (
 	"bufio"
 	"bytes"
-	"database/sql"
 	"encoding/binary"
 	"net"
 
@@ -12,74 +11,57 @@ import (
 )
 
 // Hash is the infohash of a torrent
-type Hash []byte
+type Hash [20]byte
 
-// Banned checks if the hash is banned
-func (h *Hash) Banned() bool {
-	// var res int
-	row := db.QueryRow("SELECT 1 FROM bans WHERE hash=?", h)
-	if err := row.Scan(nil); err == sql.ErrNoRows {
-		return false
+// Complete returns number of complete and incomplete peers associated with the hash
+func (h *Hash) Complete() (complete, incomplete int) {
+	peerMap, _ := db[*h]
+
+	for _, peer := range peerMap {
+		if peer.Complete == true {
+			complete++
+		} else {
+			incomplete++
+		}
 	}
 
-	return true
-}
-
-// Complete returns the number of peers that are complete
-func (h *Hash) Complete() (int, error) {
-	var count int
-
-	row := db.QueryRow("SELECT count(*) FROM peers WHERE complete = true AND hash = ?", h)
-	if err := row.Scan(&count); err != nil && err != sql.ErrNoRows {
-		return 0, err
-	}
-
-	return count, nil
-}
-
-// Incomplete returns the number of peers that are incomplete
-func (h *Hash) Incomplete() (int, error) {
-	var count int
-
-	row := db.QueryRow("SELECT count(*) FROM peers WHERE complete = false AND hash = ?", h)
-	if err := row.Scan(&count); err != nil && err != sql.ErrNoRows {
-		return 0, err
-	}
-
-	return count, nil
+	return complete, incomplete
 }
 
 // PeerList returns the peerlist bencoded
-func (h *Hash) PeerList(num int64, noPeerID bool) ([]string, error) {
+func (h *Hash) PeerList(num int64, noPeerID bool) []string {
 	var peerList []string
-	var peers []Peer
+	peerMap, _ := db[*h]
 
-	if err := db.Select(&peers, "SELECT id, ip, port FROM peers WHERE hash = ? LIMIT ?", h, num); err != nil {
-		return peerList, err
-	}
-	for _, peer := range peers {
+	var i int64
+	for id, peer := range peerMap {
+		if i == num {
+			break
+		}
 		dict := bencoding.NewDict()
 		if noPeerID == false {
-			dict.Add("peer id", peer.ID)
+			dict.Add("peer id", id)
 		}
 		dict.Add("ip", peer.IP)
 		dict.Add("port", peer.Port)
 
 		peerList = append(peerList, dict.Get())
+		i++
 	}
 
-	return peerList, nil
+	return peerList
 }
 
-// PeerListCompact returns the peer list as byte encoded
-func (h *Hash) PeerListCompact(num int64) (string, error) {
+// PeerListCompact returns the peer list byte encoded
+func (h *Hash) PeerListCompact(num int64) string {
 	var peerList string
-	var peers []Peer
+	peerMap, _ := db[*h]
 
-	if err := db.Select(&peers, "SELECT ip, port FROM peers WHERE hash = ? LIMIT ?", h, num); err != nil {
-		return peerList, err
-	}
-	for _, peer := range peers {
+	var i int64
+	for _, peer := range peerMap {
+		if i == num {
+			break
+		}
 		var b bytes.Buffer
 		writer := bufio.NewWriter(&b)
 
@@ -89,7 +71,8 @@ func (h *Hash) PeerListCompact(num int64) (string, error) {
 		writer.Flush()
 
 		peerList += b.String()
+		i++
 	}
 
-	return peerList, nil
+	return peerList
 }

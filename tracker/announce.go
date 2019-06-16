@@ -156,11 +156,11 @@ func NewAnnounce(
 	a.event = event
 	a.key = key
 	a.trackerID = trackerID
+	a.peerID = peerID
+	a.infoHash = infoHash
 
 	a.peer = Peer{
-		ID:       []byte(peerID),
 		Key:      []byte(key),
-		Hash:     []byte(infoHash),
 		IP:       IP,
 		Port:     uint16(portInt),
 		Complete: complete,
@@ -199,6 +199,7 @@ func (a *announce) ClientWarn(reason string) {
 
 // InternalError is a wrapper to tell the client I fucked up
 func (a *announce) InternalError(err error) {
+	expvarErrs++
 	a.error("Internal Server Error")
 	logger.Error("Internal Server Error", zap.Error(err))
 }
@@ -227,17 +228,14 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/* Fuck the police
-	// Check for banned hash
-	if a.peer.Hash.Banned() {
-		a.ClientError("Banned hash")
-		return
-	}
-	*/
+	var id PeerID
+	var hash Hash
+	copy(id[:], a.peerID)
+	copy(hash[:], a.infoHash)
 
 	// If stopped remove the peer and return
 	if a.event == "stopped" {
-		if err := a.peer.Delete(); err != nil {
+		if err := a.peer.Delete(hash, id); err != nil {
 			if err.Error() == "Invalid key" { // Todo: make a custom error type for this kinda shit
 				a.ClientError(err.Error())
 			} else {
@@ -245,47 +243,29 @@ func Announce(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		fmt.Fprint(w, "Goodbye")
+		fmt.Fprint(w, "See you space cowboy...")
 		return
 	}
 
-	if err := a.peer.Save(); err != nil {
+	if err := a.peer.Save(hash, id); err != nil {
 		a.InternalError(err)
 		return
 	}
 
-	c, err := a.peer.Hash.Complete()
-	if err != nil {
-		a.InternalError(err)
-		return
-	}
-
-	i, err := a.peer.Hash.Incomplete()
-	if err != nil {
-		a.InternalError(err)
-		return
-	}
+	c, i := hash.Complete()
 
 	// Bencode response
 	d := bencoding.NewDict()
-	d.Add("interval", trackerInterval) // Announce interval
-	d.Add("complete", c)               // Seeders
-	d.Add("incomplete", i)             // Leeches
+	d.Add("interval", trackerAnnounceInterval) // Announce interval
+	d.Add("complete", c)                       // Seeders
+	d.Add("incomplete", i)                     // Leeches
 
 	// Add peer list
 	if a.compact == true {
-		peerList, err := a.peer.Hash.PeerListCompact(a.numwant)
-		if err != nil {
-			a.InternalError(err)
-			return
-		}
+		peerList := hash.PeerListCompact(a.numwant)
 		d.Add("peers", peerList)
 	} else {
-		peerList, err := a.peer.Hash.PeerList(a.numwant, a.noPeerID)
-		if err != nil {
-			a.InternalError(err)
-			return
-		}
+		peerList := hash.PeerList(a.numwant, a.noPeerID)
 		d.Add("peers", peerList)
 	}
 

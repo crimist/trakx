@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/Syc0x00/Trakx/tracker"
 )
@@ -43,24 +45,26 @@ func main() {
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
 		panic(err)
 	}
-	limit.Cur = limit.Max
+
+	if runtime.GOOS == "darwin" {
+		limit.Cur = 24576
+	} else {
+		limit.Cur = limit.Max
+	}
+
 	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &limit); err != nil {
 		panic(err)
 	} else {
 		fmt.Printf("Limit: %v\n", limit.Cur)
 	}
 
-	// Init dbs ect.
-	db, err := tracker.Init(*prodFlag)
+	err := tracker.Init(*prodFlag)
 	if err != nil {
 		panic(err)
 	}
 
-	defer db.Close()
-	go tracker.Clean()
+	go tracker.Cleaner()
 	go tracker.Expvar()
-	// stats := tracker.Stats{Directory: "/var/www/html/"}
-	// go stats.Generator()
 
 	// Handlers
 	trackerMux := http.NewServeMux()
@@ -69,8 +73,16 @@ func main() {
 	trackerMux.HandleFunc("/scrape", scrape)
 	trackerMux.HandleFunc("/announce", tracker.Announce)
 
+	// Server
+	server := http.Server{
+		Addr:         ":" + *portFlag,
+		Handler:      trackerMux,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+	}
+
 	// Serve
-	if err := http.ListenAndServe(":"+*portFlag, trackerMux); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		panic(err)
 	}
 }

@@ -1,13 +1,9 @@
 package tracker
 
-// TrackErr if for tracker errors
-type TrackErr uint8
+type clientError struct {
+	message string
+}
 
-const (
-	// OK means success
-	OK TrackErr = iota
-	// Error is a generic error
-	Error
-	// Banned means the hash is banned
-	Banned
-)
+func (c *clientError) Error() string {
+	return c.message
+}

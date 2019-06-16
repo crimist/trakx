@@ -1,34 +1,35 @@
 package tracker
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql" // mysql driver
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
 const (
-	trackerTimeout       = 60 * 45 // 45 min
-	trackerInterval      = 60 * 15 // 15 min
-	trackerCleanInterval = 3 * time.Minute
+	trackerExpvarPort       = "1338"
+	trackerCleanTimeout     = 45 * 60 // 45 min
+	trackerAnnounceInterval = 20 * 60 // 20 min
+	trackerCleanInterval    = 3 * time.Minute
+	trackerWriteDBInterval  = 5 * time.Minute
+	trackerDBFilename       = "trakx.db"
+	trackerDBTempFilename   = "trakx.db.tmp"
 )
 
 var (
-	db     *sqlx.DB
+	db     Database
 	logger *zap.Logger
 	env    Enviroment
 )
 
 // Init initiates all the things the tracker needs
-func Init(isProd bool) (*sqlx.DB, error) {
+func Init(isProd bool) error {
 	var err error
 	var cfg zap.Config
-
-	db, err = sqlx.Open("mysql", "root@/trakx")
-	if err != nil {
-		return nil, err
-	}
+	db = make(Database)
 
 	if isProd == true {
 		env = Prod
@@ -40,28 +41,37 @@ func Init(isProd bool) (*sqlx.DB, error) {
 
 	cfg.OutputPaths = append(cfg.OutputPaths, "trakx.log")
 	logger, err = cfg.Build()
-	if err != nil {
-		return nil, err
-	}
 
-	initPeerTable()
-	initBans()
+	db.Load()
 
-	return db, nil
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
+	go func() {
+		sig := <-c
+		logger.Info("Got signal", zap.Any("Signal", sig))
+
+		db.Write(false)
+
+		os.Exit(128 + int(sig.(syscall.Signal)))
+	}()
+
+	go Writer()
+
+	return err
 }
 
-// Clean removes clients that haven't checked in recently
-func Clean() {
+// Writer runs db.Write() every trackerWriteDBInterval
+func Writer() {
+	time.Sleep(1 * time.Second)
+	for c := time.Tick(trackerWriteDBInterval); ; <-c {
+		db.Write(true)
+	}
+}
+
+// Cleaner removes clients that haven't checked in recently
+func Cleaner() {
+	time.Sleep(1 * time.Second)
 	for c := time.Tick(trackerCleanInterval); ; <-c {
-		result, err := db.Exec("DELETE from `peers` WHERE (last_seen < ?)", time.Now().Unix()-int64(trackerTimeout))
-		if err != nil {
-			logger.Error("Peer delete", zap.Error(err))
-		}
-		affected, err := result.RowsAffected()
-		if err != nil {
-			logger.Error("Affected", zap.Error(err))
-		}
-		logger.Info("Cleaned peers", zap.Int64("count", affected))
-		expvarCleaned += affected
+		db.Clean()
 	}
 }
