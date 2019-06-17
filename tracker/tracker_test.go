@@ -91,8 +91,8 @@ func Request(infoHash, ip, event, left, peerID, key, port string, compact bool) 
 
 	var decoded map[string]interface{}
 	bencode.Unmarshal(body, &decoded)
-	fmt.Println("\n--------------------------------------")
-	spew.Dump(peerID, decoded, resp.StatusCode)
+	fmt.Println("--------------------------------------")
+	spew.Dump(peerID, body, decoded, resp.StatusCode)
 
 	switch v := decoded["peers"].(type) {
 	case string:

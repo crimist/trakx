@@ -71,7 +71,7 @@ func main() {
 	trackerMux.HandleFunc("/", index)
 	trackerMux.HandleFunc("/dmca", dmca)
 	trackerMux.HandleFunc("/scrape", scrape)
-	trackerMux.HandleFunc("/announce", tracker.Announce)
+	trackerMux.HandleFunc("/announce", tracker.AnnounceHandle)
 
 	// Server
 	server := http.Server{
