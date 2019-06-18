@@ -79,7 +79,7 @@ func Expvar() {
 		hits5min.Set(func() int64 {
 			hitsAvg[i] = int(hitsTick)
 			i++
-			if i > len(hitsAvg) {
+			if i == len(hitsAvg) {
 				i = 0
 			}
 			total := 0
