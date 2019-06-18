@@ -65,6 +65,7 @@ func Expvar() {
 	for {
 		peers, hashes, ips, s, l := getInfo()
 		hitsTick := expvarHits - hitsOld
+		hitsOld = expvarHits
 
 		uniqueIP.Set(ips)
 		uniqueHash.Set(hashes)
@@ -92,7 +93,6 @@ func Expvar() {
 		errors.Set(expvarErrs)
 		errorsPerSec.Set(expvarErrs - errsOld)
 
-		hitsOld = expvarHits
 		errsOld = expvarErrs
 
 		nextTime = nextTime.Add(time.Second)
