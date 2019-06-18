@@ -40,8 +40,9 @@ var (
 
 // Expvar is for netdata
 func Expvar() {
-	var oldHits int64
-	var errsold int64
+	var hitsAvg [60 * 5]int
+	var hitsOld int64
+	var errsOld int64
 
 	uniqueIP := expvar.NewInt("tracker.ips")
 	uniqueHash := expvar.NewInt("tracker.hashes")
@@ -51,7 +52,8 @@ func Expvar() {
 	seeds := expvar.NewInt("tracker.seeds")
 	leeches := expvar.NewInt("tracker.leeches")
 	hits := expvar.NewInt("tracker.hits")
-	hitsPerSec := expvar.NewInt("tracker.hitspersec")
+	hitsSec := expvar.NewInt("tracker.hits.sec")
+	hits5min := expvar.NewInt("tracker.hits.5min")
 	errors := expvar.NewInt("tracker.errors")
 	errorsPerSec := expvar.NewInt("tracker.errorspersec")
 
@@ -59,8 +61,10 @@ func Expvar() {
 
 	nextTime := time.Now().Truncate(time.Second)
 
+	i := 0
 	for {
 		peers, hashes, ips, s, l := getInfo()
+		hitsTick := expvarHits - hitsOld
 
 		uniqueIP.Set(ips)
 		uniqueHash.Set(hashes)
@@ -70,12 +74,26 @@ func Expvar() {
 		cleanedPeers.Set(expvarCleanedPeers)
 		cleanedHashes.Set(expvarCleanedHashes)
 		hits.Set(expvarHits)
-		hitsPerSec.Set(expvarHits - oldHits)
-		errors.Set(expvarErrs)
-		errorsPerSec.Set(expvarErrs - errsold)
+		hitsSec.Set(hitsTick)
+		hits5min.Set(func() int64 {
+			hitsAvg[i] = int(hitsTick)
+			i++
+			if i > len(hitsAvg) {
+				i = 0
+			}
+			total := 0
 
-		oldHits = expvarHits
-		errsold = expvarErrs
+			for _, val := range hitsAvg {
+				total += val
+			}
+
+			return int64(total / len(hitsAvg))
+		}())
+		errors.Set(expvarErrs)
+		errorsPerSec.Set(expvarErrs - errsOld)
+
+		hitsOld = expvarHits
+		errsOld = expvarErrs
 
 		nextTime = nextTime.Add(time.Second)
 		time.Sleep(time.Until(nextTime))

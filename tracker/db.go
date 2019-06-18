@@ -14,25 +14,23 @@ type Database map[Hash]map[PeerID]Peer
 
 // Clean removes all peers that haven't checked in in trackerCleanTimeout
 func (d *Database) Clean() {
-	var peers, hashes int64
+	expvarCleanedHashes = 0
+	expvarCleanedPeers = 0
 
 	for hash, peermap := range db {
 		for id, peer := range peermap {
 			if peer.LastSeen < time.Now().Unix()-int64(trackerCleanTimeout) {
 				delete(peermap, id)
-				peers++
+				expvarCleanedPeers++
 			}
 		}
 		if len(peermap) == 0 {
 			delete(db, hash)
-			hashes++
+			expvarCleanedHashes++
 		}
 	}
 
-	logger.Info("Cleaned database", zap.Int64("peers", peers), zap.Int64("Hashes", hashes))
-
-	expvarCleanedHashes += hashes
-	expvarCleanedPeers += peers
+	logger.Info("Cleaned database", zap.Int64("peers", expvarCleanedPeers), zap.Int64("Hashes", expvarCleanedHashes))
 }
 
 func (d *Database) load(filename string) error {
