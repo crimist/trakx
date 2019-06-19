@@ -41,16 +41,16 @@ func TestList(t *testing.T) {
 	}
 }
 
-func TestDictionarie(t *testing.T) {
-	dictEncode := bencoding.Dictionarie("cow moo", "spam eggs")
+func TestDictionary(t *testing.T) {
+	dictEncode := bencoding.Dictionary("cow moo", "spam eggs")
 	if dictEncode != "d3:cow3:moo4:spam4:eggse" {
 		t.Errorf("Expected d3:cow3:moo4:spam4:eggse got %s", dictEncode)
 	}
-	dictEncode2 := bencoding.Dictionarie("spam a b")
+	dictEncode2 := bencoding.Dictionary("spam a b")
 	if dictEncode2 != "d4:spaml1:a1:bee" {
 		t.Errorf("Expected d4:spaml1:a1:bee got %s", dictEncode2)
 	}
-	dictEncode3 := bencoding.Dictionarie("publisher bob", "publisher-webpage www.example.com", "publisher.location home")
+	dictEncode3 := bencoding.Dictionary("publisher bob", "publisher-webpage www.example.com", "publisher.location home")
 	if dictEncode3 != "d9:publisher3:bob17:publisher-webpage15:www.example.com18:publisher.location4:homee" {
 		t.Errorf("Expected d9:publisher3:bob17:publisher-webpage15:www.example.com18:publisher.location4:homee got %s", dictEncode3)
 	}

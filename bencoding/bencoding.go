@@ -28,8 +28,8 @@ func List(list ...string) string {
 	return encoded
 }
 
-// Dictionarie encodes a dict
-func Dictionarie(dict ...string) string {
+// Dictionary encodes a dict
+func Dictionary(dict ...string) string {
 	encoded := "d"
 	for _, part := range dict {
 		parts := strings.Split(part, " ")
