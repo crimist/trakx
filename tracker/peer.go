@@ -42,6 +42,8 @@ func (p *Peer) Save(h Hash, id PeerID) error {
 func (p *Peer) Delete(h Hash, id PeerID) error {
 	if env == Dev {
 		logger.Info("Delete",
+			zap.Any("hash", h),
+			zap.Any("peerid", id),
 			zap.Any("Peer", p),
 		)
 	}
