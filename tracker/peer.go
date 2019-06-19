@@ -46,6 +46,6 @@ func (p *Peer) Delete(h Hash, id PeerID) error {
 		)
 	}
 
-	delete(db, h)
+	delete(db[h], id)
 	return nil
 }

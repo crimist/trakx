@@ -18,8 +18,7 @@ type announce struct {
 	compact  bool
 	noPeerID bool
 	numwant  int64
-
-	peer Peer
+	peer     Peer
 
 	writer http.ResponseWriter
 	req    *http.Request
@@ -176,7 +175,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	a.SetCompact(r.URL.Query().Get("compact"))
 	a.SetNopeerid(r.URL.Query().Get("no_peer_id"))
 
-	// If the peer stopped seeding remove them
+	// If the peer stopped delete() them and exit
 	if event == "stopped" {
 		if err := a.peer.Delete(a.infohash, a.peerid); err != nil {
 			a.InternalError(err)
@@ -195,9 +194,9 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// Bencode response
 	d := bencoding.NewDict()
-	d.Add("interval", trackerAnnounceInterval) // Announce interval
-	d.Add("complete", complete)                // Seeders
-	d.Add("incomplete", incomplete)            // Leeches
+	d.Add("interval", trackerAnnounceInterval)
+	d.Add("complete", complete)
+	d.Add("incomplete", incomplete)
 
 	// Add peer list
 	if a.compact == true {
