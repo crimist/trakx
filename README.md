@@ -23,4 +23,3 @@ Restart netdata with `netdata` to run with the new config
 * Support Ipv6
   * http://www.bittorrent.org/beps/bep_0007.html
 * Proper zap config
-
