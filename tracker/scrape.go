@@ -33,6 +33,7 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		expvarScrapes++
 		var hash Hash
 		var complete, incomplete int
 		copy(hash[:], infohash)

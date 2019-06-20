@@ -35,6 +35,7 @@ var (
 	expvarCleanedPeers  int64
 	expvarCleanedHashes int64
 	expvarHits          int64
+	expvarScrapes       int64
 	expvarErrs          int64
 )
 
@@ -54,6 +55,7 @@ func Expvar() {
 	hitsSec := expvar.NewInt("tracker.hits.sec")
 	errors := expvar.NewInt("tracker.errors")
 	errorsPerSec := expvar.NewInt("tracker.errorspersec")
+	scrapes := expvar.NewInt("tracker.scrapes")
 
 	go http.ListenAndServe("127.0.0.1:"+trackerExpvarPort, nil) // only on localhost
 
@@ -75,6 +77,7 @@ func Expvar() {
 		hitsSec.Set(hitsTick)
 		errors.Set(expvarErrs)
 		errorsPerSec.Set(expvarErrs - errsOld)
+		scrapes.Set(expvarScrapes)
 
 		errsOld = expvarErrs
 
