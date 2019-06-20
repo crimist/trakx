@@ -50,13 +50,6 @@ func dmca(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "https://www.youtube.com/watch?v=BwSts2s4ba4", http.StatusMovedPermanently)
 }
 
-func scrape(w http.ResponseWriter, r *http.Request) {
-	resp := "I'm a teapot\n             ;,'\n     _o_    ;:;'\n ,-.'---`.__ ;\n((j`=====',-'\n `-\\     /\n    `-=-'     This tracker doesn't support /scrape"
-
-	w.WriteHeader(http.StatusTeapot)
-	fmt.Fprintf(w, resp)
-}
-
 func main() {
 	// Get flags
 	prodFlag := flag.Bool("x", false, "Production mode")
@@ -92,7 +85,7 @@ func main() {
 	trackerMux := http.NewServeMux()
 	trackerMux.HandleFunc("/", index)
 	trackerMux.HandleFunc("/dmca", dmca)
-	trackerMux.HandleFunc("/scrape", scrape)
+	trackerMux.HandleFunc("/scrape", tracker.ScrapeHandle)
 	trackerMux.HandleFunc("/announce", tracker.AnnounceHandle)
 
 	// Server
