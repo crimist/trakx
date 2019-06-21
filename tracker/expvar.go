@@ -6,10 +6,7 @@ import (
 	"time"
 )
 
-func getInfo() (int64, int64, int64, int64, int64) {
-	var peers int64
-	var seeds int64
-	var leeches int64
+func getInfo() (peers, hashes, ips, seeds, leeches int64) {
 	ipmap := make(map[string]bool)
 
 	for _, peermap := range db {
@@ -25,10 +22,10 @@ func getInfo() (int64, int64, int64, int64, int64) {
 		}
 	}
 
-	hashes := int64(len(db))
-	ips := int64(len(ipmap))
+	hashes = int64(len(db))
+	ips = int64(len(ipmap))
 
-	return peers, hashes, ips, seeds, leeches
+	return
 }
 
 var (
