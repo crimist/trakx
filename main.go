@@ -33,10 +33,11 @@ body {
 <div>
 	<p>Trakx is an open p2p tracker. Feel free to use it :)</p>
 	<p>Add <span style="background-color: #1dc135; color: black;">` + trackerBase + `/announce</span></p>
-	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.hits_sec&alarm=trakx_hits&refresh=auto" type="image/svg+xml" height="20"/>
-	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.hits_sec&alarm=trakx_hits_5min&refresh=auto" type="image/svg+xml" height="20"/>
-	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.hits_sec&alarm=trakx_hits_1hour&refresh=auto" type="image/svg+xml" height="20"/>
-	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.errors_per_second&alarm=trakx_errors&refresh=auto" type="image/svg+xml" height="20"/>
+	<embed src="` + netdataBase + `//api/v1/badge.svg?chart=go_expvar_Trakx.scrapes_sec&alarm=trakx_scrapes&refresh=auto" type="image/svg+xml" height="20"/>
+	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.announces_sec&alarm=trakx_announces&refresh=auto" type="image/svg+xml" height="20"/>
+	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.announces_sec&alarm=trakx_announces_5min&refresh=auto" type="image/svg+xml" height="20"/>
+	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.announces_sec&alarm=trakx_announces_1hour&refresh=auto" type="image/svg+xml" height="20"/>
+	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.errors_sec&alarm=trakx_errors&refresh=auto" type="image/svg+xml" height="20"/>
 	<p>Discord: <3#1527 / Email: tracker@nibba.trade</p>
 	<a href='/dmca'>DMCA?</a>
 </div>
