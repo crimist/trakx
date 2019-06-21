@@ -34,28 +34,35 @@ func getInfo() (int64, int64, int64, int64, int64) {
 var (
 	expvarCleanedPeers  int64
 	expvarCleanedHashes int64
-	expvarHits          int64
+	expvarAnnounces     int64
 	expvarScrapes       int64
 	expvarErrs          int64
 )
 
 // Expvar is for netdata
 func Expvar() {
-	var hitsOld int64
+	var announcesOld int64
+	var scrapesOld int64
 	var errsOld int64
 
 	uniqueIP := expvar.NewInt("tracker.ips")
 	uniqueHash := expvar.NewInt("tracker.hashes")
 	uniquePeer := expvar.NewInt("tracker.peers")
+
 	cleanedPeers := expvar.NewInt("tracker.cleaned.peers")
 	cleanedHashes := expvar.NewInt("tracker.cleaned.hashes")
+
 	seeds := expvar.NewInt("tracker.seeds")
 	leeches := expvar.NewInt("tracker.leeches")
+
 	hits := expvar.NewInt("tracker.hits")
 	hitsSec := expvar.NewInt("tracker.hits.sec")
+
 	errors := expvar.NewInt("tracker.errors")
 	errorsPerSec := expvar.NewInt("tracker.errorspersec")
+
 	scrapes := expvar.NewInt("tracker.scrapes")
+	scrapesSec := expvar.NewInt("tracker.scrapes.sec")
 
 	go http.ListenAndServe("127.0.0.1:"+trackerExpvarPort, nil) // only on localhost
 
@@ -63,23 +70,26 @@ func Expvar() {
 
 	for {
 		peers, hashes, ips, s, l := getInfo()
-		hitsTick := expvarHits - hitsOld
-		hitsOld = expvarHits
-
 		uniqueIP.Set(ips)
 		uniqueHash.Set(hashes)
 		uniquePeer.Set(peers)
+
 		seeds.Set(s)
 		leeches.Set(l)
+
 		cleanedPeers.Set(expvarCleanedPeers)
 		cleanedHashes.Set(expvarCleanedHashes)
-		hits.Set(expvarHits)
-		hitsSec.Set(hitsTick)
+
+		hits.Set(expvarAnnounces)
+		hitsSec.Set(expvarAnnounces - announcesOld)
+		announcesOld = expvarAnnounces
+
 		errors.Set(expvarErrs)
 		errorsPerSec.Set(expvarErrs - errsOld)
-		scrapes.Set(expvarScrapes)
 
-		errsOld = expvarErrs
+		scrapes.Set(expvarScrapes)
+		scrapesSec.Set(expvarScrapes - scrapesOld)
+		scrapesOld = expvarScrapes
 
 		nextTime = nextTime.Add(time.Second)
 		time.Sleep(time.Until(nextTime))

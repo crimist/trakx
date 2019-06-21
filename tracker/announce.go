@@ -154,7 +154,7 @@ func (a *announce) InternalError(err error) {
 
 // AnnounceHandle processes an announce http request
 func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
-	expvarHits++
+	expvarAnnounces++
 
 	event := r.URL.Query().Get("event")
 	a := &announce{writer: w, req: r, peer: Peer{}}

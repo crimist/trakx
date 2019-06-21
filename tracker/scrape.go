@@ -17,6 +17,8 @@ func clientError(writer http.ResponseWriter, reason string) {
 }
 
 func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
+	expvarScrapes++
+
 	infohashes := r.URL.Query()["info_hash"]
 	if len(infohashes) == 0 {
 		clientError(w, "no infohashes")
@@ -33,7 +35,6 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		expvarScrapes++
 		var hash Hash
 		var complete, incomplete int
 		copy(hash[:], infohash)
