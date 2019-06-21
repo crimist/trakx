@@ -55,11 +55,11 @@ func Expvar() {
 	seeds := expvar.NewInt("tracker.seeds")
 	leeches := expvar.NewInt("tracker.leeches")
 
-	hits := expvar.NewInt("tracker.hits")
-	hitsSec := expvar.NewInt("tracker.hits.sec")
+	announces := expvar.NewInt("tracker.announces")
+	announcesSec := expvar.NewInt("tracker.announces.sec")
 
 	errors := expvar.NewInt("tracker.errors")
-	errorsPerSec := expvar.NewInt("tracker.errorspersec")
+	errorsSec := expvar.NewInt("tracker.errors.sec")
 
 	scrapes := expvar.NewInt("tracker.scrapes")
 	scrapesSec := expvar.NewInt("tracker.scrapes.sec")
@@ -80,12 +80,12 @@ func Expvar() {
 		cleanedPeers.Set(expvarCleanedPeers)
 		cleanedHashes.Set(expvarCleanedHashes)
 
-		hits.Set(expvarAnnounces)
-		hitsSec.Set(expvarAnnounces - announcesOld)
+		announces.Set(expvarAnnounces)
+		announcesSec.Set(expvarAnnounces - announcesOld)
 		announcesOld = expvarAnnounces
 
 		errors.Set(expvarErrs)
-		errorsPerSec.Set(expvarErrs - errsOld)
+		errorsSec.Set(expvarErrs - errsOld)
 
 		scrapes.Set(expvarScrapes)
 		scrapesSec.Set(expvarScrapes - scrapesOld)
