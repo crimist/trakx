@@ -42,6 +42,9 @@ func Init(isProd bool) error {
 
 	cfg.OutputPaths = append(cfg.OutputPaths, "trakx.log")
 	logger, err = cfg.Build()
+	if err != nil {
+		return err
+	}
 
 	db.Load()
 

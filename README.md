@@ -16,6 +16,7 @@ Restart netdata with `netdata` to run with the new config
 
 * [Basic spec](https://wiki.theory.org/index.php/BitTorrentSpecification) - Protocol
 * [Zap](https://godoc.org/go.uber.org/zap) - Logging
+* [Sysctl tuning](https://wiki.mikejung.biz/Sysctl_tweaks)
 
 ## Todo
 
