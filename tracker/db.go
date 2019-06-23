@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"time"
+	"fmt"
 
 	"go.uber.org/zap"
 )
@@ -75,6 +76,7 @@ func (d *Database) Load() {
 		}
 	}
 
+	loaded := ""
 	if loadtemp == true {
 		if err := d.load(trackerDBTempFilename); err != nil {
 			logger.Info("Loading temp db failed", zap.Error(err))
@@ -82,7 +84,11 @@ func (d *Database) Load() {
 			if err := d.load(trackerDBFilename); err != nil {
 				logger.Info("Loading full db failed", zap.Error(err))
 				return
+			} else {
+				loaded = "full"
 			}
+		} else {
+			loaded = "temp"
 		}
 	} else {
 		if err := d.load(trackerDBFilename); err != nil {
@@ -91,11 +97,15 @@ func (d *Database) Load() {
 			if err := d.load(trackerDBTempFilename); err != nil {
 				logger.Info("Loading temp db failed", zap.Error(err))
 				return
+			} else {
+				loaded = "temp"
 			}
+		} else {
+			loaded = "full"
 		}
 	}
 
-	logger.Info("Loaded database", zap.Int("hashes", len(db)))
+	logger.Info(fmt.Sprintf("Loaded %v database", loaded), zap.Int("hashes", len(db)))
 }
 
 // Write dumps the database to a file
@@ -111,11 +121,11 @@ func (d *Database) Write(istemp bool) {
 
 	filename := trackerDBFilename
 	if istemp {
-		filename += ".tmp"
+		filename = trackerDBTempFilename
 	}
 	if err := ioutil.WriteFile(filename, buff.Bytes(), 0644); err != nil {
 		logger.Error("db writefile", zap.Error(err))
 	}
 
-	logger.Info("Wrote database", zap.Int("hashes", len(db)))
+	logger.Info(fmt.Sprintf("Wrote database %v", filename), zap.Int("hashes", len(db)))
 }

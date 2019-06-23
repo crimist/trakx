@@ -92,7 +92,7 @@ func Expvar(stats *stats.Stats) {
 		scrapesSec.Set(expvarScrapes - scrapesOld)
 		scrapesOld = expvarScrapes
 
-		respAvg.Set(stats.Data().AverageResponseTimeSec / 1000.0)
+		respAvg.Set(stats.Data().AverageResponseTimeSec * 1000.0) // ms
 
 		nextTime = nextTime.Add(time.Second)
 		time.Sleep(time.Until(nextTime))
