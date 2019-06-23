@@ -5,13 +5,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Syc0x00/Trakx/tracker/shared"
 	"github.com/thoas/stats"
 )
 
 func getInfo() (peers, hashes, ips, seeds, leeches int64) {
 	ipmap := make(map[string]bool)
 
-	for _, peermap := range PeerDB {
+	for _, peermap := range shared.PeerDB {
 		peers += int64(len(peermap))
 
 		for _, peer := range peermap {
@@ -24,19 +25,11 @@ func getInfo() (peers, hashes, ips, seeds, leeches int64) {
 		}
 	}
 
-	hashes = int64(len(PeerDB))
+	hashes = int64(len(shared.PeerDB))
 	ips = int64(len(ipmap))
 
 	return
 }
-
-var (
-	expvarCleanedPeers  int64
-	expvarCleanedHashes int64
-	ExpvarAnnounces     int64
-	ExpvarScrapes       int64
-	ExpvarErrs          int64
-)
 
 // Expvar is for netdata
 func Expvar(stats *stats.Stats) {
@@ -65,7 +58,7 @@ func Expvar(stats *stats.Stats) {
 
 	respAvg := expvar.NewFloat("tracker.respavg") // milliseconds
 
-	go http.ListenAndServe("127.0.0.1:"+ExpvarPort, nil) // only on localhost
+	go http.ListenAndServe("127.0.0.1:"+shared.ExpvarPort, nil) // only on localhost
 
 	nextTime := time.Now().Truncate(time.Second)
 
@@ -78,19 +71,20 @@ func Expvar(stats *stats.Stats) {
 		seeds.Set(s)
 		leeches.Set(l)
 
-		cleanedPeers.Set(expvarCleanedPeers)
-		cleanedHashes.Set(expvarCleanedHashes)
+		cleanedPeers.Set(shared.ExpvarCleanedPeers)
+		cleanedHashes.Set(shared.ExpvarCleanedHashes)
 
-		announces.Set(ExpvarAnnounces)
-		announcesSec.Set(ExpvarAnnounces - announcesOld)
-		announcesOld = ExpvarAnnounces
+		announces.Set(shared.ExpvarAnnounces)
+		announcesSec.Set(shared.ExpvarAnnounces - announcesOld)
+		announcesOld = shared.ExpvarAnnounces
 
-		errors.Set(ExpvarErrs)
-		errorsSec.Set(ExpvarErrs - errsOld)
+		errors.Set(shared.ExpvarErrs)
+		errorsSec.Set(shared.ExpvarErrs - errsOld)
+		errsOld = shared.ExpvarErrs
 
-		scrapes.Set(ExpvarScrapes)
-		scrapesSec.Set(ExpvarScrapes - scrapesOld)
-		scrapesOld = ExpvarScrapes
+		scrapes.Set(shared.ExpvarScrapes)
+		scrapesSec.Set(shared.ExpvarScrapes - scrapesOld)
+		scrapesOld = shared.ExpvarScrapes
 
 		respAvg.Set(stats.Data().AverageResponseTimeSec * 1000.0) // ms
 

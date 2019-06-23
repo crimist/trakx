@@ -1,4 +1,4 @@
-package tracker
+package shared
 
 // Enviroment holds env
 type Enviroment int

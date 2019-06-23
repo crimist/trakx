@@ -1,4 +1,4 @@
-package tracker
+package shared
 
 import (
 	"bufio"
@@ -77,23 +77,25 @@ func (h *Hash) PeerListCompact(num int64) string {
 	return peerList
 }
 
-func (h *Hash) PeerListUDP(num int64) (peers []UDPPeer) {
+func (h *Hash) PeerListUDP(num int32) (peers []UDPPeer) {
 	peerMap, _ := PeerDB[*h]
 
-	var i int64
 	for _, peer := range peerMap {
-		if i == num {
+		if num == 0 {
 			break
 		}
 
-		// TODO THIS NEEDS TO BE BIG ENDIAN
 		p := UDPPeer{
 			IP:   int32(utils.IPToInt(net.ParseIP(peer.IP))),
 			Port: peer.Port,
 		}
 
+		// TODO: Find less ugly way to convert to big endian
+		p.Port = (p.Port << 8) | (p.Port >> 8)
+		p.IP = (p.IP << 24) | ((p.IP << 8) & 0x00ff0000) | ((p.IP >> 8) & 0x0000ff00) | (p.IP >> 24)
+
 		peers = append(peers, p)
-		i++
+		num--
 	}
 
 	return

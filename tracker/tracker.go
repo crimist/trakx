@@ -1,81 +1,46 @@
 package tracker
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
+	"net/http"
 	"time"
 
-	"go.uber.org/zap"
+	httptracker "github.com/Syc0x00/Trakx/tracker/http"
+	"github.com/Syc0x00/Trakx/tracker/shared"
+	udptracker "github.com/Syc0x00/Trakx/tracker/udp"
+	"github.com/thoas/stats"
 )
 
-const (
-	ExpvarPort         = "1338"
-	CleanTimeout       = 45 * 60 // 45 min
-	AnnounceInterval   = 20 * 60 // 20 min
-	CleanInterval      = 3 * time.Minute
-	WriteDBInterval    = 5 * time.Minute
-	PeerDBFilename     = "trakx.db"
-	PeerDBTempFilename = "trakx.db.tmp"
-	DefaultNumwant     = 300
-	Bye                = "See you space cowboy..."
-)
-
-var (
-	PeerDB PeerDatabase
-	Logger *zap.Logger
-	Env    Enviroment
-)
-
-// Init initiates all the things the tracker needs
-func Init(isProd bool) error {
-	var err error
-	var cfg zap.Config
-
-	if isProd == true {
-		Env = Prod
-		cfg = zap.NewProductionConfig()
-	} else {
-		Env = Dev
-		cfg = zap.NewDevelopmentConfig()
+// Run runs the tracker
+func Run(prod bool) {
+	// Init shared stuff
+	if err := shared.Init(prod); err != nil {
+		panic(err)
 	}
 
-	cfg.OutputPaths = append(cfg.OutputPaths, "trakx.log")
-	Logger, err = cfg.Build()
-	if err != nil {
-		return err
+	// HTTP tracker / routes
+	statsMiddleware := stats.New()
+	trackerMux := http.NewServeMux()
+	trackerMux.HandleFunc("/", index)
+	trackerMux.HandleFunc("/dmca", dmca)
+	trackerMux.HandleFunc("/scrape", httptracker.ScrapeHandle)
+	trackerMux.HandleFunc("/announce", httptracker.AnnounceHandle)
+
+	server := http.Server{
+		Addr:         ":" + shared.HTTPPort,
+		Handler:      statsMiddleware.Handler(trackerMux),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
 	}
 
-	PeerDB.Load()
-
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 	go func() {
-		sig := <-c
-		Logger.Info("Got signal", zap.Any("Signal", sig))
-
-		PeerDB.Write(false)
-
-		os.Exit(128 + int(sig.(syscall.Signal)))
+		if err := server.ListenAndServe(); err != nil {
+			panic(err)
+		}
 	}()
 
-	go Writer()
+	// UDP tracker
+	udp := udptracker.UDPTracker{}
+	go udp.Trimmer()
 
-	return err
-}
-
-// Writer runs db.Write() every trackerWriteDBInterval
-func Writer() {
-	time.Sleep(1 * time.Second)
-	for c := time.Tick(WriteDBInterval); ; <-c {
-		PeerDB.Write(true)
-	}
-}
-
-// Cleaner removes clients that haven't checked in recently
-func Cleaner() {
-	time.Sleep(1 * time.Second)
-	for c := time.Tick(CleanInterval); ; <-c {
-		PeerDB.Clean()
-	}
+	udp.Listen()
 }

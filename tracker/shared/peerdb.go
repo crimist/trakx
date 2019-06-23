@@ -1,4 +1,4 @@
-package tracker
+package shared
 
 import (
 	"bytes"
@@ -15,23 +15,23 @@ type PeerDatabase map[Hash]map[PeerID]Peer
 
 // Clean removes all peers that haven't checked in in trackerCleanTimeout
 func (d *PeerDatabase) Clean() {
-	expvarCleanedHashes = 0
-	expvarCleanedPeers = 0
+	ExpvarCleanedHashes = 0
+	ExpvarCleanedPeers = 0
 
 	for hash, peermap := range PeerDB {
 		for id, peer := range peermap {
 			if peer.LastSeen < time.Now().Unix()-int64(CleanTimeout) {
 				delete(peermap, id)
-				expvarCleanedPeers++
+				ExpvarCleanedPeers++
 			}
 		}
 		if len(peermap) == 0 {
 			delete(PeerDB, hash)
-			expvarCleanedHashes++
+			ExpvarCleanedHashes++
 		}
 	}
 
-	Logger.Info("Cleaned database", zap.Int64("peers", expvarCleanedPeers), zap.Int64("Hashes", expvarCleanedHashes))
+	Logger.Info("Cleaned database", zap.Int64("peers", ExpvarCleanedPeers), zap.Int64("Hashes", ExpvarCleanedHashes))
 }
 
 func (d *PeerDatabase) load(filename string) error {

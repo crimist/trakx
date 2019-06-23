@@ -1,12 +1,12 @@
 package udp
 
 import (
-	// "bytes"
-	// "encoding/binary"
 	"math/rand"
 	"net"
 	"time"
-	// "go.uber.org/zap"
+
+	"github.com/Syc0x00/Trakx/tracker/shared"
+	"go.uber.org/zap"
 )
 
 // https://www.libtorrent.org/udp_tracker_protocol.html
@@ -22,11 +22,11 @@ func (u *UDPTracker) Trimmer() {
 	}
 }
 
-func (u *UDPTracker) Listen(port int) {
+func (u *UDPTracker) Listen() {
 	var err error
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 
-	u.conn, err = net.ListenUDP("udp", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: port, Zone: ""})
+	u.conn, err = net.ListenUDP("udp", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: shared.UDPPort, Zone: ""})
 	if err != nil {
 		panic(err)
 	}
@@ -36,7 +36,7 @@ func (u *UDPTracker) Listen(port int) {
 	for {
 		len, remote, err := u.conn.ReadFromUDP(buf)
 		if err != nil {
-			// logger.Error("ReadFromUDP()", zap.Error(err))
+			shared.Logger.Error("ReadFromUDP()", zap.Error(err))
 			continue
 		}
 		u.Process(len, remote, buf)
@@ -70,10 +70,18 @@ func (u *UDPTracker) Process(len int, remote *net.UDPAddr, data []byte) {
 	switch connect.Action {
 	case 1:
 		announce := Announce{}
-		announce.Unmarshall(data)
+		if err := announce.Unmarshall(data); err != nil {
+			u.conn.WriteToUDP(newServerError("announce.Unmarshall()", err, connect.TransactionID), remote)
+			return
+		}
 		u.Announce(&announce, remote)
 
 	case 2:
-		u.Scrape(remote)
+		scrape := Scrape{}
+		if err := scrape.Unmarshall(data); err != nil {
+			u.conn.WriteToUDP(newServerError("scrape.Unmarshall()", err, connect.TransactionID), remote)
+			return
+		}
+		u.Scrape(&scrape, remote)
 	}
 }

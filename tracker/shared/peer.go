@@ -1,4 +1,4 @@
-package tracker
+package shared
 
 import (
 	"go.uber.org/zap"

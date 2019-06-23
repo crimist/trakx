@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Syc0x00/Trakx/tracker"
+	"github.com/Syc0x00/Trakx/tracker/shared"
 )
 
 type event int32
@@ -23,8 +23,8 @@ type Announce struct {
 	ConnectionID  int64
 	Action        int32
 	TransactionID int32
-	InfoHash      tracker.Hash
-	PeerID        tracker.PeerID
+	InfoHash      shared.Hash
+	PeerID        shared.PeerID
 	Downloaded    int64
 	Left          int64
 	Uploaded      int64
@@ -47,34 +47,30 @@ type AnnounceResp struct {
 	Interval      int32
 	Leechers      int32
 	Seeders       int32
-	Peers         []tracker.UDPPeer
+	Peers         []shared.UDPPeer
 }
 
-func (ar *AnnounceResp) Marshall() []byte {
+func (ar *AnnounceResp) Marshall() ([]byte, error) {
 	buff := new(bytes.Buffer)
-	binary.Write(buff, binary.BigEndian, ar) // does this fucking work?
-	return buff.Bytes()
+	if err := binary.Write(buff, binary.BigEndian, ar); err != nil { // does this fucking work?
+		return nil, err
+	}
+	return buff.Bytes(), nil
 }
 
 func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
+	shared.ExpvarAnnounces++
+
 	if len(announce.InfoHash) != 20 {
-		e := Error{
-			Action:        3,
-			TransactionID: announce.TransactionID,
-			ErrorString:   []byte("invalid infohash"),
-		}
-		u.conn.WriteToUDP(e.Marshall(), remote)
+		u.conn.WriteToUDP(newClientError("invalid infohash", announce.TransactionID), remote)
+		return
 	}
 	if announce.Port == 0 {
-		e := Error{
-			Action:        3,
-			TransactionID: announce.TransactionID,
-			ErrorString:   []byte("invalid port"),
-		}
-		u.conn.WriteToUDP(e.Marshall(), remote)
+		u.conn.WriteToUDP(newClientError("invalid port", announce.TransactionID), remote)
+		return
 	}
 
-	peer := tracker.Peer{
+	peer := shared.Peer{
 		IP:       remote.IP.String(),
 		Port:     announce.Port,
 		LastSeen: time.Now().Unix(),
@@ -86,39 +82,41 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 	}
 
 	if strings.Contains(peer.IP, ":") {
-		// return err
+		u.conn.WriteToUDP(newClientError("ipv6 unsupported", announce.TransactionID), remote)
 		return
+	}
+
+	if announce.NumWant == -1 {
+		announce.NumWant = shared.DefaultNumwant
 	}
 
 	if announce.Event == stopped {
 		peer.Delete(announce.InfoHash, announce.PeerID)
-		u.conn.WriteToUDP([]byte(tracker.Bye), remote)
+		u.conn.WriteToUDP([]byte(shared.Bye), remote)
+		return
 	}
 
 	if err := peer.Save(announce.InfoHash, announce.PeerID); err != nil {
-		e := Error{
-			Action:        3,
-			TransactionID: announce.TransactionID,
-			ErrorString:   []byte("internal server error"),
-		}
-		u.conn.WriteToUDP(e.Marshall(), remote)
+		u.conn.WriteToUDP(newServerError("peer.Save()", err, announce.TransactionID), remote)
+		return
 	}
 
-	numwant := tracker.DefaultNumwant
-	if announce.NumWant != 0 {
-		numwant = int(announce.NumWant)
-	}
 	complete, incomplete := announce.InfoHash.Complete()
 
 	resp := AnnounceResp{
 		Action:        1,
 		TransactionID: announce.TransactionID,
-		Interval:      tracker.AnnounceInterval,
+		Interval:      shared.AnnounceInterval,
 		Leechers:      incomplete,
 		Seeders:       complete,
-		Peers:         announce.InfoHash.PeerListUDP(int64(numwant)),
+		Peers:         announce.InfoHash.PeerListUDP(announce.NumWant),
 	}
-	u.conn.WriteToUDP(resp.Marshall(), remote)
+	respBytes, err := resp.Marshall()
+	if err != nil {
+		u.conn.WriteToUDP(newServerError("AnnounceResp.Marshall()", err, announce.TransactionID), remote)
+		return
+	}
 
+	u.conn.WriteToUDP(respBytes, remote)
 	return
 }

@@ -9,17 +9,17 @@ import (
 	"time"
 
 	"github.com/Syc0x00/Trakx/bencoding"
-	"github.com/Syc0x00/Trakx/tracker"
+	"github.com/Syc0x00/Trakx/tracker/shared"
 	"go.uber.org/zap"
 )
 
 type announce struct {
-	infohash tracker.Hash
-	peerid   tracker.PeerID
+	infohash shared.Hash
+	peerid   shared.PeerID
 	compact  bool
 	noPeerID bool
 	numwant  int64
-	peer     tracker.Peer
+	peer     shared.Peer
 
 	writer http.ResponseWriter
 	req    *http.Request
@@ -28,13 +28,13 @@ type announce struct {
 func (a *announce) SetPeer(postIP, port, key, event, left string) bool {
 	var err error
 
-	if tracker.Env == tracker.Dev && postIP != "" {
+	if shared.Env == shared.Dev && postIP != "" {
 		a.peer.IP = postIP
 	} else {
 		a.peer.IP, _, err = net.SplitHostPort(a.req.RemoteAddr)
 		if err != nil {
 			a.ClientError("Invalid IP address, how the fuck does this happen?")
-			tracker.Logger.Error("net.SplitHostPort failed", zap.Error(err))
+			shared.Logger.Error("net.SplitHostPort failed", zap.Error(err))
 			return false
 		}
 	}
@@ -103,7 +103,7 @@ func (a *announce) SetNumwant(numwant string) bool {
 		}
 		a.numwant = numwantInt
 	} else {
-		a.numwant = tracker.DefaultNumwant
+		a.numwant = shared.DefaultNumwant
 	}
 
 	return true
@@ -129,17 +129,17 @@ func (a *announce) warn(reason string) {
 
 func (a *announce) ClientError(reason string, fields ...zap.Field) {
 	a.error(reason)
-	if tracker.Env == tracker.Dev {
+	if shared.Env == shared.Dev {
 		fields = append(fields, zap.String("ip", a.peer.IP))
 		fields = append(fields, zap.String("reason", reason))
-		tracker.Logger.Info("Client Error", fields...)
+		shared.Logger.Info("Client Error", fields...)
 	}
 }
 
 func (a *announce) ClientWarn(reason string) {
 	a.warn(reason)
-	if tracker.Env == tracker.Dev {
-		tracker.Logger.Info("Client Warn",
+	if shared.Env == shared.Dev {
+		shared.Logger.Info("Client Warn",
 			zap.String("ip", a.peer.IP),
 			zap.String("reason", reason),
 		)
@@ -148,17 +148,17 @@ func (a *announce) ClientWarn(reason string) {
 
 // InternalError is a wrapper to tell the client I fucked up
 func (a *announce) InternalError(err error) {
-	tracker.ExpvarErrs++
+	shared.ExpvarErrs++
 	a.error("Internal Server Error")
-	tracker.Logger.Error("Internal Server Error", zap.Error(err))
+	shared.Logger.Error("Internal Server Error", zap.Error(err))
 }
 
 // AnnounceHandle processes an announce http request
 func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
-	tracker.ExpvarAnnounces++
+	shared.ExpvarAnnounces++
 
 	event := r.URL.Query().Get("event")
-	a := &announce{writer: w, req: r, peer: tracker.Peer{}}
+	a := &announce{writer: w, req: r, peer: shared.Peer{}}
 
 	// Set up announce
 	if ok := a.SetPeer(r.URL.Query().Get("ip"), r.URL.Query().Get("port"), r.URL.Query().Get("key"), event, r.URL.Query().Get("left")); !ok {
@@ -179,7 +179,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	// If the peer stopped delete() them and exit
 	if event == "stopped" {
 		a.peer.Delete(a.infohash, a.peerid)
-		fmt.Fprint(w, tracker.Bye)
+		fmt.Fprint(w, shared.Bye)
 		return
 	}
 
@@ -192,7 +192,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// Bencode response
 	d := bencoding.NewDict()
-	d.Add("interval", tracker.AnnounceInterval)
+	d.Add("interval", shared.AnnounceInterval)
 	d.Add("complete", complete)
 	d.Add("incomplete", incomplete)
 

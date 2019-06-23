@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Syc0x00/Trakx/tracker"
+	"github.com/Syc0x00/Trakx/tracker/shared"
 	"github.com/go-torrent/bencode"
 	"go.uber.org/zap"
 )
@@ -18,7 +18,7 @@ func clientError(writer http.ResponseWriter, reason string) {
 }
 
 func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
-	tracker.ExpvarScrapes++
+	shared.ExpvarScrapes++
 
 	infohashes := r.URL.Query()["info_hash"]
 	if len(infohashes) == 0 {
@@ -36,17 +36,10 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var hash tracker.Hash
-		var complete, incomplete int
+		var hash shared.Hash
 		copy(hash[:], infohash)
 
-		for _, peer := range tracker.PeerDB[hash] {
-			if peer.Complete {
-				complete++
-			} else {
-				incomplete++
-			}
-		}
+		complete, incomplete := hash.Complete()
 
 		nested := dict["files"].(bencode.Dictionary)
 		nested[infohash] = bencode.Dictionary{
@@ -57,7 +50,7 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := bencode.Marshal(dict)
 	if err != nil {
-		tracker.Logger.Error("bencode", zap.Error(err))
+		shared.Logger.Error("bencode", zap.Error(err))
 	}
 
 	fmt.Fprint(w, string(resp))
