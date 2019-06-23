@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Syc0x00/Trakx/tracker"
+	"github.com/thoas/stats"
 )
 
 const trackerBase = "http://nibba.trade:1337"
@@ -79,20 +80,22 @@ func main() {
 		panic(err)
 	}
 
-	go tracker.Cleaner()
-	go tracker.Expvar()
-
 	// Handlers
+	statsMiddleware := stats.New()
 	trackerMux := http.NewServeMux()
 	trackerMux.HandleFunc("/", index)
 	trackerMux.HandleFunc("/dmca", dmca)
 	trackerMux.HandleFunc("/scrape", tracker.ScrapeHandle)
 	trackerMux.HandleFunc("/announce", tracker.AnnounceHandle)
 
+	// Run tracker threads
+	go tracker.Cleaner()
+	go tracker.Expvar(statsMiddleware)
+
 	// Server
 	server := http.Server{
 		Addr:         ":" + *portFlag,
-		Handler:      trackerMux,
+		Handler:      statsMiddleware.Handler(trackerMux),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 	}

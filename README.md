@@ -26,6 +26,6 @@ Restart netdata with `netdata` to run with the new config
   * External Address http://www.bittorrent.org/beps/bep_0024.html
   * Failure retry timer http://www.bittorrent.org/beps/bep_0031.html
 * Prod/dev zap configs
-  * Fix timestamps
+  * Descriptive timestamps
 * Resp time avg
   * Use https://github.com/thoas/stats

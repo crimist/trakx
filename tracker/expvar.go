@@ -4,6 +4,8 @@ import (
 	"expvar"
 	"net/http"
 	"time"
+
+	"github.com/thoas/stats"
 )
 
 func getInfo() (peers, hashes, ips, seeds, leeches int64) {
@@ -37,7 +39,7 @@ var (
 )
 
 // Expvar is for netdata
-func Expvar() {
+func Expvar(stats *stats.Stats) {
 	var announcesOld int64
 	var scrapesOld int64
 	var errsOld int64
@@ -60,6 +62,8 @@ func Expvar() {
 
 	scrapes := expvar.NewInt("tracker.scrapes")
 	scrapesSec := expvar.NewInt("tracker.scrapes.sec")
+
+	respAvg := expvar.NewFloat("tracker.respavg") // milliseconds
 
 	go http.ListenAndServe("127.0.0.1:"+trackerExpvarPort, nil) // only on localhost
 
@@ -87,6 +91,8 @@ func Expvar() {
 		scrapes.Set(expvarScrapes)
 		scrapesSec.Set(expvarScrapes - scrapesOld)
 		scrapesOld = expvarScrapes
+
+		respAvg.Set(stats.Data().AverageResponseTimeSec / 1000.0)
 
 		nextTime = nextTime.Add(time.Second)
 		time.Sleep(time.Until(nextTime))
