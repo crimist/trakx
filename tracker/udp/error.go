@@ -3,9 +3,9 @@ package udp
 import (
 	"bytes"
 	"encoding/binary"
-	"go.uber.org/zap"
 
 	"github.com/Syc0x00/Trakx/tracker/shared"
+	"go.uber.org/zap"
 )
 
 type Error struct {

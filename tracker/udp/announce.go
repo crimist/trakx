@@ -52,7 +52,22 @@ type AnnounceResp struct {
 
 func (ar *AnnounceResp) Marshall() ([]byte, error) {
 	buff := new(bytes.Buffer)
-	if err := binary.Write(buff, binary.BigEndian, ar); err != nil { // does this fucking work?
+	if err := binary.Write(buff, binary.BigEndian, ar.Action); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buff, binary.BigEndian, ar.TransactionID); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buff, binary.BigEndian, ar.Interval); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buff, binary.BigEndian, ar.Leechers); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buff, binary.BigEndian, ar.Seeders); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buff, binary.BigEndian, ar.Peers); err != nil {
 		return nil, err
 	}
 	return buff.Bytes(), nil
@@ -75,7 +90,8 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 		Port:     announce.Port,
 		LastSeen: time.Now().Unix(),
 	}
-	binary.BigEndian.PutUint32(peer.Key, announce.Key) // right endian?
+	peer.Key = make([]byte, 4) // capacity for uint32
+	binary.BigEndian.PutUint32(peer.Key, announce.Key)
 
 	if announce.Event == completed || announce.Left == 0 {
 		peer.Complete = true

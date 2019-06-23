@@ -2,6 +2,9 @@ package udp
 
 import (
 	"time"
+
+	"github.com/Syc0x00/Trakx/tracker/shared"
+	"go.uber.org/zap"
 )
 
 type connID struct {
@@ -14,6 +17,12 @@ type UDPConnDB map[[4]byte]connID
 var connDB UDPConnDB
 
 func (db UDPConnDB) Add(id int64, addr [4]byte) {
+	if shared.Env == shared.Dev {
+		shared.Logger.Info("Add UDPConnDB",
+			zap.Int64("ID", id),
+		)
+	}
+
 	db[addr] = connID{
 		ID:     id,
 		cached: time.Now().Unix(),
@@ -28,9 +37,13 @@ func (db UDPConnDB) Check(id int64, addr [4]byte) (ok bool) {
 }
 
 func (db *UDPConnDB) Trim() {
+	trimmed := 0
 	for key, cID := range connDB {
 		if cID.cached+90 < time.Now().Unix() { // older than 90s gets deleted
 			delete(connDB, key)
+			trimmed++
 		}
 	}
+
+	shared.Logger.Info("Trim UDPConnDB", zap.Int("trimmed", trimmed))
 }

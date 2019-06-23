@@ -17,7 +17,7 @@ type Scrape struct {
 
 func (s *Scrape) Unmarshall(data []byte) error {
 	reader := bytes.NewReader(data)
-	return binary.Read(reader, binary.BigEndian, s)
+	return binary.Read(reader, binary.BigEndian, s) // will this work with the slice
 }
 
 type scrapeInfo struct {
@@ -34,7 +34,13 @@ type ScrapeResp struct {
 
 func (sr *ScrapeResp) Marshall() ([]byte, error) {
 	buff := new(bytes.Buffer)
-	if err := binary.Write(buff, binary.BigEndian, sr); err != nil { // does this fucking work?
+	if err := binary.Write(buff, binary.BigEndian, sr.Action); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buff, binary.BigEndian, sr.TransactionID); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buff, binary.BigEndian, sr.Info); err != nil { // might have 2 loop thru?
 		return nil, err
 	}
 	return buff.Bytes(), nil

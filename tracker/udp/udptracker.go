@@ -25,6 +25,7 @@ func (u *UDPTracker) Trimmer() {
 func (u *UDPTracker) Listen() {
 	var err error
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
+	connDB = make(UDPConnDB)
 
 	u.conn, err = net.ListenUDP("udp", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: shared.UDPPort, Zone: ""})
 	if err != nil {

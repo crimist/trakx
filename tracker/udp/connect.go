@@ -24,12 +24,18 @@ type ConnectResp struct {
 	ConnectionID  int64
 }
 
-func (cr *ConnectResp) Marshall() []byte {
+func (cr *ConnectResp) Marshall() ([]byte, error) {
 	buff := new(bytes.Buffer)
-	binary.Write(buff, binary.BigEndian, cr.Action)
-	binary.Write(buff, binary.BigEndian, cr.TransactionID)
-	binary.Write(buff, binary.BigEndian, cr.ConnectionID)
-	return buff.Bytes()
+	if err := binary.Write(buff, binary.BigEndian, cr.Action); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buff, binary.BigEndian, cr.TransactionID); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buff, binary.BigEndian, cr.ConnectionID); err != nil {
+		return nil, err
+	}
+	return buff.Bytes(), nil
 }
 
 func (u *UDPTracker) Connect(connect *Connect, remote *net.UDPAddr) {
@@ -45,7 +51,13 @@ func (u *UDPTracker) Connect(connect *Connect, remote *net.UDPAddr) {
 		ConnectionID:  id,
 	}
 
-	u.conn.WriteToUDP(resp.Marshall(), remote)
+	respBytes, err := resp.Marshall()
+	if err != nil {
+		u.conn.WriteToUDP(newServerError("ConnectResp.Marshall()", err, connect.TransactionID), remote)
+		return
+	}
+
+	u.conn.WriteToUDP(respBytes, remote)
 
 	return
 }
