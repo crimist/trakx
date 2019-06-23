@@ -11,7 +11,7 @@ import (
 func getInfo() (peers, hashes, ips, seeds, leeches int64) {
 	ipmap := make(map[string]bool)
 
-	for _, peermap := range db {
+	for _, peermap := range PeerDB {
 		peers += int64(len(peermap))
 
 		for _, peer := range peermap {
@@ -24,7 +24,7 @@ func getInfo() (peers, hashes, ips, seeds, leeches int64) {
 		}
 	}
 
-	hashes = int64(len(db))
+	hashes = int64(len(PeerDB))
 	ips = int64(len(ipmap))
 
 	return
@@ -33,9 +33,9 @@ func getInfo() (peers, hashes, ips, seeds, leeches int64) {
 var (
 	expvarCleanedPeers  int64
 	expvarCleanedHashes int64
-	expvarAnnounces     int64
-	expvarScrapes       int64
-	expvarErrs          int64
+	ExpvarAnnounces     int64
+	ExpvarScrapes       int64
+	ExpvarErrs          int64
 )
 
 // Expvar is for netdata
@@ -81,16 +81,16 @@ func Expvar(stats *stats.Stats) {
 		cleanedPeers.Set(expvarCleanedPeers)
 		cleanedHashes.Set(expvarCleanedHashes)
 
-		announces.Set(expvarAnnounces)
-		announcesSec.Set(expvarAnnounces - announcesOld)
-		announcesOld = expvarAnnounces
+		announces.Set(ExpvarAnnounces)
+		announcesSec.Set(ExpvarAnnounces - announcesOld)
+		announcesOld = ExpvarAnnounces
 
-		errors.Set(expvarErrs)
-		errorsSec.Set(expvarErrs - errsOld)
+		errors.Set(ExpvarErrs)
+		errorsSec.Set(ExpvarErrs - errsOld)
 
-		scrapes.Set(expvarScrapes)
-		scrapesSec.Set(expvarScrapes - scrapesOld)
-		scrapesOld = expvarScrapes
+		scrapes.Set(ExpvarScrapes)
+		scrapesSec.Set(ExpvarScrapes - scrapesOld)
+		scrapesOld = ExpvarScrapes
 
 		respAvg.Set(stats.Data().AverageResponseTimeSec * 1000.0) // ms
 

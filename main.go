@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	trackerhttp "github.com/Syc0x00/Trakx/tracker/http"
 	"github.com/Syc0x00/Trakx/tracker"
 	"github.com/thoas/stats"
 )
@@ -86,8 +87,8 @@ func main() {
 	trackerMux := http.NewServeMux()
 	trackerMux.HandleFunc("/", index)
 	trackerMux.HandleFunc("/dmca", dmca)
-	trackerMux.HandleFunc("/scrape", tracker.ScrapeHandle)
-	trackerMux.HandleFunc("/announce", tracker.AnnounceHandle)
+	trackerMux.HandleFunc("/scrape", trackerhttp.ScrapeHandle)
+	trackerMux.HandleFunc("/announce", trackerhttp.AnnounceHandle)
 
 	// Run tracker threads
 	go tracker.Cleaner()

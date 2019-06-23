@@ -10,51 +10,51 @@ import (
 )
 
 const (
-	trackerExpvarPort       = "1338"
-	trackerCleanTimeout     = 45 * 60 // 45 min
-	trackerAnnounceInterval = 20 * 60 // 20 min
-	trackerCleanInterval    = 3 * time.Minute
-	trackerWriteDBInterval  = 5 * time.Minute
-	trackerDBFilename       = "trakx.db"
-	trackerDBTempFilename   = "trakx.db.tmp"
-	trackerDefaultNumwant   = 300
+	trackerExpvarPort      = "1338"
+	trackerCleanTimeout    = 45 * 60 // 45 min
+	AnnounceInterval       = 20 * 60 // 20 min
+	trackerCleanInterval   = 3 * time.Minute
+	trackerWriteDBInterval = 5 * time.Minute
+	trackerDBFilename      = "trakx.db"
+	trackerDBTempFilename  = "trakx.db.tmp"
+	DefaultNumwant         = 300
 )
 
 var (
-	db     Database
-	logger *zap.Logger
-	env    Enviroment
+	PeerDB Database
+	Logger *zap.Logger
+	Env    Enviroment
 )
 
 // Init initiates all the things the tracker needs
 func Init(isProd bool) error {
 	var err error
 	var cfg zap.Config
-	db = make(Database)
+	PeerDB = make(Database)
 
 	if isProd == true {
-		env = Prod
+		Env = Prod
 		cfg = zap.NewProductionConfig()
 	} else {
-		env = Dev
+		Env = Dev
 		cfg = zap.NewDevelopmentConfig()
 	}
 
 	cfg.OutputPaths = append(cfg.OutputPaths, "trakx.log")
-	logger, err = cfg.Build()
+	Logger, err = cfg.Build()
 	if err != nil {
 		return err
 	}
 
-	db.Load()
+	PeerDB.Load()
 
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 	go func() {
 		sig := <-c
-		logger.Info("Got signal", zap.Any("Signal", sig))
+		Logger.Info("Got signal", zap.Any("Signal", sig))
 
-		db.Write(false)
+		PeerDB.Write(false)
 
 		os.Exit(128 + int(sig.(syscall.Signal)))
 	}()
@@ -68,7 +68,7 @@ func Init(isProd bool) error {
 func Writer() {
 	time.Sleep(1 * time.Second)
 	for c := time.Tick(trackerWriteDBInterval); ; <-c {
-		db.Write(true)
+		PeerDB.Write(true)
 	}
 }
 
@@ -76,6 +76,6 @@ func Writer() {
 func Cleaner() {
 	time.Sleep(1 * time.Second)
 	for c := time.Tick(trackerCleanInterval); ; <-c {
-		db.Clean()
+		PeerDB.Clean()
 	}
 }

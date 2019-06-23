@@ -1,9 +1,10 @@
-package tracker
+package http
 
 import (
 	"fmt"
 	"net/http"
 
+	"github.com/Syc0x00/Trakx/tracker"
 	"github.com/go-torrent/bencode"
 	"go.uber.org/zap"
 )
@@ -17,7 +18,7 @@ func clientError(writer http.ResponseWriter, reason string) {
 }
 
 func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
-	expvarScrapes++
+	tracker.ExpvarScrapes++
 
 	infohashes := r.URL.Query()["info_hash"]
 	if len(infohashes) == 0 {
@@ -35,11 +36,11 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		var hash Hash
+		var hash tracker.Hash
 		var complete, incomplete int
 		copy(hash[:], infohash)
 
-		for _, peer := range db[hash] {
+		for _, peer := range tracker.PeerDB[hash] {
 			if peer.Complete {
 				complete++
 			} else {
@@ -56,7 +57,7 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := bencode.Marshal(dict)
 	if err != nil {
-		logger.Error("bencode", zap.Error(err))
+		tracker.Logger.Error("bencode", zap.Error(err))
 	}
 
 	fmt.Fprint(w, string(resp))

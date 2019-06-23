@@ -18,7 +18,7 @@ func (d *Database) Clean() {
 	expvarCleanedHashes = 0
 	expvarCleanedPeers = 0
 
-	for hash, peermap := range db {
+	for hash, peermap := range PeerDB {
 		for id, peer := range peermap {
 			if peer.LastSeen < time.Now().Unix()-int64(trackerCleanTimeout) {
 				delete(peermap, id)
@@ -26,12 +26,12 @@ func (d *Database) Clean() {
 			}
 		}
 		if len(peermap) == 0 {
-			delete(db, hash)
+			delete(PeerDB, hash)
 			expvarCleanedHashes++
 		}
 	}
 
-	logger.Info("Cleaned database", zap.Int64("peers", expvarCleanedPeers), zap.Int64("Hashes", expvarCleanedHashes))
+	Logger.Info("Cleaned database", zap.Int64("peers", expvarCleanedPeers), zap.Int64("Hashes", expvarCleanedHashes))
 }
 
 func (d *Database) load(filename string) error {
@@ -41,7 +41,7 @@ func (d *Database) load(filename string) error {
 	}
 
 	decoder := gob.NewDecoder(file)
-	return decoder.Decode(&db)
+	return decoder.Decode(&PeerDB)
 }
 
 // Load loads a database into memory
@@ -51,22 +51,22 @@ func (d *Database) Load() {
 	infoFull, err := os.Stat(trackerDBFilename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			logger.Info("No full database")
+			Logger.Info("No full database")
 			loadtemp = true
 		} else {
-			logger.Error("os.Stat", zap.Error(err))
+			Logger.Error("os.Stat", zap.Error(err))
 		}
 	}
 	infoTemp, err := os.Stat(trackerDBFilename + ".tmp")
 	if err != nil {
 		if os.IsNotExist(err) {
-			logger.Info("No temp database")
+			Logger.Info("No temp database")
 			if loadtemp {
-				logger.Info("No database found")
+				Logger.Info("No database found")
 				return
 			}
 		} else {
-			logger.Error("os.Stat", zap.Error(err))
+			Logger.Error("os.Stat", zap.Error(err))
 		}
 	}
 
@@ -79,10 +79,10 @@ func (d *Database) Load() {
 	loaded := ""
 	if loadtemp == true {
 		if err := d.load(trackerDBTempFilename); err != nil {
-			logger.Info("Loading temp db failed", zap.Error(err))
+			Logger.Info("Loading temp db failed", zap.Error(err))
 
 			if err := d.load(trackerDBFilename); err != nil {
-				logger.Info("Loading full db failed", zap.Error(err))
+				Logger.Info("Loading full db failed", zap.Error(err))
 				return
 			} else {
 				loaded = "full"
@@ -92,10 +92,10 @@ func (d *Database) Load() {
 		}
 	} else {
 		if err := d.load(trackerDBFilename); err != nil {
-			logger.Info("Loading full db failed", zap.Error(err))
+			Logger.Info("Loading full db failed", zap.Error(err))
 
 			if err := d.load(trackerDBTempFilename); err != nil {
-				logger.Info("Loading temp db failed", zap.Error(err))
+				Logger.Info("Loading temp db failed", zap.Error(err))
 				return
 			} else {
 				loaded = "temp"
@@ -105,7 +105,7 @@ func (d *Database) Load() {
 		}
 	}
 
-	logger.Info(fmt.Sprintf("Loaded %v database", loaded), zap.Int("hashes", len(db)))
+	Logger.Info(fmt.Sprintf("Loaded %v database", loaded), zap.Int("hashes", len(PeerDB)))
 }
 
 // Write dumps the database to a file
@@ -115,8 +115,8 @@ func (d *Database) Write(istemp bool) {
 
 	d.Clean() // Clean to remove any nil refs
 
-	if err := encoder.Encode(&db); err != nil {
-		logger.Error("db gob encoder", zap.Error(err))
+	if err := encoder.Encode(&PeerDB); err != nil {
+		Logger.Error("db gob encoder", zap.Error(err))
 	}
 
 	filename := trackerDBFilename
@@ -124,8 +124,8 @@ func (d *Database) Write(istemp bool) {
 		filename = trackerDBTempFilename
 	}
 	if err := ioutil.WriteFile(filename, buff.Bytes(), 0644); err != nil {
-		logger.Error("db writefile", zap.Error(err))
+		Logger.Error("db writefile", zap.Error(err))
 	}
 
-	logger.Info(fmt.Sprintf("Wrote database %v", filename), zap.Int("hashes", len(db)))
+	Logger.Info(fmt.Sprintf("Wrote database %v", filename), zap.Int("hashes", len(PeerDB)))
 }
