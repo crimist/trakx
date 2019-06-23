@@ -3,10 +3,10 @@ package tracker
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
-	"fmt"
 
 	"go.uber.org/zap"
 )
