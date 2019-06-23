@@ -34,7 +34,8 @@ body {
 <div>
 	<p>Trakx is an open p2p tracker. Feel free to use it :)</p>
 	<p>Add <span style="background-color: #1dc135; color: black;">` + trackerBase + `/announce</span></p>
-	<embed src="` + netdataBase + `//api/v1/badge.svg?chart=go_expvar_Trakx.scrapes_sec&alarm=trakx_scrapes&refresh=auto" type="image/svg+xml" height="20"/>
+	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.resp_time&alarm=trakx_avgresp&refresh=auto" type="image/svg+xml" height="20"/>
+	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.scrapes_sec&alarm=trakx_scrapes&refresh=auto" type="image/svg+xml" height="20"/>
 	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.announces_sec&alarm=trakx_announces&refresh=auto" type="image/svg+xml" height="20"/>
 	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.announces_sec&alarm=trakx_announces_5min&refresh=auto" type="image/svg+xml" height="20"/>
 	<embed src="` + netdataBase + `/api/v1/badge.svg?chart=go_expvar_Trakx.announces_sec&alarm=trakx_announces_1hour&refresh=auto" type="image/svg+xml" height="20"/>
