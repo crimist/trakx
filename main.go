@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	trackerhttp "github.com/Syc0x00/Trakx/tracker/http"
 	"github.com/Syc0x00/Trakx/tracker"
+	trackerhttp "github.com/Syc0x00/Trakx/tracker/http"
 	"github.com/thoas/stats"
 )
 

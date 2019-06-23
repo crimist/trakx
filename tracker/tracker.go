@@ -10,18 +10,19 @@ import (
 )
 
 const (
-	trackerExpvarPort      = "1338"
-	trackerCleanTimeout    = 45 * 60 // 45 min
-	AnnounceInterval       = 20 * 60 // 20 min
-	trackerCleanInterval   = 3 * time.Minute
-	trackerWriteDBInterval = 5 * time.Minute
-	trackerDBFilename      = "trakx.db"
-	trackerDBTempFilename  = "trakx.db.tmp"
-	DefaultNumwant         = 300
+	ExpvarPort         = "1338"
+	CleanTimeout       = 45 * 60 // 45 min
+	AnnounceInterval   = 20 * 60 // 20 min
+	CleanInterval      = 3 * time.Minute
+	WriteDBInterval    = 5 * time.Minute
+	PeerDBFilename     = "trakx.db"
+	PeerDBTempFilename = "trakx.db.tmp"
+	DefaultNumwant     = 300
+	Bye                = "See you space cowboy..."
 )
 
 var (
-	PeerDB Database
+	PeerDB PeerDatabase
 	Logger *zap.Logger
 	Env    Enviroment
 )
@@ -30,7 +31,6 @@ var (
 func Init(isProd bool) error {
 	var err error
 	var cfg zap.Config
-	PeerDB = make(Database)
 
 	if isProd == true {
 		Env = Prod
@@ -67,7 +67,7 @@ func Init(isProd bool) error {
 // Writer runs db.Write() every trackerWriteDBInterval
 func Writer() {
 	time.Sleep(1 * time.Second)
-	for c := time.Tick(trackerWriteDBInterval); ; <-c {
+	for c := time.Tick(WriteDBInterval); ; <-c {
 		PeerDB.Write(true)
 	}
 }
@@ -75,7 +75,7 @@ func Writer() {
 // Cleaner removes clients that haven't checked in recently
 func Cleaner() {
 	time.Sleep(1 * time.Second)
-	for c := time.Tick(trackerCleanInterval); ; <-c {
+	for c := time.Tick(CleanInterval); ; <-c {
 		PeerDB.Clean()
 	}
 }

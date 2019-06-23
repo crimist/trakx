@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Syc0x00/Trakx/tracker"
 	"github.com/Syc0x00/Trakx/bencoding"
+	"github.com/Syc0x00/Trakx/tracker"
 	"go.uber.org/zap"
 )
 
@@ -178,11 +178,8 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// If the peer stopped delete() them and exit
 	if event == "stopped" {
-		if err := a.peer.Delete(a.infohash, a.peerid); err != nil {
-			a.InternalError(err)
-		} else {
-			fmt.Fprint(w, "See you space cowboy...")
-		}
+		a.peer.Delete(a.infohash, a.peerid)
+		fmt.Fprint(w, tracker.Bye)
 		return
 	}
 

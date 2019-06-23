@@ -65,7 +65,7 @@ func Expvar(stats *stats.Stats) {
 
 	respAvg := expvar.NewFloat("tracker.respavg") // milliseconds
 
-	go http.ListenAndServe("127.0.0.1:"+trackerExpvarPort, nil) // only on localhost
+	go http.ListenAndServe("127.0.0.1:"+ExpvarPort, nil) // only on localhost
 
 	nextTime := time.Now().Truncate(time.Second)
 

@@ -70,7 +70,7 @@ func (u *UDPTracker) Process(len int, remote *net.UDPAddr, data []byte) {
 	switch connect.Action {
 	case 1:
 		announce := Announce{}
-		announce.Marshall(data)
+		announce.Unmarshall(data)
 		u.Announce(&announce, remote)
 
 	case 2:

@@ -14,7 +14,7 @@ import (
 type Hash [20]byte
 
 // Complete returns number of complete and incomplete peers associated with the hash
-func (h *Hash) Complete() (complete, incomplete int) {
+func (h *Hash) Complete() (complete, incomplete int32) {
 	peerMap, _ := PeerDB[*h]
 
 	for _, peer := range peerMap {
@@ -75,4 +75,26 @@ func (h *Hash) PeerListCompact(num int64) string {
 	}
 
 	return peerList
+}
+
+func (h *Hash) PeerListUDP(num int64) (peers []UDPPeer) {
+	peerMap, _ := PeerDB[*h]
+
+	var i int64
+	for _, peer := range peerMap {
+		if i == num {
+			break
+		}
+
+		// TODO THIS NEEDS TO BE BIG ENDIAN
+		p := UDPPeer{
+			IP:   int32(utils.IPToInt(net.ParseIP(peer.IP))),
+			Port: peer.Port,
+		}
+
+		peers = append(peers, p)
+		i++
+	}
+
+	return
 }

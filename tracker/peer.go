@@ -6,6 +6,11 @@ import (
 
 type PeerID [20]byte
 
+type UDPPeer struct {
+	IP   int32
+	Port uint16
+}
+
 // Peer holds peer information stores in the database
 type Peer struct {
 	Key      []byte
@@ -39,7 +44,7 @@ func (p *Peer) Save(h Hash, id PeerID) error {
 }
 
 // Delete deletes peer
-func (p *Peer) Delete(h Hash, id PeerID) error {
+func (p *Peer) Delete(h Hash, id PeerID) {
 	if Env == Dev {
 		Logger.Info("Delete",
 			zap.Any("hash", h),
@@ -49,5 +54,4 @@ func (p *Peer) Delete(h Hash, id PeerID) error {
 	}
 
 	delete(PeerDB[h], id)
-	return nil
 }
