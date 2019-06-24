@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Syc0x00/Trakx/tracker/shared"
 	"github.com/Syc0x00/Trakx/bencoding"
-	"github.com/go-torrent/bencode"
+	"github.com/Syc0x00/Trakx/tracker/shared"
 )
 
 func ScrapeHandle(w http.ResponseWriter, r *http.Request) {

@@ -9,15 +9,19 @@ import (
 )
 
 type Scrape struct {
-	ConnectionID  int64
-	Action        int32
-	TransactionID int32
-	InfoHash      []shared.Hash
+	Base     Connect
+	InfoHash []shared.Hash
 }
 
 func (s *Scrape) Unmarshall(data []byte) error {
-	reader := bytes.NewReader(data)
-	return binary.Read(reader, binary.BigEndian, s) // will this work with the slice
+	baseReader := bytes.NewReader(data[:16])
+	if err := binary.Read(baseReader, binary.BigEndian, &s.Base); err != nil {
+		return err
+	}
+
+	s.InfoHash = make([]shared.Hash, (len(data)-16)/20)
+	hashReader := bytes.NewReader(data[16:])
+	return binary.Read(hashReader, binary.BigEndian, &s.InfoHash)
 }
 
 type scrapeInfo struct {
@@ -51,12 +55,12 @@ func (u *UDPTracker) Scrape(scrape *Scrape, remote *net.UDPAddr) {
 
 	resp := ScrapeResp{
 		Action:        2,
-		TransactionID: scrape.TransactionID,
+		TransactionID: scrape.Base.TransactionID,
 	}
 
 	for _, hash := range scrape.InfoHash {
 		if len(hash) != 20 {
-			u.conn.WriteToUDP(newClientError("invalid infohash", scrape.TransactionID), remote)
+			u.conn.WriteToUDP(newClientError("invalid infohash", scrape.Base.TransactionID), remote)
 			return
 		}
 
@@ -71,7 +75,7 @@ func (u *UDPTracker) Scrape(scrape *Scrape, remote *net.UDPAddr) {
 
 	respBytes, err := resp.Marshall()
 	if err != nil {
-		u.conn.WriteToUDP(newServerError("ScrapeResp.Marshall()", err, scrape.TransactionID), remote)
+		u.conn.WriteToUDP(newServerError("ScrapeResp.Marshall()", err, scrape.Base.TransactionID), remote)
 		return
 	}
 
