@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Syc0x00/Trakx/tracker/shared"
-	"github.com/go-torrent/bencode"
+	"github.com/Syc0x00/Trakx/bencoding"
 )
 
 func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
@@ -17,9 +17,8 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dict := bencode.Dictionary{
-		"files": bencode.Dictionary{},
-	}
+	d := bencoding.NewDict()
+	files := make(map[string]int32)
 
 	for _, infohash := range infohashes {
 		if len(infohash) != 20 {
@@ -32,18 +31,14 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 
 		complete, incomplete := hash.Complete()
 
-		nested := dict["files"].(bencode.Dictionary)
-		nested[infohash] = bencode.Dictionary{
-			"complete":   complete,
-			"incomplete": incomplete,
-		}
+		files["complete"] = complete
+		files["incomplete"] = incomplete
 	}
 
-	resp, err := bencode.Marshal(dict)
-	if err != nil {
-		internalError("bencode.Marshal", err, w)
+	if err := d.Add("files", files); err != nil {
+		internalError("dict.Add()", err, w)
 		return
 	}
 
-	fmt.Fprint(w, string(resp))
+	fmt.Fprint(w, d.Get())
 }
