@@ -16,12 +16,15 @@ type Error struct {
 
 func (e *Error) Marshall() ([]byte, error) {
 	buff := new(bytes.Buffer)
-	if err := binary.Write(buff, binary.BigEndian, e); err != nil {
+	if err := binary.Write(buff, binary.BigEndian, e.Action); err != nil {
 		return nil, err
 	}
-	// binary.Write(buff, binary.BigEndian, e.Action)
-	// binary.Write(buff, binary.BigEndian, e.TransactionID)
-	// binary.Write(buff, binary.BigEndian, e.ErrorString)
+	if err := binary.Write(buff, binary.BigEndian, e.TransactionID); err != nil {
+		return nil, err
+	}
+	if err := binary.Write(buff, binary.BigEndian, e.ErrorString); err != nil {
+		return nil, err
+	}
 	return buff.Bytes(), nil
 }
 

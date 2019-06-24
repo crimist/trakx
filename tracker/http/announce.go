@@ -33,27 +33,27 @@ func (a *announce) SetPeer(postIP, port, key, event, left string) bool {
 	} else {
 		a.peer.IP, _, err = net.SplitHostPort(a.req.RemoteAddr)
 		if err != nil {
-			a.ClientError("Invalid IP address, how the fuck does this happen?")
+			clientError("Invalid IP address, how the fuck does this happen?", a.writer)
 			shared.Logger.Error("net.SplitHostPort failed", zap.Error(err))
 			return false
 		}
 	}
 	if strings.Contains(a.peer.IP, ":") {
-		a.ClientError("IPv6 unsupported", zap.String("ip", a.peer.IP))
+		clientError("IPv6 unsupported", a.writer, zap.String("ip", a.peer.IP))
 		return false
 	}
 
 	if port == "" {
-		a.ClientError("Invalid port")
+		clientError("Invalid port", a.writer)
 		return false
 	}
 	portInt, err := strconv.Atoi(port)
 	if err != nil {
-		a.ClientError("Invalid port", zap.String("port", port))
+		clientError("Invalid port", a.writer, zap.String("port", port))
 		return false
 	}
 	if portInt > 65535 || portInt < 1 {
-		a.ClientError("Invalid port", zap.Int("port", portInt))
+		clientError("Invalid port", a.writer, zap.Int("port", portInt))
 		return false
 	}
 
@@ -70,7 +70,7 @@ func (a *announce) SetPeer(postIP, port, key, event, left string) bool {
 
 func (a *announce) SetInfohash(infohash string) bool {
 	if len(infohash) != 20 {
-		a.ClientError("Invalid infohash", zap.Int("infoHash len", len(infohash)), zap.Any("infohash", infohash))
+		clientError("Invalid infohash", a.writer, zap.Int("infoHash len", len(infohash)), zap.Any("infohash", infohash))
 		return false
 	}
 	copy(a.infohash[:], infohash)
@@ -80,7 +80,7 @@ func (a *announce) SetInfohash(infohash string) bool {
 
 func (a *announce) SetPeerid(peerid string) bool {
 	if len(peerid) != 20 {
-		a.ClientError("Invalid peerid", zap.Int("peerid len", len(peerid)), zap.Any("peerid", peerid))
+		clientError("Invalid peerid", a.writer, zap.Int("peerid len", len(peerid)), zap.Any("peerid", peerid))
 		return false
 	}
 	copy(a.peerid[:], peerid)
@@ -98,7 +98,7 @@ func (a *announce) SetNumwant(numwant string) bool {
 	if numwant != "" {
 		numwantInt, err := strconv.ParseInt(numwant, 10, 64)
 		if err != nil {
-			a.ClientError("Invalid numwant", zap.String("numwant", numwant))
+			clientError("Invalid numwant", a.writer, zap.String("numwant", numwant))
 			return false
 		}
 		a.numwant = numwantInt
@@ -113,44 +113,6 @@ func (a *announce) SetNopeerid(nopeerid string) {
 	if nopeerid == "1" {
 		a.noPeerID = true
 	}
-}
-
-func (a *announce) error(reason string) {
-	d := bencoding.NewDict()
-	d.Add("failure reason", reason)
-	fmt.Fprint(a.writer, d.Get())
-}
-
-func (a *announce) warn(reason string) {
-	d := bencoding.NewDict()
-	d.Add("warning message", reason)
-	fmt.Fprint(a.writer, d.Get())
-}
-
-func (a *announce) ClientError(reason string, fields ...zap.Field) {
-	a.error(reason)
-	if shared.Env == shared.Dev {
-		fields = append(fields, zap.String("ip", a.peer.IP))
-		fields = append(fields, zap.String("reason", reason))
-		shared.Logger.Info("Client Error", fields...)
-	}
-}
-
-func (a *announce) ClientWarn(reason string) {
-	a.warn(reason)
-	if shared.Env == shared.Dev {
-		shared.Logger.Info("Client Warn",
-			zap.String("ip", a.peer.IP),
-			zap.String("reason", reason),
-		)
-	}
-}
-
-// InternalError is a wrapper to tell the client I fucked up
-func (a *announce) InternalError(err error) {
-	shared.ExpvarErrs++
-	a.error("Internal Server Error")
-	shared.Logger.Error("Internal Server Error", zap.Error(err))
 }
 
 // AnnounceHandle processes an announce http request
@@ -184,7 +146,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.peer.Save(a.infohash, a.peerid); err != nil {
-		a.InternalError(err)
+		internalError("peer.Save()", err, a.writer)
 		return
 	}
 

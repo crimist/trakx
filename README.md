@@ -20,12 +20,9 @@ Restart netdata with `netdata` to run with the new config
 
 ## Todo
 
-* Clean up / integrate scrape and announce
-* BEPs
+* Consider BEPs
   * IPv6 http://www.bittorrent.org/beps/bep_0007.html
   * External Address http://www.bittorrent.org/beps/bep_0024.html
   * Failure retry timer http://www.bittorrent.org/beps/bep_0031.html
 * Prod/dev zap configs
   * Descriptive timestamps
-* Resp time avg
-  * Use https://github.com/thoas/stats

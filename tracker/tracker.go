@@ -7,7 +7,6 @@ import (
 	httptracker "github.com/Syc0x00/Trakx/tracker/http"
 	"github.com/Syc0x00/Trakx/tracker/shared"
 	udptracker "github.com/Syc0x00/Trakx/tracker/udp"
-	"github.com/thoas/stats"
 )
 
 // Run runs the tracker
@@ -18,7 +17,6 @@ func Run(prod bool) {
 	}
 
 	// HTTP tracker / routes
-	statsMiddleware := stats.New()
 	trackerMux := http.NewServeMux()
 	trackerMux.HandleFunc("/", index)
 	trackerMux.HandleFunc("/dmca", dmca)
@@ -27,7 +25,7 @@ func Run(prod bool) {
 
 	server := http.Server{
 		Addr:         ":" + shared.HTTPPort,
-		Handler:      statsMiddleware.Handler(trackerMux),
+		Handler:      trackerMux,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 	}

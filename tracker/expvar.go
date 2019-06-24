@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/Syc0x00/Trakx/tracker/shared"
-	"github.com/thoas/stats"
 )
 
 func getInfo() (peers, hashes, ips, seeds, leeches int64) {
@@ -32,31 +31,26 @@ func getInfo() (peers, hashes, ips, seeds, leeches int64) {
 }
 
 // Expvar is for netdata
-func Expvar(stats *stats.Stats) {
+func Expvar() {
 	var announcesOld int64
 	var scrapesOld int64
 	var errsOld int64
 
-	uniqueIP := expvar.NewInt("tracker.ips")
-	uniqueHash := expvar.NewInt("tracker.hashes")
-	uniquePeer := expvar.NewInt("tracker.peers")
+	uniqueIP := expvar.NewInt("tracker.db.ips")
+	uniqueHash := expvar.NewInt("tracker.db.hashes")
+	uniquePeer := expvar.NewInt("tracker.db.peers")
 
-	cleanedPeers := expvar.NewInt("tracker.cleaned.peers")
-	cleanedHashes := expvar.NewInt("tracker.cleaned.hashes")
+	seeds := expvar.NewInt("tracker.db.seeds")
+	leeches := expvar.NewInt("tracker.db.leeches")
 
-	seeds := expvar.NewInt("tracker.seeds")
-	leeches := expvar.NewInt("tracker.leeches")
+	announces := expvar.NewInt("tracker.performance.announces")
+	announcesSec := expvar.NewInt("tracker.performance.announces.sec")
 
-	announces := expvar.NewInt("tracker.announces")
-	announcesSec := expvar.NewInt("tracker.announces.sec")
+	errors := expvar.NewInt("tracker.performance.errors")
+	errorsSec := expvar.NewInt("tracker.performance.errors.sec")
 
-	errors := expvar.NewInt("tracker.errors")
-	errorsSec := expvar.NewInt("tracker.errors.sec")
-
-	scrapes := expvar.NewInt("tracker.scrapes")
-	scrapesSec := expvar.NewInt("tracker.scrapes.sec")
-
-	respAvg := expvar.NewFloat("tracker.respavg") // milliseconds
+	scrapes := expvar.NewInt("tracker.performance.scrapes")
+	scrapesSec := expvar.NewInt("tracker.performance.scrapes.sec")
 
 	go http.ListenAndServe("127.0.0.1:"+shared.ExpvarPort, nil) // only on localhost
 
@@ -71,9 +65,6 @@ func Expvar(stats *stats.Stats) {
 		seeds.Set(s)
 		leeches.Set(l)
 
-		cleanedPeers.Set(shared.ExpvarCleanedPeers)
-		cleanedHashes.Set(shared.ExpvarCleanedHashes)
-
 		announces.Set(shared.ExpvarAnnounces)
 		announcesSec.Set(shared.ExpvarAnnounces - announcesOld)
 		announcesOld = shared.ExpvarAnnounces
@@ -85,8 +76,6 @@ func Expvar(stats *stats.Stats) {
 		scrapes.Set(shared.ExpvarScrapes)
 		scrapesSec.Set(shared.ExpvarScrapes - scrapesOld)
 		scrapesOld = shared.ExpvarScrapes
-
-		respAvg.Set(stats.Data().AverageResponseTimeSec * 1000.0) // ms
 
 		nextTime = nextTime.Add(time.Second)
 		time.Sleep(time.Until(nextTime))
