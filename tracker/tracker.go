@@ -16,6 +16,8 @@ func Run(prod bool) {
 		panic(err)
 	}
 
+	go Expvar()
+
 	// HTTP tracker / routes
 	trackerMux := http.NewServeMux()
 	trackerMux.HandleFunc("/", index)
