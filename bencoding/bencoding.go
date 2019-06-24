@@ -86,6 +86,12 @@ func (d *Dict) Add(key string, v interface{}) error {
 			dict.Add(k, v)
 		}
 		d.encoded += dict.Get()
+	case map[string]map[string]int32:
+		dict := NewDict()
+		for k, v := range v {
+			dict.Add(k, v)
+		}
+		d.encoded += dict.Get()
 	case map[string]int32:
 		dict := NewDict()
 		for k, v := range v {
