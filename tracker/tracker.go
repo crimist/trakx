@@ -30,6 +30,7 @@ func Run(prod bool) {
 		Handler:      trackerMux,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  10 * time.Second,
 	}
 
 	go func() {
