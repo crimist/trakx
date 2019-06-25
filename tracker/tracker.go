@@ -19,6 +19,8 @@ func Run(prod bool) {
 	go Expvar()
 
 	// HTTP tracker / routes
+	initRoutes()
+	
 	trackerMux := http.NewServeMux()
 	trackerMux.HandleFunc("/", index)
 	trackerMux.HandleFunc("/dmca", dmca)
