@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	_ "net/http/pprof"
 	httptracker "github.com/Syc0x00/Trakx/tracker/http"
 	"github.com/Syc0x00/Trakx/tracker/shared"
 	udptracker "github.com/Syc0x00/Trakx/tracker/udp"
