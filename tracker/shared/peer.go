@@ -46,11 +46,11 @@ func (p *Peer) Save(h Hash, id PeerID) {
 		}
 		if peer.IP != p.IP { // IP changed
 			delete(ExpvarIPs, peer.IP)
-			ExpvarIPs[p.IP] = true
+			ExpvarIPs[p.IP]++
 		}
 	} else { // Doesn't exist
 		ExpvarPeers[key] = true
-		ExpvarIPs[p.IP] = true
+		ExpvarIPs[p.IP]++
 		if p.Complete {
 			ExpvarSeeds[key] = true
 		} else {
@@ -73,9 +73,12 @@ func (p *Peer) Delete(h Hash, id PeerID) {
 
 	key := expvarKey(h, id)
 	delete(ExpvarPeers, key)
-	delete(ExpvarIPs, p.IP)
 	delete(ExpvarSeeds, key)
 	delete(ExpvarLeeches, key)
+	ExpvarIPs[p.IP]--
+	if num := ExpvarIPs[p.IP]; num < 1 {
+		delete(ExpvarIPs, p.IP)
+	}
 
 	delete(PeerDB[h], id)
 }
