@@ -52,8 +52,8 @@ func (h *Hash) PeerList(num int64, noPeerID bool) []string {
 	return peerList
 }
 
-// PeerListCompact returns the peer list byte encoded
-func (h *Hash) PeerListCompact(num int64) []byte {
+// PeerListBytes returns the peer list byte encoded
+func (h *Hash) PeerListBytes(num int64) []byte {
 	var peerList bytes.Buffer
 	peerList.Grow(6 * int(num))
 	writer := bufio.NewWriter(&peerList)

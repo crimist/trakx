@@ -157,7 +157,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// Add peer list
 	if a.compact == true {
-		peerList := a.infohash.PeerListCompact(a.numwant)
+		peerList := a.infohash.PeerListBytes(a.numwant)
 		d.Add("peers", peerList)
 	} else {
 		peerList := a.infohash.PeerList(a.numwant, a.noPeerID)

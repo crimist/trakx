@@ -122,7 +122,7 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 		Interval:      shared.AnnounceInterval,
 		Leechers:      incomplete,
 		Seeders:       complete,
-		Peers:         announce.InfoHash.PeerListCompact(int64(announce.NumWant)),
+		Peers:         announce.InfoHash.PeerListBytes(int64(announce.NumWant)),
 	}
 	respBytes, err := resp.Marshall()
 	if err != nil {
