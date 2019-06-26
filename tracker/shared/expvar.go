@@ -4,35 +4,39 @@ var (
 	ExpvarAnnounces int64
 	ExpvarScrapes   int64
 	ExpvarErrs      int64
-
-	// !x test
-	ExpvarSeeds   map[PeerID]bool
-	ExpvarLeeches map[PeerID]bool
+	ExpvarSeeds   map[[40]byte]bool
+	ExpvarLeeches map[[40]byte]bool
 	ExpvarIPs     map[string]bool
-	ExpvarPeers   map[PeerID]bool
+	ExpvarPeers   map[[40]byte]bool
 )
 
-// !x
+func expvarKey(hash, id [20]byte) (result [40]byte) {
+	x := append(hash[:], id[:]...)
+	copy(result[:], x)
+	return
+}
+
 func initExpvar() {
 	// Might as well alloc capcity at start
-	ExpvarSeeds = make(map[PeerID]bool, 50000)
-	ExpvarLeeches = make(map[PeerID]bool, 50000)
+	ExpvarSeeds = make(map[[40]byte]bool, 50000)
+	ExpvarLeeches = make(map[[40]byte]bool, 50000)
 	ExpvarIPs = make(map[string]bool, 30000)
-	ExpvarPeers = make(map[PeerID]bool, 100000)
+	ExpvarPeers = make(map[[40]byte]bool, 100000)
 
 	if PeerDB == nil {
 		panic("peerDB not init before expvars")
 	}
 
-	for _, peermap := range PeerDB {
+	for hash, peermap := range PeerDB {
 		for id, peer := range peermap {
-			ExpvarPeers[id] = true
+			key := expvarKey(hash, id)
+			ExpvarPeers[key] = true
 			ExpvarIPs[peer.IP] = true
 
 			if peer.Complete == true {
-				ExpvarSeeds[id] = true
+				ExpvarSeeds[key] = true
 			} else {
-				ExpvarLeeches[id] = true
+				ExpvarLeeches[key] = true
 			}
 		}
 	}
