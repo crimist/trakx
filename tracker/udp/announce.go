@@ -107,15 +107,12 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 	}
 
 	if announce.Event == stopped {
-		peer.Delete(announce.InfoHash, announce.PeerID)
+		go peer.Delete(announce.InfoHash, announce.PeerID)
 		u.conn.WriteToUDP([]byte(shared.Bye), remote)
 		return
 	}
 
-	if err := peer.Save(announce.InfoHash, announce.PeerID); err != nil {
-		u.conn.WriteToUDP(newServerError("peer.Save()", err, announce.TransactionID), remote)
-		return
-	}
+	go peer.Save(announce.InfoHash, announce.PeerID)
 
 	complete, incomplete := announce.InfoHash.Complete()
 

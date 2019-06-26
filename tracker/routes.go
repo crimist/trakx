@@ -1,8 +1,8 @@
 package tracker
 
 import (
-	"net/http"
 	"io/ioutil"
+	"net/http"
 )
 
 var indexData []byte

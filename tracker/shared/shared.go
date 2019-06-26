@@ -37,6 +37,7 @@ func Init(prod bool) error {
 	}
 	PeerDB.Load()
 	setSignals()
+	initExpvar()
 
 	go Writer()
 	go Cleaner()
