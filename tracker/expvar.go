@@ -16,6 +16,7 @@ func Expvar() {
 
 	uniqueIP := expvar.NewInt("tracker.db.ips")
 	uniqueHash := expvar.NewInt("tracker.db.hashes")
+	uniquePeer := expvar.NewInt("tracker.db.peers")
 
 	seeds := expvar.NewInt("tracker.db.seeds")
 	leeches := expvar.NewInt("tracker.db.leeches")
@@ -36,6 +37,7 @@ func Expvar() {
 	for {
 		uniqueIP.Set(int64(len(shared.ExpvarIPs)))
 		uniqueHash.Set(int64(len(shared.PeerDB)))
+		uniquePeer.Set(int64(len(shared.ExpvarPeers)))
 
 		seeds.Set(int64(len(shared.ExpvarSeeds)))
 		leeches.Set(int64(len(shared.ExpvarLeeches)))

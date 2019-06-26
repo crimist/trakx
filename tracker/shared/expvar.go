@@ -9,4 +9,5 @@ var (
 	ExpvarSeeds   map[string]bool
 	ExpvarLeeches map[string]bool
 	ExpvarIPs     map[string]bool
+	ExpvarPeers   map[PeerID]bool
 )
