@@ -30,7 +30,7 @@ func (h *Hash) Complete() (complete, incomplete int32) {
 
 // PeerList returns the peerlist bencoded
 func (h *Hash) PeerList(num int64, noPeerID bool) []string {
-	var peerList []string
+	peerList := make([]string, num)
 	peerMap, _ := PeerDB[*h]
 
 	var i int64
@@ -54,7 +54,9 @@ func (h *Hash) PeerList(num int64, noPeerID bool) []string {
 
 // PeerListCompact returns the peer list byte encoded
 func (h *Hash) PeerListCompact(num int64) string {
-	var peerList string
+	var peerList bytes.Buffer
+	peerList.Grow(6 * int(num))
+	writer := bufio.NewWriter(&peerList)
 	peerMap, _ := PeerDB[*h]
 
 	var i int64
@@ -62,19 +64,15 @@ func (h *Hash) PeerListCompact(num int64) string {
 		if i == num {
 			break
 		}
-		var b bytes.Buffer
-		writer := bufio.NewWriter(&b)
 
 		// Network order
 		binary.Write(writer, binary.BigEndian, utils.IPToInt(net.ParseIP(peer.IP)))
 		binary.Write(writer, binary.BigEndian, peer.Port)
-		writer.Flush()
-
-		peerList += b.String()
 		i++
 	}
 
-	return peerList
+	writer.Flush()
+	return peerList.String()
 }
 
 func (h *Hash) PeerListUDP(num int32) (peers []UDPPeer) {
