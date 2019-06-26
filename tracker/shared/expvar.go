@@ -6,8 +6,8 @@ var (
 	ExpvarErrs      int64
 
 	// !x test
-	ExpvarSeeds   map[string]bool
-	ExpvarLeeches map[string]bool
+	ExpvarSeeds   map[PeerID]bool
+	ExpvarLeeches map[PeerID]bool
 	ExpvarIPs     map[string]bool
 	ExpvarPeers   map[PeerID]bool
 )
@@ -15,8 +15,8 @@ var (
 // !x
 func initExpvar() {
 	// Might as well alloc capcity at start
-	ExpvarSeeds = make(map[string]bool, 50000)
-	ExpvarLeeches = make(map[string]bool, 50000)
+	ExpvarSeeds = make(map[PeerID]bool, 50000)
+	ExpvarLeeches = make(map[PeerID]bool, 50000)
 	ExpvarIPs = make(map[string]bool, 30000)
 	ExpvarPeers = make(map[PeerID]bool, 100000)
 
@@ -30,9 +30,9 @@ func initExpvar() {
 			ExpvarIPs[peer.IP] = true
 
 			if peer.Complete == true {
-				ExpvarSeeds[peer.IP] = true
+				ExpvarSeeds[id] = true
 			} else {
-				ExpvarLeeches[peer.IP] = true
+				ExpvarLeeches[id] = true
 			}
 		}
 	}
