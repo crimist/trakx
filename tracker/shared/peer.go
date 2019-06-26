@@ -21,7 +21,7 @@ type Peer struct {
 }
 
 // Save creates or updates peer
-func (p *Peer) Save(h Hash, id PeerID) error {
+func (p *Peer) Save(h Hash, id PeerID) {
 	if Env == Dev {
 		Logger.Info("Save",
 			zap.Any("hash", h),
@@ -38,9 +38,32 @@ func (p *Peer) Save(h Hash, id PeerID) error {
 		PeerDB[h] = make(map[PeerID]Peer)
 	}
 
-	PeerDB[h][id] = *p
+	// !x
+	peer, ok := PeerDB[h][id]
+	if ok { // Exists
+		if peer.Complete == false && p.Complete == true { // They completed
+			delete(ExpvarLeeches, id)
+			ExpvarSeeds[id] = true
+		}
+		if peer.Complete == true && p.Complete == false { // They uncompleted
+			delete(ExpvarSeeds, id)
+			ExpvarLeeches[id] = true
+		}
+		if peer.IP != p.IP { // IP changed
+			delete(ExpvarIPs, peer.IP)
+			ExpvarIPs[p.IP] = true
+		}
+	} else { // Doesn't exist
+		ExpvarPeers[id] = true
+		ExpvarIPs[p.IP] = true
+		if p.Complete {
+			ExpvarSeeds[id] = true
+		} else {
+			ExpvarLeeches[id] = true
+		}
+	}
 
-	return nil
+	PeerDB[h][id] = *p
 }
 
 // Delete deletes peer
@@ -52,6 +75,12 @@ func (p *Peer) Delete(h Hash, id PeerID) {
 			zap.Any("Peer", p),
 		)
 	}
+
+	// !x
+	delete(ExpvarPeers, id)
+	delete(ExpvarIPs, p.IP)
+	delete(ExpvarSeeds, id)
+	delete(ExpvarLeeches, id)
 
 	delete(PeerDB[h], id)
 }
