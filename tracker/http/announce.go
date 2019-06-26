@@ -140,15 +140,12 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// If the peer stopped delete() them and exit
 	if event == "stopped" {
-		a.peer.Delete(a.infohash, a.peerid)
+		go a.peer.Delete(a.infohash, a.peerid)
 		fmt.Fprint(w, shared.Bye)
 		return
 	}
 
-	if err := a.peer.Save(a.infohash, a.peerid); err != nil {
-		internalError("peer.Save()", err, a.writer)
-		return
-	}
+	go a.peer.Save(a.infohash, a.peerid)
 
 	complete, incomplete := a.infohash.Complete()
 

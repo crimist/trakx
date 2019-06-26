@@ -8,28 +8,6 @@ import (
 	"github.com/Syc0x00/Trakx/tracker/shared"
 )
 
-func getInfo() (peers, hashes, ips, seeds, leeches int64) {
-	ipmap := make(map[string]bool)
-
-	for _, peermap := range shared.PeerDB {
-		peers += int64(len(peermap))
-
-		for _, peer := range peermap {
-			ipmap[peer.IP] = true
-			if peer.Complete == true {
-				seeds++
-			} else {
-				leeches++
-			}
-		}
-	}
-
-	hashes = int64(len(shared.PeerDB))
-	ips = int64(len(ipmap))
-
-	return
-}
-
 // Expvar is for netdata
 func Expvar() {
 	var announcesOld int64
@@ -38,7 +16,6 @@ func Expvar() {
 
 	uniqueIP := expvar.NewInt("tracker.db.ips")
 	uniqueHash := expvar.NewInt("tracker.db.hashes")
-	uniquePeer := expvar.NewInt("tracker.db.peers")
 
 	seeds := expvar.NewInt("tracker.db.seeds")
 	leeches := expvar.NewInt("tracker.db.leeches")
@@ -57,13 +34,11 @@ func Expvar() {
 	nextTime := time.Now().Truncate(time.Second)
 
 	for {
-		peers, hashes, ips, s, l := getInfo()
-		uniqueIP.Set(ips)
-		uniqueHash.Set(hashes)
-		uniquePeer.Set(peers)
+		uniqueIP.Set(int64(len(shared.ExpvarIPs)))
+		uniqueHash.Set(int64(len(shared.PeerDB)))
 
-		seeds.Set(s)
-		leeches.Set(l)
+		seeds.Set(int64(len(shared.ExpvarSeeds)))
+		leeches.Set(int64(len(shared.ExpvarLeeches)))
 
 		announces.Set(shared.ExpvarAnnounces)
 		announcesSec.Set(shared.ExpvarAnnounces - announcesOld)

@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"time"
 
-	_ "net/http/pprof"
 	httptracker "github.com/Syc0x00/Trakx/tracker/http"
 	"github.com/Syc0x00/Trakx/tracker/shared"
 	udptracker "github.com/Syc0x00/Trakx/tracker/udp"
+	_ "net/http/pprof"
 )
 
 // Run runs the tracker
@@ -21,7 +21,7 @@ func Run(prod bool) {
 
 	// HTTP tracker / routes
 	initRoutes()
-	
+
 	trackerMux := http.NewServeMux()
 	trackerMux.HandleFunc("/", index)
 	trackerMux.HandleFunc("/dmca", dmca)

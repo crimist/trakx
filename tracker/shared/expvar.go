@@ -1,9 +1,12 @@
 package shared
 
 var (
-	ExpvarCleanedPeers  int64
-	ExpvarCleanedHashes int64
-	ExpvarAnnounces     int64
-	ExpvarScrapes       int64
-	ExpvarErrs          int64
+	ExpvarAnnounces int64
+	ExpvarScrapes   int64
+	ExpvarErrs      int64
+
+	// !x test
+	ExpvarSeeds   map[string]bool
+	ExpvarLeeches map[string]bool
+	ExpvarIPs     map[string]bool
 )
