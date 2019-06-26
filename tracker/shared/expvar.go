@@ -19,4 +19,21 @@ func initExpvar() {
 	ExpvarLeeches = make(map[string]bool, 50000)
 	ExpvarIPs = make(map[string]bool, 30000)
 	ExpvarPeers = make(map[PeerID]bool, 100000)
+
+	if PeerDB == nil {
+		panic("peerDB not init before expvars")
+	}
+
+	for _, peermap := range PeerDB {
+		for id, peer := range peermap {
+			ExpvarPeers[id] = true
+			ExpvarIPs[peer.IP] = true
+
+			if peer.Complete == true {
+				ExpvarSeeds[peer.IP] = true
+			} else {
+				ExpvarLeeches[peer.IP] = true
+			}
+		}
+	}
 }
