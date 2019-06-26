@@ -73,6 +73,8 @@ func (d *Dict) Add(key string, v interface{}) error {
 	switch v := v.(type) {
 	case string:
 		d.encoded += String(v)
+	case []byte:
+		d.encoded += String(string(v))
 	case []string:
 		r := reflect.ValueOf(v)
 		slice := make([]string, r.Len())

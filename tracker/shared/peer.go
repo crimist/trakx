@@ -6,11 +6,6 @@ import (
 
 type PeerID [20]byte
 
-type UDPPeer struct {
-	IP   int32
-	Port uint16
-}
-
 // Peer holds peer information stores in the database
 type Peer struct {
 	Key      []byte

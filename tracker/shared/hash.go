@@ -53,29 +53,10 @@ func (h *Hash) PeerList(num int64, noPeerID bool) []string {
 }
 
 // PeerListCompact returns the peer list byte encoded
-func (h *Hash) PeerListCompact(num int64) string {
+func (h *Hash) PeerListCompact(num int64) []byte {
 	var peerList bytes.Buffer
 	peerList.Grow(6 * int(num))
 	writer := bufio.NewWriter(&peerList)
-	peerMap, _ := PeerDB[*h]
-
-	var i int64
-	for _, peer := range peerMap {
-		if i == num {
-			break
-		}
-
-		// Network order
-		binary.Write(writer, binary.BigEndian, utils.IPToInt(net.ParseIP(peer.IP)))
-		binary.Write(writer, binary.BigEndian, peer.Port)
-		i++
-	}
-
-	writer.Flush()
-	return peerList.String()
-}
-
-func (h *Hash) PeerListUDP(num int32) (peers []UDPPeer) {
 	peerMap, _ := PeerDB[*h]
 
 	for _, peer := range peerMap {
@@ -83,18 +64,11 @@ func (h *Hash) PeerListUDP(num int32) (peers []UDPPeer) {
 			break
 		}
 
-		p := UDPPeer{
-			IP:   int32(utils.IPToInt(net.ParseIP(peer.IP))),
-			Port: peer.Port,
-		}
-
-		// TODO: Find less ugly way to convert to big endian
-		p.Port = (p.Port << 8) | (p.Port >> 8)
-		p.IP = (p.IP << 24) | ((p.IP << 8) & 0x00ff0000) | ((p.IP >> 8) & 0x0000ff00) | (p.IP >> 24)
-
-		peers = append(peers, p)
+		binary.Write(writer, binary.BigEndian, utils.IPToInt(net.ParseIP(peer.IP)))
+		binary.Write(writer, binary.BigEndian, peer.Port)
 		num--
 	}
 
-	return
+	writer.Flush()
+	return peerList.Bytes()
 }

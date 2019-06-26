@@ -16,8 +16,8 @@ func writeErr(msg string, writer http.ResponseWriter) {
 }
 
 func clientError(msg string, writer http.ResponseWriter, fields ...zap.Field) {
+	shared.ExpvarClienterrs++
 	writeErr(msg, writer)
-
 	if shared.Env == shared.Dev {
 		fields = append(fields, zap.String("msg", msg))
 		shared.Logger.Info("Client Error", fields...)
@@ -26,7 +26,6 @@ func clientError(msg string, writer http.ResponseWriter, fields ...zap.Field) {
 
 func internalError(errmsg string, err error, writer http.ResponseWriter) {
 	shared.ExpvarErrs++
-
 	writeErr("internal server error", writer)
 	shared.Logger.Error(errmsg, zap.Error(err))
 }

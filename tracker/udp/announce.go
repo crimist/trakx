@@ -47,7 +47,7 @@ type AnnounceResp struct {
 	Interval      int32
 	Leechers      int32
 	Seeders       int32
-	Peers         []shared.UDPPeer
+	Peers         []byte
 }
 
 func (ar *AnnounceResp) Marshall() ([]byte, error) {
@@ -122,7 +122,7 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 		Interval:      shared.AnnounceInterval,
 		Leechers:      incomplete,
 		Seeders:       complete,
-		Peers:         announce.InfoHash.PeerListUDP(announce.NumWant),
+		Peers:         announce.InfoHash.PeerListCompact(int64(announce.NumWant)),
 	}
 	respBytes, err := resp.Marshall()
 	if err != nil {
