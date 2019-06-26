@@ -1,13 +1,14 @@
 package shared
 
 var (
-	ExpvarAnnounces int64
-	ExpvarScrapes   int64
-	ExpvarErrs      int64
-	ExpvarSeeds   map[[40]byte]bool
-	ExpvarLeeches map[[40]byte]bool
-	ExpvarIPs     map[string]bool
-	ExpvarPeers   map[[40]byte]bool
+	ExpvarAnnounces  int64
+	ExpvarScrapes    int64
+	ExpvarErrs       int64
+	ExpvarClienterrs int64
+	ExpvarSeeds      map[[40]byte]bool
+	ExpvarLeeches    map[[40]byte]bool
+	ExpvarIPs        map[string]bool
+	ExpvarPeers      map[[40]byte]bool
 )
 
 func expvarKey(hash, id [20]byte) (result [40]byte) {
