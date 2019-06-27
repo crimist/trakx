@@ -49,7 +49,6 @@ func (p *Peer) Save(h Hash, id PeerID) {
 			ExpvarIPs[p.IP]++
 		}
 	} else { // Doesn't exist
-		ExpvarPeers[key] = true
 		ExpvarIPs[p.IP]++
 		if p.Complete {
 			ExpvarSeeds[key] = true
@@ -72,7 +71,6 @@ func (p *Peer) Delete(h Hash, id PeerID) {
 	}
 
 	key := expvarKey(h, id)
-	delete(ExpvarPeers, key)
 	delete(ExpvarSeeds, key)
 	delete(ExpvarLeeches, key)
 	ExpvarIPs[p.IP]--

@@ -30,7 +30,7 @@ func Expvar() {
 	for {
 		uniqueIP.Set(int64(len(shared.ExpvarIPs)))
 		uniqueHash.Set(int64(len(shared.PeerDB)))
-		uniquePeer.Set(int64(len(shared.ExpvarPeers)))
+		uniquePeer.Set(int64(len(shared.ExpvarSeeds) + len(shared.ExpvarLeeches)))
 
 		seeds.Set(int64(len(shared.ExpvarSeeds)))
 		leeches.Set(int64(len(shared.ExpvarLeeches)))
