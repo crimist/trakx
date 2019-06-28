@@ -15,7 +15,7 @@ Restart netdata with `netdata` to run with the new config
 ## pprof
 
 ```bash
-go tool pprof http://127.0.0.1:1338/debug/pprof/profile -seconds=180
+go tool pprof -seconds=180 http://127.0.0.1:1338/debug/pprof/profile
 pprof -http=nibba.trade:7331 /root/pprof/...
 ```
 
