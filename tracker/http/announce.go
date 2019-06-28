@@ -118,25 +118,26 @@ func (a *announce) SetNopeerid(nopeerid string) {
 // AnnounceHandle processes an announce http request
 func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	shared.ExpvarAnnounces++
+	query := r.URL.Query()
 
-	event := r.URL.Query().Get("event")
+	event := query.Get("event")
 	a := &announce{writer: w, req: r, peer: shared.Peer{}}
 
 	// Set up announce
-	if ok := a.SetPeer(r.URL.Query().Get("ip"), r.URL.Query().Get("port"), r.URL.Query().Get("key"), event, r.URL.Query().Get("left")); !ok {
+	if ok := a.SetPeer(query.Get("ip"), query.Get("port"), query.Get("key"), event, query.Get("left")); !ok {
 		return
 	}
-	if ok := a.SetInfohash(r.URL.Query().Get("info_hash")); !ok {
+	if ok := a.SetInfohash(query.Get("info_hash")); !ok {
 		return
 	}
-	if ok := a.SetPeerid(r.URL.Query().Get("peer_id")); !ok {
+	if ok := a.SetPeerid(query.Get("peer_id")); !ok {
 		return
 	}
-	if ok := a.SetNumwant(r.URL.Query().Get("numwant")); !ok {
+	if ok := a.SetNumwant(query.Get("numwant")); !ok {
 		return
 	}
-	a.SetCompact(r.URL.Query().Get("compact"))
-	a.SetNopeerid(r.URL.Query().Get("no_peer_id"))
+	a.SetCompact(query.Get("compact"))
+	a.SetNopeerid(query.Get("no_peer_id"))
 
 	// If the peer stopped delete() them and exit
 	if event == "stopped" {
