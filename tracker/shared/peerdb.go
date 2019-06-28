@@ -58,6 +58,7 @@ func (d *PeerDatabase) Load() {
 			Logger.Info("No temp database")
 			if loadtemp {
 				Logger.Info("No database found")
+				PeerDB = make(PeerDatabase)
 				return
 			}
 		} else {
@@ -98,11 +99,6 @@ func (d *PeerDatabase) Load() {
 		} else {
 			loaded = "full"
 		}
-	}
-
-	if loaded == "" {
-		PeerDB = make(PeerDatabase)
-		loaded = "make()"
 	}
 
 	Logger.Info(fmt.Sprintf("Loaded %v database", loaded), zap.Int("hashes", len(PeerDB)))
