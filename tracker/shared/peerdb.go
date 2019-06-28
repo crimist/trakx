@@ -100,6 +100,11 @@ func (d *PeerDatabase) Load() {
 		}
 	}
 
+	if loaded == "" {
+		PeerDB = make(PeerDatabase)
+		loaded = "make()"
+	}
+
 	Logger.Info(fmt.Sprintf("Loaded %v database", loaded), zap.Int("hashes", len(PeerDB)))
 }
 
