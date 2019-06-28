@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/Syc0x00/Trakx/bencoding"
@@ -42,5 +41,5 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprint(w, dict.Get())
+	w.Write([]byte(dict.Get()))
 }

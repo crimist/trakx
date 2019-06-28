@@ -1,15 +1,15 @@
 package tracker
 
 import (
-	"go.uber.org/zap"
 	"net/http"
+	_ "net/http/pprof"
 	"time"
 
 	"github.com/Syc0x00/Trakx/bencoding"
 	httptracker "github.com/Syc0x00/Trakx/tracker/http"
 	"github.com/Syc0x00/Trakx/tracker/shared"
 	udptracker "github.com/Syc0x00/Trakx/tracker/udp"
-	_ "net/http/pprof"
+	"go.uber.org/zap"
 )
 
 // Run runs the tracker

@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/Syc0x00/Trakx/bencoding"
@@ -12,7 +11,7 @@ import (
 func writeErr(msg string, writer http.ResponseWriter) {
 	d := bencoding.NewDict()
 	d.Add("failure reason", msg)
-	fmt.Fprint(writer, d.Get())
+	writer.Write([]byte(d.Get()))
 }
 
 func clientError(msg string, writer http.ResponseWriter, fields ...zap.Field) {

@@ -3,7 +3,6 @@ package shared
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
@@ -103,7 +102,7 @@ func (d *PeerDatabase) Load() {
 		}
 	}
 
-	Logger.Info(fmt.Sprintf("Loaded %v database", loaded), zap.Int("hashes", len(PeerDB)))
+	Logger.Info("Loaded database", zap.String("type", loaded), zap.Int("hashes", len(PeerDB)))
 }
 
 // Write dumps the database to a file
@@ -125,5 +124,5 @@ func (d *PeerDatabase) Write(istemp bool) {
 		Logger.Error("db writefile", zap.Error(err))
 	}
 
-	Logger.Info(fmt.Sprintf("Wrote database %v", filename), zap.Int("hashes", len(PeerDB)))
+	Logger.Info("Wrote database", zap.String("file", filename), zap.Int("hashes", len(PeerDB)))
 }

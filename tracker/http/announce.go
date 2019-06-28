@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -141,7 +140,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	// If the peer stopped delete() them and exit
 	if event == "stopped" {
 		a.peer.Delete(a.infohash, a.peerid)
-		fmt.Fprint(w, shared.Bye)
+		w.Write([]byte(shared.Bye))
 		return
 	}
 
@@ -164,5 +163,5 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 		d.Add("peers", peerList)
 	}
 
-	fmt.Fprint(w, d.Get())
+	w.Write([]byte(d.Get()))
 }
