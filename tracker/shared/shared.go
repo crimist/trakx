@@ -14,7 +14,7 @@ const (
 	HTTPPort           = "1337"
 	UDPPort            = 1337
 	ExpvarPort         = "1338"
-	AnnounceInterval   = 5 * 60 // 5 min
+	AnnounceInterval   = 10 * 60 // 10min
 	CleanTimeout       = AnnounceInterval * 2
 	CleanInterval      = 3 * time.Minute
 	WriteDBInterval    = 5 * time.Minute
