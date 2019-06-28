@@ -1,9 +1,11 @@
 package tracker
 
 import (
+	"go.uber.org/zap"
 	"net/http"
 	"time"
 
+	"github.com/Syc0x00/Trakx/bencoding"
 	httptracker "github.com/Syc0x00/Trakx/tracker/http"
 	"github.com/Syc0x00/Trakx/tracker/shared"
 	udptracker "github.com/Syc0x00/Trakx/tracker/udp"
@@ -11,7 +13,7 @@ import (
 )
 
 // Run runs the tracker
-func Run(prod bool) {
+func Run(prod, udpTracker, httpTracker bool) {
 	// Init shared stuff
 	if err := shared.Init(prod); err != nil {
 		panic(err)
@@ -25,8 +27,24 @@ func Run(prod bool) {
 	trackerMux := http.NewServeMux()
 	trackerMux.HandleFunc("/", index)
 	trackerMux.HandleFunc("/dmca", dmca)
-	trackerMux.HandleFunc("/scrape", httptracker.ScrapeHandle)
-	trackerMux.HandleFunc("/announce", httptracker.AnnounceHandle)
+
+	if httpTracker {
+		shared.Logger.Info("http tracker on")
+		trackerMux.HandleFunc("/scrape", httptracker.ScrapeHandle)
+		trackerMux.HandleFunc("/announce", httptracker.AnnounceHandle)
+	} else {
+		dict := bencoding.NewDict()
+		dict.Add("failure reason", "Not a tracker")
+		dict.Add("retry in", "3600") // 1 hour
+		resp := []byte(dict.Get())
+
+		notTracker := func(w http.ResponseWriter, r *http.Request) {
+			w.Write(resp)
+		}
+
+		trackerMux.HandleFunc("/scrape", notTracker)
+		trackerMux.HandleFunc("/announce", notTracker)
+	}
 
 	server := http.Server{
 		Addr:         ":" + shared.HTTPPort,
@@ -38,13 +56,17 @@ func Run(prod bool) {
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			panic(err)
+			shared.Logger.Error("ListenAndServe()", zap.Error(err))
 		}
 	}()
 
 	// UDP tracker
-	udp := udptracker.UDPTracker{}
-	go udp.Trimmer()
+	if udpTracker {
+		shared.Logger.Info("udp tracker on")
+		udp := udptracker.UDPTracker{}
+		go udp.Trimmer()
+		go udp.Listen()
+	}
 
-	udp.Listen()
+	select {}
 }

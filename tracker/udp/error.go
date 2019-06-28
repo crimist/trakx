@@ -30,7 +30,7 @@ func (e *Error) Marshall() ([]byte, error) {
 
 func newClientError(msg string, TransactionID int32) []byte {
 	shared.ExpvarClienterrs++
-	
+
 	e := Error{
 		Action:        3,
 		TransactionID: TransactionID,

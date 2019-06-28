@@ -12,6 +12,8 @@ import (
 func main() {
 	// Get flags
 	prodFlag := flag.Bool("x", false, "Production mode")
+	httpFlag := flag.Bool("http", true, "HTTP Tracker")
+	udpFlag := flag.Bool("udp", true, "UDP Tracker")
 	flag.Parse()
 
 	var limit syscall.Rlimit
@@ -31,5 +33,5 @@ func main() {
 		fmt.Printf("Set limit to %v\n", limit.Cur)
 	}
 
-	tracker.Run(*prodFlag)
+	tracker.Run(*prodFlag, *udpFlag, *httpFlag)
 }
