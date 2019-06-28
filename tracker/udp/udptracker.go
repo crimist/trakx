@@ -40,7 +40,7 @@ func (u *UDPTracker) Listen() {
 			shared.Logger.Error("ReadFromUDP()", zap.Error(err))
 			continue
 		}
-		u.Process(len, remote, buf)
+		go u.Process(len, remote, buf)
 	}
 }
 
