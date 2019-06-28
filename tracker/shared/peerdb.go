@@ -79,6 +79,7 @@ func (d *PeerDatabase) Load() {
 
 			if err := d.load(PeerDBFilename); err != nil {
 				Logger.Info("Loading full db failed", zap.Error(err))
+				PeerDB = make(PeerDatabase)
 				return
 			} else {
 				loaded = "full"
@@ -92,6 +93,7 @@ func (d *PeerDatabase) Load() {
 
 			if err := d.load(PeerDBTempFilename); err != nil {
 				Logger.Info("Loading temp db failed", zap.Error(err))
+				PeerDB = make(PeerDatabase)
 				return
 			} else {
 				loaded = "temp"
