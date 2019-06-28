@@ -16,8 +16,8 @@ const (
 	ExpvarPort         = "1338"
 	AnnounceInterval   = 30 * 60 // 30 min
 	CleanTimeout       = AnnounceInterval * 2
-	CleanInterval      = 5 * time.Minute
-	WriteDBInterval    = 10 * time.Minute
+	CleanInterval      = 3 * time.Minute
+	WriteDBInterval    = 5 * time.Minute
 	PeerDBFilename     = "trakx.db"
 	PeerDBTempFilename = "trakx.db.tmp"
 	DefaultNumwant     = 300
