@@ -32,8 +32,8 @@ func Run(prod bool) {
 		Addr:         ":" + shared.HTTPPort,
 		Handler:      trackerMux,
 		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
-		IdleTimeout:  10 * time.Second,
+		WriteTimeout: 7 * time.Second,
+		IdleTimeout:  0,
 	}
 
 	go func() {
