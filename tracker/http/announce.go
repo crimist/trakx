@@ -25,7 +25,7 @@ type announce struct {
 	req    *http.Request
 }
 
-func (a *announce) SetPeer(postIP, port, key, event, left string) bool {
+func (a *announce) SetPeer(postIP, port, event, left string) bool {
 	var err error
 
 	if shared.Env == shared.Dev && postIP != "" {
@@ -62,7 +62,6 @@ func (a *announce) SetPeer(postIP, port, key, event, left string) bool {
 	}
 
 	a.peer.Port = uint16(portInt)
-	a.peer.Key = []byte(key)
 	a.peer.LastSeen = time.Now().Unix()
 
 	return true
@@ -124,7 +123,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	a := &announce{writer: w, req: r, peer: shared.Peer{}}
 
 	// Set up announce
-	if ok := a.SetPeer(query.Get("ip"), query.Get("port"), query.Get("key"), event, query.Get("left")); !ok {
+	if ok := a.SetPeer(query.Get("ip"), query.Get("port"), event, query.Get("left")); !ok {
 		return
 	}
 	if ok := a.SetInfohash(query.Get("info_hash")); !ok {

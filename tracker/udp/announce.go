@@ -90,8 +90,6 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 		Port:     announce.Port,
 		LastSeen: time.Now().Unix(),
 	}
-	peer.Key = make([]byte, 4) // capacity for uint32
-	binary.BigEndian.PutUint32(peer.Key, announce.Key)
 
 	if announce.Event == completed || announce.Left == 0 {
 		peer.Complete = true

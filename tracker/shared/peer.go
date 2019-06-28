@@ -8,8 +8,7 @@ type PeerID [20]byte
 
 // Peer holds peer information stores in the database
 type Peer struct {
-	Key      []byte
-	IP       string
+	IP       string // TODO make this net.IP
 	Port     uint16
 	Complete bool
 	LastSeen int64
