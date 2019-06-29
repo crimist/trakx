@@ -53,6 +53,11 @@ func (sr *ScrapeResp) Marshall() ([]byte, error) {
 func (u *UDPTracker) Scrape(scrape *Scrape, remote *net.UDPAddr) {
 	shared.ExpvarScrapes++
 
+	if len(scrape.InfoHash) > 74 {
+		u.conn.WriteToUDP(newClientError("too many hashes", scrape.Base.TransactionID), remote)
+		return
+	}
+
 	resp := ScrapeResp{
 		Action:        2,
 		TransactionID: scrape.Base.TransactionID,
@@ -60,7 +65,7 @@ func (u *UDPTracker) Scrape(scrape *Scrape, remote *net.UDPAddr) {
 
 	for _, hash := range scrape.InfoHash {
 		if len(hash) != 20 {
-			u.conn.WriteToUDP(newClientError("invalid infohash", scrape.Base.TransactionID), remote)
+			u.conn.WriteToUDP(newClientError("invalid hash", scrape.Base.TransactionID), remote)
 			return
 		}
 
