@@ -30,10 +30,10 @@ func Expvar() {
 	for {
 		uniqueIP.Set(int64(len(shared.ExpvarIPs)))
 		uniqueHash.Set(int64(len(shared.PeerDB)))
-		uniquePeer.Set(int64(len(shared.ExpvarSeeds) + len(shared.ExpvarLeeches)))
+		uniquePeer.Set(shared.ExpvarSeeds + shared.ExpvarLeeches)
 
-		seeds.Set(int64(len(shared.ExpvarSeeds)))
-		leeches.Set(int64(len(shared.ExpvarLeeches)))
+		seeds.Set(shared.ExpvarSeeds)
+		leeches.Set(shared.ExpvarLeeches)
 
 		announcesSec.Set(shared.ExpvarAnnounces)
 		shared.ExpvarAnnounces = 0

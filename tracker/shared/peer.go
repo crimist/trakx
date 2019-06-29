@@ -33,16 +33,15 @@ func (p *Peer) Save(h Hash, id PeerID) {
 		PeerDB[h] = make(map[PeerID]Peer)
 	}
 
-	key := expvarKey(h, id)
 	peer, ok := PeerDB[h][id]
 	if ok { // Exists
 		if peer.Complete == false && p.Complete == true { // They completed
-			delete(ExpvarLeeches, key)
-			ExpvarSeeds[key] = true
+			ExpvarLeeches--
+			ExpvarSeeds++
 		}
-		if peer.Complete == true && p.Complete == false { // They uncompleted
-			delete(ExpvarSeeds, key)
-			ExpvarLeeches[key] = true
+		if peer.Complete == true && p.Complete == false { // They uncompleted?
+			ExpvarSeeds--
+			ExpvarLeeches++
 		}
 		if peer.IP != p.IP { // IP changed
 			delete(ExpvarIPs, peer.IP)
@@ -51,9 +50,9 @@ func (p *Peer) Save(h Hash, id PeerID) {
 	} else { // Doesn't exist
 		ExpvarIPs[p.IP]++
 		if p.Complete {
-			ExpvarSeeds[key] = true
+			ExpvarSeeds++
 		} else {
-			ExpvarLeeches[key] = true
+			ExpvarLeeches--
 		}
 	}
 
@@ -70,9 +69,14 @@ func (p *Peer) Delete(h Hash, id PeerID) {
 		)
 	}
 
-	key := expvarKey(h, id)
-	delete(ExpvarSeeds, key)
-	delete(ExpvarLeeches, key)
+	if peer, ok := PeerDB[h][id]; ok {
+		if peer.Complete {
+			ExpvarSeeds--
+		} else {
+			ExpvarLeeches--
+		}
+	}
+
 	ExpvarIPs[p.IP]--
 	if num := ExpvarIPs[p.IP]; num < 1 {
 		delete(ExpvarIPs, p.IP)

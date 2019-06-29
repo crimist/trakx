@@ -22,7 +22,6 @@ func Run(prod, udpTracker, httpTracker bool) {
 	go Expvar()
 
 	// HTTP tracker / routes
-	// TODO: https://groups.google.com/forum/#!topic/golang-nuts/mH3OstyPESA
 	initRoutes()
 
 	trackerMux := http.NewServeMux()
