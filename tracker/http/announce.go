@@ -81,17 +81,18 @@ func (a *announce) SetCompact(compact string) {
 }
 
 func (a *announce) SetNumwant(numwant string) bool {
+	a.numwant = shared.DefaultNumwant
+
 	if numwant != "" {
 		numwantInt, err := strconv.ParseInt(numwant, 10, 64)
 		if err != nil {
 			clientError("Invalid numwant", a.writer, zap.String("numwant", numwant))
 			return false
 		}
-		a.numwant = numwantInt
-	} else {
-		a.numwant = shared.DefaultNumwant
+		if numwantInt < shared.MaxNumwant {
+			a.numwant = numwantInt
+		}
 	}
-
 	return true
 }
 

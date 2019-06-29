@@ -14,13 +14,14 @@ const (
 	HTTPPort           = "1337"
 	UDPPort            = 1337
 	ExpvarPort         = "1338"
-	AnnounceInterval   = 30 * 60 // 30 min
-	CleanTimeout       = AnnounceInterval * 2
+	AnnounceInterval   = 30 * 60                     // 30 min
+	CleanTimeout       = AnnounceInterval + (2 * 60) // 32 min
 	CleanInterval      = 3 * time.Minute
 	WriteDBInterval    = 5 * time.Minute
 	PeerDBFilename     = "trakx.db"
 	PeerDBTempFilename = "trakx.db.tmp"
-	DefaultNumwant     = 300
+	DefaultNumwant     = 50
+	MaxNumwant         = 200
 	Bye                = "See you space cowboy..."
 )
 
