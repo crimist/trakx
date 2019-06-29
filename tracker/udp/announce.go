@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/Syc0x00/Trakx/tracker/shared"
@@ -84,22 +83,20 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 		u.conn.WriteToUDP(newClientError("invalid port", announce.TransactionID), remote)
 		return
 	}
-
-	peer := shared.Peer{
-		IP:       remote.IP.String(),
-		Port:     announce.Port,
-		LastSeen: time.Now().Unix(),
-	}
-
-	if announce.Event == completed || announce.Left == 0 {
-		peer.Complete = true
-	}
-
-	if strings.Contains(peer.IP, ":") {
+	if len(remote.IP) == 16 {
 		u.conn.WriteToUDP(newClientError("ipv6 unsupported", announce.TransactionID), remote)
 		return
 	}
 
+	peer := shared.Peer{
+		Port:     announce.Port,
+		LastSeen: time.Now().Unix(),
+	}
+	copy(peer.IP[:], remote.IP)
+
+	if announce.Event == completed || announce.Left == 0 {
+		peer.Complete = true
+	}
 	if announce.NumWant == -1 {
 		announce.NumWant = shared.DefaultNumwant
 	}

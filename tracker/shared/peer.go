@@ -5,10 +5,11 @@ import (
 )
 
 type PeerID [20]byte
+type PeerIP [4]byte
 
 // Peer holds peer information stores in the database
 type Peer struct {
-	IP       string // TODO make this net.IP
+	IP       PeerIP
 	Port     uint16
 	Complete bool
 	LastSeen int64

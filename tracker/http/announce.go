@@ -4,7 +4,6 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/Syc0x00/Trakx/bencoding"
@@ -28,31 +27,20 @@ func (a *announce) SetPeer(postIP, port, event, left string) bool {
 	var err error
 
 	if shared.Env == shared.Dev && postIP != "" {
-		a.peer.IP = postIP
-	} else {
-		a.peer.IP, _, err = net.SplitHostPort(a.req.RemoteAddr)
-		if err != nil {
-			clientError("Invalid IP address, how the fuck does this happen?", a.writer)
-			shared.Logger.Error("net.SplitHostPort failed", zap.Error(err))
+		if parsedIP := net.ParseIP(postIP); parsedIP == nil {
+			clientError("Invalid provided IP", a.writer)
 			return false
+		} else {
+			copy(a.peer.IP[:], parsedIP)
 		}
-	}
-	if strings.Contains(a.peer.IP, ":") {
-		clientError("IPv6 unsupported", a.writer, zap.String("ip", a.peer.IP))
-		return false
+	} else {
+		tmpIP, _, _ := net.SplitHostPort(a.req.RemoteAddr)
+		copy(a.peer.IP[:], net.ParseIP(tmpIP))
 	}
 
-	if port == "" {
-		clientError("Invalid port", a.writer)
-		return false
-	}
 	portInt, err := strconv.Atoi(port)
-	if err != nil {
-		clientError("Invalid port", a.writer, zap.String("port", port))
-		return false
-	}
-	if portInt > 65535 || portInt < 1 {
-		clientError("Invalid port", a.writer, zap.Int("port", portInt))
+	if err != nil || (portInt > 65535 || portInt < 1) {
+		clientError("Invalid port", a.writer, zap.String("port", port), zap.Int("port", portInt))
 		return false
 	}
 

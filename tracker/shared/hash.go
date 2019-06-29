@@ -4,10 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
-	"net"
 
 	"github.com/Syc0x00/Trakx/bencoding"
-	"github.com/Syc0x00/Trakx/utils"
 )
 
 // Hash is the infohash of a torrent
@@ -64,7 +62,7 @@ func (h *Hash) PeerListBytes(num int64) []byte {
 			break
 		}
 
-		binary.Write(writer, binary.BigEndian, utils.IPToInt(net.ParseIP(peer.IP)))
+		binary.Write(writer, binary.BigEndian, peer.IP)
 		binary.Write(writer, binary.BigEndian, peer.Port)
 		num--
 	}

@@ -7,7 +7,7 @@ var (
 	ExpvarClienterrs int64
 	ExpvarSeeds      map[[40]byte]bool
 	ExpvarLeeches    map[[40]byte]bool
-	ExpvarIPs        map[string]int8
+	ExpvarIPs        map[PeerIP]int8
 )
 
 func expvarKey(hash, id [20]byte) (result [40]byte) {
@@ -18,9 +18,9 @@ func expvarKey(hash, id [20]byte) (result [40]byte) {
 
 func initExpvar() {
 	// Might as well alloc capcity at start
-	ExpvarSeeds = make(map[[40]byte]bool, 50000)
-	ExpvarLeeches = make(map[[40]byte]bool, 50000)
-	ExpvarIPs = make(map[string]int8, 30000)
+	ExpvarSeeds = make(map[[40]byte]bool, 80000)
+	ExpvarLeeches = make(map[[40]byte]bool, 80000)
+	ExpvarIPs = make(map[PeerIP]int8, 50000)
 
 	if PeerDB == nil {
 		panic("peerDB not init before expvars")
