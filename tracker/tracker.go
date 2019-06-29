@@ -35,7 +35,7 @@ func Run(prod, udpTracker, httpTracker bool) {
 	} else {
 		dict := bencoding.NewDict()
 		dict.Add("failure reason", "Not a tracker")
-		dict.Add("retry in", "3600") // 1 hour
+		dict.Add("retry in", "7200") // 2 hours
 		resp := []byte(dict.Get())
 
 		notTracker := func(w http.ResponseWriter, r *http.Request) {
