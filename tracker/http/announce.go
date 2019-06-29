@@ -25,18 +25,20 @@ type announce struct {
 
 func (a *announce) SetPeer(postIP, port, event, left string) bool {
 	var err error
+	var parsedIP net.IP
 
 	if shared.Env == shared.Dev && postIP != "" {
-		if parsedIP := net.ParseIP(postIP); parsedIP == nil {
-			clientError("Invalid provided IP", a.writer)
-			return false
-		} else {
-			copy(a.peer.IP[:], parsedIP)
-		}
+		parsedIP = net.ParseIP(postIP).To4()
 	} else {
-		tmpIP, _, _ := net.SplitHostPort(a.req.RemoteAddr)
-		copy(a.peer.IP[:], net.ParseIP(tmpIP))
+		ipStr, _, _ := net.SplitHostPort(a.req.RemoteAddr)
+		parsedIP = net.ParseIP(ipStr).To4()
 	}
+
+	if parsedIP == nil {
+		clientError("ipv6 unsupported", a.writer)
+		return false
+	}
+	copy(a.peer.IP[:], parsedIP)
 
 	portInt, err := strconv.Atoi(port)
 	if err != nil || (portInt > 65535 || portInt < 1) {

@@ -74,7 +74,12 @@ func (ar *AnnounceResp) Marshall() ([]byte, error) {
 
 func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 	shared.ExpvarAnnounces++
+	ip := remote.IP.To4()
 
+	if ip == nil {
+		u.conn.WriteToUDP(newClientError("ipv6 unsupported", announce.TransactionID), remote)
+		return
+	}
 	if len(announce.InfoHash) != 20 {
 		u.conn.WriteToUDP(newClientError("invalid infohash", announce.TransactionID), remote)
 		return
@@ -83,16 +88,12 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 		u.conn.WriteToUDP(newClientError("invalid port", announce.TransactionID), remote)
 		return
 	}
-	if len(remote.IP) == 16 {
-		u.conn.WriteToUDP(newClientError("ipv6 unsupported", announce.TransactionID), remote)
-		return
-	}
 
 	peer := shared.Peer{
 		Port:     announce.Port,
 		LastSeen: time.Now().Unix(),
 	}
-	copy(peer.IP[:], remote.IP)
+	copy(peer.IP[:], ip)
 
 	if announce.Event == completed || announce.Left == 0 {
 		peer.Complete = true
