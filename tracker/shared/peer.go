@@ -52,7 +52,7 @@ func (p *Peer) Save(h Hash, id PeerID) {
 		if p.Complete {
 			ExpvarSeeds++
 		} else {
-			ExpvarLeeches--
+			ExpvarLeeches++
 		}
 	}
 

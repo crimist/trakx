@@ -21,7 +21,6 @@ func initExpvar() {
 	for _, peermap := range PeerDB {
 		for _, peer := range peermap {
 			ExpvarIPs[peer.IP]++
-
 			if peer.Complete == true {
 				ExpvarSeeds++
 			} else {
