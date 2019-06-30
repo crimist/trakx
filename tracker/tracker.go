@@ -34,7 +34,7 @@ func Run(prod, udpTracker, httpTracker bool) {
 		trackerMux.HandleFunc("/announce", httptracker.AnnounceHandle)
 	} else {
 		dict := bencoding.NewDict()
-		dict.Add("failure reason", "Not a tracker")
+		dict.Add("failure reason", "PLEASE REMOVE THIS TRACKER")
 		dict.Add("retry in", "86400") // 24 hours
 		resp := []byte(dict.Get())
 
