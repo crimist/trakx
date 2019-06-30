@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+	"net"
 
 	"github.com/Syc0x00/Trakx/bencoding"
 )
@@ -27,23 +28,26 @@ func (h *Hash) Complete() (complete, incomplete int32) {
 }
 
 // PeerList returns the peerlist bencoded
-func (h *Hash) PeerList(num int64, noPeerID bool) []string {
-	peerList := make([]string, num)
+func (h *Hash) PeerList(num int, noPeerID bool) []string {
 	peerMap, _ := PeerDB[*h]
+	if num > len(peerMap) {
+		num = len(peerMap)
+	}
+	peerList := make([]string, num)
 
-	var i int64
+	i := 0
 	for id, peer := range peerMap {
 		if i == num {
 			break
 		}
 		dict := bencoding.NewDict()
 		if noPeerID == false {
-			dict.Add("peer id", id)
+			dict.Add("peer id", string(id[:]))
 		}
-		dict.Add("ip", peer.IP)
+		dict.Add("ip", net.IP(peer.IP[:]).String())
 		dict.Add("port", peer.Port)
 
-		peerList = append(peerList, dict.Get())
+		peerList[i] = dict.Get()
 		i++
 	}
 
@@ -51,11 +55,14 @@ func (h *Hash) PeerList(num int64, noPeerID bool) []string {
 }
 
 // PeerListBytes returns the peer list byte encoded
-func (h *Hash) PeerListBytes(num int64) []byte {
-	var peerList bytes.Buffer
-	peerList.Grow(6 * int(num))
-	writer := bufio.NewWriter(&peerList)
+func (h *Hash) PeerListBytes(num int) []byte {
 	peerMap, _ := PeerDB[*h]
+	if num > len(peerMap) {
+		num = len(peerMap)
+	}
+	var peerList bytes.Buffer
+	writer := bufio.NewWriter(&peerList)
+	peerList.Grow(6 * int(num))
 
 	for _, peer := range peerMap {
 		if num == 0 {

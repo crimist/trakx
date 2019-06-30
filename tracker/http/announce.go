@@ -16,7 +16,7 @@ type announce struct {
 	peerid   shared.PeerID
 	compact  bool
 	noPeerID bool
-	numwant  int64
+	numwant  int
 	peer     shared.Peer
 
 	writer http.ResponseWriter
@@ -92,7 +92,7 @@ func (a *announce) SetNumwant(numwant string) bool {
 			return false
 		}
 		if numwantInt < shared.MaxNumwant {
-			a.numwant = numwantInt
+			a.numwant = int(numwantInt)
 		}
 	}
 	return true
@@ -147,7 +147,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// Add peer list
 	if a.compact == true {
-		peerList := a.infohash.PeerListBytes(a.numwant)
+		peerList := string(a.infohash.PeerListBytes(a.numwant))
 		d.Add("peers", peerList)
 	} else {
 		peerList := a.infohash.PeerList(a.numwant, a.noPeerID)

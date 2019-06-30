@@ -1,13 +1,12 @@
 package tracker_test
 
 import (
-	"fmt"
+	"bytes"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-torrent/bencode"
 )
 
@@ -30,101 +29,110 @@ func randStr(n int) string {
 	return string(b)
 }
 
-func reqFast(infoHash, ip, event, left, peerID, key, port string, compact bool) error {
+func TestAnnounce(t *testing.T) {
 	req, err := http.NewRequest("GET", "http://127.0.0.1:1337/announce", nil)
 	if err != nil {
-		return err
+		t.Error(err)
 	}
 
 	q := req.URL.Query()
-	q.Add("info_hash", infoHash)
-	q.Add("ip", ip)
-	q.Add("event", event)
-	q.Add("left", left)
-	q.Add("peer_id", peerID)
-	q.Add("key", key)
-	q.Add("port", port)
-	if compact {
-		q.Add("compact", "1")
-	}
+	q.Add("info_hash", "TestAnnounce12345678")
+	q.Add("ip", "123.123.123.123")
+	q.Add("event", "started")
+	q.Add("left", "1000")
+	q.Add("downloaded", "0")
+	q.Add("peer_id", "QB123456789012345678")
+	q.Add("key", "useless")
+	q.Add("port", "1234")
 	req.URL.RawQuery = q.Encode()
 
-	_, err = client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Request(infoHash, ip, event, left, peerID, key, port string, compact bool) error {
-	// Make the request
-	req, err := http.NewRequest("GET", "http://127.0.0.1:1337/announce", nil)
-	if err != nil {
-		return err
-	}
-	q := req.URL.Query()
-	q.Add("info_hash", infoHash)
-	q.Add("ip", ip)
-	q.Add("event", event)
-	q.Add("left", left)
-	q.Add("peer_id", peerID)
-	q.Add("key", key)
-	q.Add("port", port)
-	if compact {
-		q.Add("compact", "1")
-	}
-	req.URL.RawQuery = q.Encode()
-
-	// Send it
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		t.Error(err)
 	}
 
 	// Parse it
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		t.Error(err)
 	}
-
+	resp.Body.Close()
 	var decoded map[string]interface{}
-	bencode.Unmarshal(body, &decoded)
-	fmt.Println("--------------------------------------")
-	spew.Dump(peerID, body, decoded, resp.StatusCode)
-
-	switch v := decoded["peers"].(type) {
-	case string:
-		spew.Dump([]byte(v))
-	default:
+	if err = bencode.Unmarshal(body, &decoded); err != nil {
+		t.Error(err)
 	}
 
-	return nil
+	if _, ok := decoded["failure reason"]; ok {
+		t.Error("Tracker error:", decoded["failure reason"])
+	}
+
+	if decoded["complete"] != 0 {
+		t.Error("Num complete should be 0 got", decoded["complete"])
+	}
+	if decoded["incomplete"] != 1 {
+		t.Error("Num incomplete should be 1 got", decoded["incomplete"])
+	}
+	var peer map[string]interface{}
+	if err = bencode.Unmarshal([]byte(decoded["peers"].(bencode.List)[0].(string)), &peer); err != nil {
+		t.Error(err)
+	}
+	if peer["peer id"] != "QB123456789012345678" {
+		t.Error("PeerID should be QB123456789012345678 got", peer["peer id"])
+	}
+	if peer["ip"] != "123.123.123.123" {
+		t.Error("ip should be 123.123.123.123 got", peer["ip"])
+	}
+	if peer["port"] != 1234 {
+		t.Error("port should be 1234 got", peer["port"])
+	}
 }
 
-func TestApp(t *testing.T) {
-	// Make peers
-	Request("ABCDEFGHIJKLMNOPQRST", "1.1.1.1", "started", "100", "PEER1_______________", "peer1", "8000", false)
-	Request("ABCDEFGHIJKLMNOPQRST", "2.2.2.2", "started", "100", "PEER2_______________", "peer2", "8000", false)
-	Request("ASD12313121231313233", "1.1.1.1", "started", "200", "PEER1_______________", "peer1", "8000", false)
-	Request("ASD12313154545454233", "1.1.1.1", "started", "300", "PEER1_______________", "peer1", "8000", false)
+func TestAnnounceCompact(t *testing.T) {
+	req, err := http.NewRequest("GET", "http://127.0.0.1:1337/announce", nil)
+	if err != nil {
+		t.Error(err)
+	}
 
-	// Update peers
-	Request("ABCDEFGHIJKLMNOPQRST", "11.11.11.11", "started", "50", "PEER1_______________", "peer1", "8888", false)
+	q := req.URL.Query()
+	q.Add("info_hash", "TestAnnounceCompact1")
+	q.Add("ip", "123.123.123.123")
+	q.Add("event", "started")
+	q.Add("left", "1000")
+	q.Add("downloaded", "0")
+	q.Add("peer_id", "QB123456789012345678")
+	q.Add("key", "useless")
+	q.Add("port", "1234")
+	q.Add("compact", "1")
+	req.URL.RawQuery = q.Encode()
 
-	// Complete peers
-	Request("ABCDEFGHIJKLMNOPQRST", "11.11.11.11", "started", "0", "PEER1_______________", "peer1", "8888", false)
-	Request("ABCDEFGHIJKLMNOPQRST", "192.168.1.11", "completed", "0", "PEER2_______________", "peer2", "8080", false)
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Error(err)
+	}
 
-	// Compact responses
-	Request("ABCDEFGHIJKLMNOPQRST", "192.168.1.3", "started", "0", "PEER3_______________", "peer3", "8080", true)
+	// Parse it
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Error(err)
+	}
+	resp.Body.Close()
+	var decoded map[string]interface{}
+	if err = bencode.Unmarshal(body, &decoded); err != nil {
+		t.Error(err)
+	}
 
-	// Should fail; ipv6
-	Request("ABCDEFGHIJKLMNOPQRST", "::1", "started", "100", "PEER4_______________", "peer4", "8080", false)
+	if _, ok := decoded["failure reason"]; ok {
+		t.Error("Tracker error:", decoded["failure reason"])
+	}
 
-	// Delete peer
-	Request("ABCDEFGHIJKLMNOPQRST", "2.2.2.2", "stopped", "0", "PEER2_______________", "wrong_key", "8000", false)
-
-	return
+	peerBytes := []byte(decoded["peers"].(string))
+	if len(peerBytes) != 6 {
+		t.Error("len(peers) should be 6 got", len(peerBytes))
+	}
+	if bytes.Compare(peerBytes[0:4], []byte{0x7B, 0x7B, 0x7B, 0x7B}) != 0 {
+		t.Error("ip should be [7B, 7B, 7B, 7B] got", peerBytes[4:6])
+	}
+	if bytes.Compare(peerBytes[4:6], []byte{0x04, 0xD2}) != 0 {
+		t.Error("port should be [4, 210] got", peerBytes[4:6])
+	}
 }
