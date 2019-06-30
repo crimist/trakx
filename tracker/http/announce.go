@@ -132,6 +132,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	if event == "stopped" {
 		a.peer.Delete(a.infohash, a.peerid)
 		w.Write([]byte(shared.Bye))
+		shared.ExpvarAnnouncesOK++
 		return
 	}
 
