@@ -5,7 +5,6 @@ import (
 	_ "net/http/pprof"
 	"time"
 
-	"github.com/Syc0x00/Trakx/bencoding"
 	httptracker "github.com/Syc0x00/Trakx/tracker/http"
 	"github.com/Syc0x00/Trakx/tracker/shared"
 	udptracker "github.com/Syc0x00/Trakx/tracker/udp"
@@ -33,16 +32,9 @@ func Run(prod, udpTracker, httpTracker bool) {
 		trackerMux.HandleFunc("/scrape", httptracker.ScrapeHandle)
 		trackerMux.HandleFunc("/announce", httptracker.AnnounceHandle)
 	} else {
-		dict := bencoding.NewDict()
-		dict.Add("failure reason", "PLEASE REMOVE THIS TRACKER")
-		resp := []byte(dict.Get())
-
-		notTracker := func(w http.ResponseWriter, r *http.Request) {
-			w.Write(resp)
-		}
-
-		trackerMux.HandleFunc("/scrape", notTracker)
-		trackerMux.HandleFunc("/announce", notTracker)
+		emptyHandler := func(w http.ResponseWriter, r *http.Request) {}
+		trackerMux.HandleFunc("/scrape", emptyHandler)
+		trackerMux.HandleFunc("/announce", emptyHandler)
 	}
 
 	server := http.Server{
