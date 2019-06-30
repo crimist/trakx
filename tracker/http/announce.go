@@ -131,8 +131,8 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	// If the peer stopped delete() them and exit
 	if event == "stopped" {
 		a.peer.Delete(a.infohash, a.peerid)
-		w.Write([]byte(shared.Bye))
 		shared.ExpvarAnnouncesOK++
+		w.Write([]byte(shared.Bye))
 		return
 	}
 
@@ -155,6 +155,6 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 		d.Add("peers", peerList)
 	}
 
-	w.Write([]byte(d.Get()))
 	shared.ExpvarAnnouncesOK++
+	w.Write([]byte(d.Get()))
 }

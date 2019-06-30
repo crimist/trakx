@@ -38,8 +38,9 @@ func (db UDPConnDB) Check(id int64, addr [4]byte) (ok bool) {
 
 func (db *UDPConnDB) Trim() {
 	trimmed := 0
+	now := time.Now().Unix()
 	for key, cID := range connDB {
-		if time.Now().Unix()-cID.cached > (2 * 60) { // older than 2min gets deleted
+		if now-cID.cached > 120 { // older than 2min gets deleted
 			delete(connDB, key)
 			trimmed++
 		}

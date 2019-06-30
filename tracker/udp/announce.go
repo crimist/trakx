@@ -104,8 +104,8 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 
 	if announce.Event == stopped {
 		peer.Delete(announce.InfoHash, announce.PeerID)
-		u.conn.WriteToUDP([]byte(shared.Bye), remote)
 		shared.ExpvarAnnouncesOK++
+		u.conn.WriteToUDP([]byte(shared.Bye), remote)
 		return
 	}
 
@@ -127,7 +127,7 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 		return
 	}
 
-	u.conn.WriteToUDP(respBytes, remote)
 	shared.ExpvarAnnouncesOK++
+	u.conn.WriteToUDP(respBytes, remote)
 	return
 }
