@@ -36,19 +36,18 @@ func Expvar() {
 		seeds.Set(shared.ExpvarSeeds)
 		leeches.Set(shared.ExpvarLeeches)
 		announcesSec.Set(shared.ExpvarAnnounces)
+		shared.ExpvarAnnounces = 0
 		announcesSecOK.Set(shared.ExpvarAnnouncesOK)
+		shared.ExpvarAnnouncesOK = 0
 		scrapesSec.Set(shared.ExpvarScrapes)
+		shared.ExpvarScrapes = 0
 		scrapesSecOK.Set(shared.ExpvarScrapesOK)
+		shared.ExpvarScrapesOK = 0
 		clineterrs.Set(shared.ExpvarClienterrs)
+		shared.ExpvarClienterrs = 0
 		errors.Set(shared.ExpvarErrs)
 		errorsSec.Set(shared.ExpvarErrs - errsOld)
 		errsOld = shared.ExpvarErrs
-
-		shared.ExpvarAnnounces = 0
-		shared.ExpvarAnnouncesOK = 0
-		shared.ExpvarClienterrs = 0
-		shared.ExpvarScrapes = 0
-		shared.ExpvarScrapesOK = 0
 
 		nextTime = nextTime.Add(time.Second)
 		time.Sleep(time.Until(nextTime))
