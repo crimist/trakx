@@ -41,7 +41,7 @@ func (cr *ConnectResp) Marshall() ([]byte, error) {
 func (u *UDPTracker) Connect(connect *Connect, remote *net.UDPAddr) {
 	id := rand.Int63()
 	var addr [4]byte
-	copy(addr[:], remote.IP)
+	copy(addr[:], remote.IP.To4())
 
 	connDB.Add(id, addr)
 

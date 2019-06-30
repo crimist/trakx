@@ -46,5 +46,5 @@ func (db *UDPConnDB) Trim() {
 		}
 	}
 
-	shared.Logger.Info("Trim UDPConnDB", zap.Int("trimmed", trimmed))
+	shared.Logger.Info("Trim UDPConnDB", zap.Int("trimmed", trimmed), zap.Int("left", len(connDB)))
 }
