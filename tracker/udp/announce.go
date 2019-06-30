@@ -127,5 +127,6 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 	}
 
 	u.conn.WriteToUDP(respBytes, remote)
+	shared.ExpvarAnnouncesOK++
 	return
 }

@@ -18,10 +18,12 @@ func Expvar() {
 	seeds := expvar.NewInt("tracker.db.seeds")
 	leeches := expvar.NewInt("tracker.db.leeches")
 	announcesSec := expvar.NewInt("tracker.performance.announces.sec")
+	announcesSecOK := expvar.NewInt("tracker.performance.announces.sec.ok")
 	errors := expvar.NewInt("tracker.performance.errors")
 	errorsSec := expvar.NewInt("tracker.performance.errors.sec")
 	clineterrs := expvar.NewInt("tracker.performance.clienterrs")
 	scrapesSec := expvar.NewInt("tracker.performance.scrapes.sec")
+	scrapesSecOK := expvar.NewInt("tracker.performance.scrapes.sec.ok")
 
 	go http.ListenAndServe("127.0.0.1:"+shared.ExpvarPort, nil) // only on localhost
 
@@ -31,22 +33,22 @@ func Expvar() {
 		uniqueIP.Set(int64(len(shared.ExpvarIPs)))
 		uniqueHash.Set(int64(len(shared.PeerDB)))
 		uniquePeer.Set(shared.ExpvarSeeds + shared.ExpvarLeeches)
-
 		seeds.Set(shared.ExpvarSeeds)
 		leeches.Set(shared.ExpvarLeeches)
-
 		announcesSec.Set(shared.ExpvarAnnounces)
-		shared.ExpvarAnnounces = 0
-
+		announcesSecOK.Set(shared.ExpvarAnnouncesOK)
+		scrapesSec.Set(shared.ExpvarScrapes)
+		scrapesSecOK.Set(shared.ExpvarScrapesOK)
+		clineterrs.Set(shared.ExpvarClienterrs)
 		errors.Set(shared.ExpvarErrs)
 		errorsSec.Set(shared.ExpvarErrs - errsOld)
 		errsOld = shared.ExpvarErrs
 
-		clineterrs.Set(shared.ExpvarClienterrs)
+		shared.ExpvarAnnounces = 0
+		shared.ExpvarAnnouncesOK = 0
 		shared.ExpvarClienterrs = 0
-
-		scrapesSec.Set(shared.ExpvarScrapes)
 		shared.ExpvarScrapes = 0
+		shared.ExpvarScrapesOK = 0
 
 		nextTime = nextTime.Add(time.Second)
 		time.Sleep(time.Until(nextTime))

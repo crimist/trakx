@@ -42,4 +42,5 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte(dict.Get()))
+	shared.ExpvarScrapesOK++
 }

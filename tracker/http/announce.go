@@ -155,4 +155,5 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte(d.Get()))
+	shared.ExpvarAnnouncesOK++
 }

@@ -85,5 +85,6 @@ func (u *UDPTracker) Scrape(scrape *Scrape, remote *net.UDPAddr) {
 	}
 
 	u.conn.WriteToUDP(respBytes, remote)
+	shared.ExpvarScrapesOK++
 	return
 }

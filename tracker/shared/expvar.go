@@ -1,13 +1,15 @@
 package shared
 
 var (
-	ExpvarAnnounces  int64
-	ExpvarScrapes    int64
-	ExpvarErrs       int64
-	ExpvarClienterrs int64
-	ExpvarSeeds      int64
-	ExpvarLeeches    int64
-	ExpvarIPs        map[PeerIP]int8
+	ExpvarAnnounces   int64
+	ExpvarAnnouncesOK int64
+	ExpvarScrapes     int64
+	ExpvarScrapesOK   int64
+	ExpvarErrs        int64
+	ExpvarClienterrs  int64
+	ExpvarSeeds       int64
+	ExpvarLeeches     int64
+	ExpvarIPs         map[PeerIP]int8
 )
 
 func initExpvar() {
