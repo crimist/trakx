@@ -3,7 +3,6 @@ package tracker_test
 import (
 	"bytes"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"testing"
 
@@ -11,23 +10,6 @@ import (
 )
 
 var client = &http.Client{}
-
-const (
-	letterBytes   = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()-_=+[{]}\\|\":;<,>.?'/~`"
-	letterIdxBits = 6                    // 6 bits to represent a letter index
-	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
-)
-
-func randStr(n int) string {
-	b := make([]byte, n)
-	for i := 0; i < n; {
-		if idx := int(rand.Int63() & letterIdxMask); idx < len(letterBytes) {
-			b[i] = letterBytes[idx]
-			i++
-		}
-	}
-	return string(b)
-}
 
 func TestAnnounce(t *testing.T) {
 	req, err := http.NewRequest("GET", "http://127.0.0.1:1337/announce", nil)
