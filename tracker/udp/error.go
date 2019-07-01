@@ -36,6 +36,9 @@ func newClientError(msg string, TransactionID int32) []byte {
 		TransactionID: TransactionID,
 		ErrorString:   []byte(msg),
 	}
+	if shared.Env == shared.Dev {
+		shared.Logger.Info("Client Err", zap.String("msg", msg))
+	}
 
 	data, err := e.Marshall()
 	if err != nil {
