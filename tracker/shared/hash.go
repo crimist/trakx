@@ -62,7 +62,7 @@ func (h *Hash) PeerListBytes(num int) []byte {
 	}
 	var peerList bytes.Buffer
 	writer := bufio.NewWriter(&peerList)
-	peerList.Grow(6 * int(num))
+	peerList.Grow(6 * num)
 
 	for _, peer := range peerMap {
 		if num == 0 {

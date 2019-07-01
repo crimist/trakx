@@ -20,8 +20,8 @@ const (
 	WriteDBInterval          = 5 * time.Minute
 	PeerDBFilename           = "trakx.db"
 	PeerDBTempFilename       = "trakx.db.tmp"
-	DefaultNumwant           = 50
-	MaxNumwant               = 200
+	DefaultNumwant           = 75
+	MaxNumwant               = 400
 	Bye                      = "See you space cowboy..."
 )
 

@@ -98,7 +98,7 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr) {
 	if announce.Event == completed || announce.Left == 0 {
 		peer.Complete = true
 	}
-	if announce.NumWant == -1 || announce.NumWant > shared.MaxNumwant {
+	if announce.NumWant < 1 || announce.NumWant > shared.MaxNumwant {
 		announce.NumWant = shared.DefaultNumwant
 	}
 
