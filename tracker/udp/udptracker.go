@@ -63,18 +63,8 @@ func (u *UDPTracker) Process(len int, remote *net.UDPAddr, data []byte) {
 	}
 
 	if ok := connDB.Check(connect.ConnectionID, addr); ok == false {
-		shared.ExpvarClienterrs++
-		e := Error{
-			Action:        3,
-			TransactionID: connect.TransactionID,
-			ErrorString:   []byte("bad connid"),
-		}
-		respBytes, err := e.Marshall()
-		if err != nil {
-			u.conn.WriteToUDP(newServerError("Error.Marshall()", err, connect.TransactionID), remote)
-			return
-		}
-		u.conn.WriteToUDP(respBytes, remote)
+		u.conn.WriteToUDP(newClientError("bad connid", connect.TransactionID), remote)
+		return
 	}
 
 	switch connect.Action {
