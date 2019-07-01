@@ -1,6 +1,6 @@
 # Trakx
 
-Bittorrent tracker written in go.
+Efficient bittorrent tracker written in go.
 
 ## Netdata Setup
 
@@ -21,14 +21,6 @@ pprof -http=nibba.trade:7331 /root/pprof/...
 
 ## Resources
 
-* [Basic spec](https://wiki.theory.org/index.php/BitTorrentSpecification) - Protocol
-* [Zap](https://godoc.org/go.uber.org/zap) - Logging
+* [HTTP spec](https://wiki.theory.org/index.php/BitTorrentSpecification)
+* [UDP spec](https://www.libtorrent.org/udp_tracker_protocol.html)
 * [Sysctl tuning](https://wiki.mikejung.biz/Sysctl_tweaks)
-
-## Todo
-
-* Consider BEPs
-  * IPv6 http://www.bittorrent.org/beps/bep_0007.html
-  * External Address http://www.bittorrent.org/beps/bep_0024.html
-  * Failure retry timer http://www.bittorrent.org/beps/bep_0031.html
-
