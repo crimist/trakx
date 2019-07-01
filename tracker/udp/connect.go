@@ -38,11 +38,8 @@ func (cr *ConnectResp) Marshall() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (u *UDPTracker) Connect(connect *Connect, remote *net.UDPAddr) {
+func (u *UDPTracker) Connect(connect *Connect, remote *net.UDPAddr, addr [4]byte) {
 	id := rand.Int63()
-	var addr [4]byte
-	copy(addr[:], remote.IP.To4())
-
 	connDB.Add(id, addr)
 
 	resp := ConnectResp{
@@ -58,6 +55,5 @@ func (u *UDPTracker) Connect(connect *Connect, remote *net.UDPAddr) {
 	}
 
 	u.conn.WriteToUDP(respBytes, remote)
-
 	return
 }

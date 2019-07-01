@@ -54,7 +54,7 @@ func (u *UDPTracker) Scrape(scrape *Scrape, remote *net.UDPAddr) {
 	shared.ExpvarScrapes++
 
 	if len(scrape.InfoHash) > 74 {
-		u.conn.WriteToUDP(newClientError("too many hashes", scrape.Base.TransactionID), remote)
+		u.conn.WriteToUDP(newClientError("74 hashes max", scrape.Base.TransactionID), remote)
 		return
 	}
 
@@ -65,7 +65,7 @@ func (u *UDPTracker) Scrape(scrape *Scrape, remote *net.UDPAddr) {
 
 	for _, hash := range scrape.InfoHash {
 		if len(hash) != 20 {
-			u.conn.WriteToUDP(newClientError("invalid hash", scrape.Base.TransactionID), remote)
+			u.conn.WriteToUDP(newClientError("bad hash", scrape.Base.TransactionID), remote)
 			return
 		}
 

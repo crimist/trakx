@@ -50,7 +50,7 @@ func newServerError(msg string, err error, TransactionID int32) []byte {
 	e := Error{
 		Action:        3,
 		TransactionID: TransactionID,
-		ErrorString:   []byte("internal server error"),
+		ErrorString:   []byte("internal err"),
 	}
 	shared.Logger.Error(msg, zap.Error(err))
 

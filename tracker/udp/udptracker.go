@@ -27,7 +27,7 @@ func (u *UDPTracker) Listen() {
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 	connDB = make(UDPConnDB)
 
-	u.conn, err = net.ListenUDP("udp", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: shared.UDPPort, Zone: ""})
+	u.conn, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: shared.UDPPort, Zone: ""})
 	if err != nil {
 		panic(err)
 	}
@@ -45,27 +45,36 @@ func (u *UDPTracker) Listen() {
 }
 
 func (u *UDPTracker) Process(len int, remote *net.UDPAddr, data []byte) {
-	// connectReader := bytes.NewReader(data[0:7])
 	connect := Connect{}
-	// binary.Read(connectReader, binary.BigEndian, &connect)
 	connect.Unmarshall(data)
+	var addr [4]byte
+	ip := remote.IP.To4()
+	copy(addr[:], ip)
 
-	// Connecting
-	if connect.ConnectionID == 0x41727101980 && connect.Action == 0 {
-		u.Connect(&connect, remote)
+	if ip == nil {
+		u.conn.WriteToUDP(newClientError("how did you use ipv6???", connect.TransactionID), remote)
 		return
 	}
 
-	var addr [4]byte
-	copy(addr[:], remote.IP)
+	// Connecting
+	if connect.ConnectionID == 0x41727101980 && connect.Action == 0 {
+		u.Connect(&connect, remote, addr)
+		return
+	}
 
-	if ok := connDB.Check(connect.ConnectionID, addr); !ok {
+	if ok := connDB.Check(connect.ConnectionID, addr); ok == false {
+		shared.ExpvarClienterrs++
 		e := Error{
 			Action:        3,
 			TransactionID: connect.TransactionID,
-			ErrorString:   []byte("Invalid ConnectionID"),
+			ErrorString:   []byte("bad connid"),
 		}
-		e.Marshall()
+		respBytes, err := e.Marshall()
+		if err != nil {
+			u.conn.WriteToUDP(newServerError("Error.Marshall()", err, connect.TransactionID), remote)
+			return
+		}
+		u.conn.WriteToUDP(respBytes, remote)
 	}
 
 	switch connect.Action {
@@ -75,7 +84,7 @@ func (u *UDPTracker) Process(len int, remote *net.UDPAddr, data []byte) {
 			u.conn.WriteToUDP(newServerError("announce.Unmarshall()", err, connect.TransactionID), remote)
 			return
 		}
-		u.Announce(&announce, remote)
+		u.Announce(&announce, remote, addr)
 
 	case 2:
 		scrape := Scrape{}
@@ -84,5 +93,7 @@ func (u *UDPTracker) Process(len int, remote *net.UDPAddr, data []byte) {
 			return
 		}
 		u.Scrape(&scrape, remote)
+	default:
+		u.conn.WriteToUDP(newClientError("bad action", connect.TransactionID), remote)
 	}
 }
