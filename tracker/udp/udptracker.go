@@ -33,7 +33,7 @@ func (u *UDPTracker) Listen() {
 	}
 	defer u.conn.Close()
 
-	buf := make([]byte, 1500)
+	buf := make([]byte, 1496)
 	for {
 		len, remote, err := u.conn.ReadFromUDP(buf)
 		if err != nil {
