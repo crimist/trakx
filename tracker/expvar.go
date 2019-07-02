@@ -12,18 +12,23 @@ import (
 func Expvar() {
 	var errsOld int64
 
-	uniqueIP := expvar.NewInt("tracker.db.ips")
-	uniqueHash := expvar.NewInt("tracker.db.hashes")
-	uniquePeer := expvar.NewInt("tracker.db.peers")
-	seeds := expvar.NewInt("tracker.db.seeds")
-	leeches := expvar.NewInt("tracker.db.leeches")
-	announcesSec := expvar.NewInt("tracker.performance.announces.sec")
-	announcesSecOK := expvar.NewInt("tracker.performance.announces.sec.ok")
+	// Stats
+	uniqueIP := expvar.NewInt("tracker.stats.ips")
+	uniqueHash := expvar.NewInt("tracker.stats.hashes")
+	uniquePeer := expvar.NewInt("tracker.stats.peers")
+	seeds := expvar.NewInt("tracker.stats.seeds")
+	leeches := expvar.NewInt("tracker.stats.leeches")
+
+	// Performance
+	announcesSec := expvar.NewInt("tracker.performance.announces")
+	announcesSecOK := expvar.NewInt("tracker.performance.announcesok")
 	errors := expvar.NewInt("tracker.performance.errors")
-	errorsSec := expvar.NewInt("tracker.performance.errors.sec")
+	errorsSec := expvar.NewInt("tracker.performance.errorssec")
 	clineterrs := expvar.NewInt("tracker.performance.clienterrs")
-	scrapesSec := expvar.NewInt("tracker.performance.scrapes.sec")
-	scrapesSecOK := expvar.NewInt("tracker.performance.scrapes.sec.ok")
+	scrapesSec := expvar.NewInt("tracker.performance.scrapes")
+	scrapesSecOK := expvar.NewInt("tracker.performance.scrapesok")
+	connects := expvar.NewInt("tracker.performance.connects")
+	connectsOK := expvar.NewInt("tracker.performance.connectsok")
 
 	go http.ListenAndServe("127.0.0.1:"+shared.ExpvarPort, nil) // only on localhost
 
@@ -48,6 +53,10 @@ func Expvar() {
 		errors.Set(shared.ExpvarErrs)
 		errorsSec.Set(shared.ExpvarErrs - errsOld)
 		errsOld = shared.ExpvarErrs
+		connects.Set(shared.ExpvarConnects)
+		shared.ExpvarConnects = 0
+		connectsOK.Set(shared.ExpvarConnectsOK)
+		shared.ExpvarConnectsOK = 0
 
 		nextTime = nextTime.Add(time.Second)
 		time.Sleep(time.Until(nextTime))

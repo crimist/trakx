@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"math/rand"
 	"net"
+
+	"github.com/Syc0x00/Trakx/tracker/shared"
 )
 
 type Connect struct {
@@ -39,6 +41,7 @@ func (cr *ConnectResp) Marshall() ([]byte, error) {
 }
 
 func (u *UDPTracker) Connect(connect *Connect, remote *net.UDPAddr, addr [4]byte) {
+	shared.ExpvarConnects++
 	id := rand.Int63()
 	connDB.Add(id, addr)
 
@@ -54,6 +57,7 @@ func (u *UDPTracker) Connect(connect *Connect, remote *net.UDPAddr, addr [4]byte
 		return
 	}
 
+	shared.ExpvarConnectsOK++
 	u.conn.WriteToUDP(respBytes, remote)
 	return
 }

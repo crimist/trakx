@@ -1,6 +1,8 @@
 package shared
 
 var (
+	ExpvarConnects    int64
+	ExpvarConnectsOK  int64
 	ExpvarAnnounces   int64
 	ExpvarAnnouncesOK int64
 	ExpvarScrapes     int64

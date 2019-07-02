@@ -56,7 +56,6 @@ func (u *UDPTracker) Process(len int, remote *net.UDPAddr, data []byte) {
 		return
 	}
 
-	// Connecting
 	if connect.Action == 0 { // connect.ConnectionID == 0x41727101980
 		u.Connect(&connect, remote, addr)
 		return
