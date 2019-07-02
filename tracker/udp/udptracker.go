@@ -61,7 +61,7 @@ func (u *UDPTracker) Process(len int, remote *net.UDPAddr, data []byte) {
 		return
 	}
 
-	if ok := connDB.Check(connect.ConnectionID, addr); ok == false {
+	if ok := connDB.Check(connect.ConnectionID, addr); !ok {
 		u.conn.WriteToUDP(newClientError("bad connid", connect.TransactionID), remote)
 		return
 	}

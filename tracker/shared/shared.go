@@ -14,8 +14,8 @@ const (
 	HTTPPort                 = "1337"
 	UDPPort                  = 1337
 	ExpvarPort               = "1338"
-	AnnounceInterval         = 30 * 60                // 30 min
-	CleanTimeout       int64 = AnnounceInterval + 120 // 32 min
+	AnnounceInterval         = 20 * 60                // 20 min
+	CleanTimeout       int64 = AnnounceInterval + 120 // 22 min
 	CleanInterval            = 3 * time.Minute
 	WriteDBInterval          = 5 * time.Minute
 	PeerDBFilename           = "trakx.db"
