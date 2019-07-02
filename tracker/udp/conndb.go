@@ -40,7 +40,7 @@ func (db *UDPConnDB) Trim() {
 	trimmed := 0
 	now := time.Now().Unix()
 	for key, cID := range connDB {
-		if now-cID.cached > 7200 { // older than 2h gets deleted
+		if now-cID.cached > 120 { // 2min according to BEP 15
 			delete(connDB, key)
 			trimmed++
 		}

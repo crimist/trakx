@@ -28,7 +28,7 @@ func (e *Error) Marshall() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func newClientError(msg string, TransactionID int32) []byte {
+func newClientError(msg string, TransactionID int32, fields ...zap.Field) []byte {
 	shared.ExpvarClienterrs++
 
 	e := Error{
@@ -37,7 +37,8 @@ func newClientError(msg string, TransactionID int32) []byte {
 		ErrorString:   []byte(msg),
 	}
 	if shared.Env == shared.Dev {
-		shared.Logger.Info("Client Err", zap.String("msg", msg))
+		fields = append(fields, zap.String("msg", msg))
+		shared.Logger.Info("Client Err", fields...)
 	}
 
 	data, err := e.Marshall()

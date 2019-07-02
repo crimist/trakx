@@ -52,12 +52,12 @@ func (u *UDPTracker) Process(len int, remote *net.UDPAddr, data []byte) {
 	copy(addr[:], ip)
 
 	if ip == nil {
-		u.conn.WriteToUDP(newClientError("how did you use ipv6???", connect.TransactionID), remote)
+		u.conn.WriteToUDP(newClientError("how did you use ipv6???", connect.TransactionID, zap.ByteString("ip", remote.IP)), remote)
 		return
 	}
 
 	// Connecting
-	if connect.ConnectionID == 0x41727101980 && connect.Action == 0 {
+	if connect.Action == 0 { // connect.ConnectionID == 0x41727101980
 		u.Connect(&connect, remote, addr)
 		return
 	}
@@ -84,6 +84,6 @@ func (u *UDPTracker) Process(len int, remote *net.UDPAddr, data []byte) {
 		}
 		u.Scrape(&scrape, remote)
 	default:
-		u.conn.WriteToUDP(newClientError("bad action", connect.TransactionID), remote)
+		u.conn.WriteToUDP(newClientError("bad action", connect.TransactionID, zap.Int32("action", connect.Action)), remote)
 	}
 }
