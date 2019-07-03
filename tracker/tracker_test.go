@@ -8,12 +8,15 @@ import (
 	"net"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/Syc0x00/Trakx/utils"
 	"github.com/go-torrent/bencode"
 )
 
-var client = &http.Client{}
+var client = &http.Client{
+	Timeout: 2 * time.Second,
+}
 
 func TestAnnounceHTTP(t *testing.T) {
 	req, err := http.NewRequest("GET", "http://127.0.0.1:1337/announce", nil)
