@@ -17,14 +17,15 @@ type udpTracker struct {
 // Run runs the UDP tracker
 func Run(trimInterval time.Duration) {
 	u := udpTracker{}
-	u.listen()
+	connDB = make(udpConnDB)
+	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
+
 	go shared.RunOn(trimInterval, connDB.trim)
+	u.listen()
 }
 
 func (u *udpTracker) listen() {
 	var err error
-	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
-	connDB = make(udpConnDB)
 
 	u.conn, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: shared.UDPPort, Zone: ""})
 	if err != nil {
