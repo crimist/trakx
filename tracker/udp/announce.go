@@ -18,7 +18,7 @@ const (
 	stopped   event = 3
 )
 
-type Announce struct {
+type announce struct {
 	ConnectionID  int64
 	Action        int32
 	TransactionID int32
@@ -35,12 +35,12 @@ type Announce struct {
 	Extensions    uint16
 }
 
-func (a *Announce) Unmarshall(data []byte) error {
+func (a *announce) unmarshall(data []byte) error {
 	reader := bytes.NewReader(data)
 	return binary.Read(reader, binary.BigEndian, a)
 }
 
-type AnnounceResp struct {
+type announceResp struct {
 	Action        int32
 	TransactionID int32
 	Interval      int32
@@ -49,7 +49,7 @@ type AnnounceResp struct {
 	Peers         []byte
 }
 
-func (ar *AnnounceResp) Marshall() ([]byte, error) {
+func (ar *announceResp) marshall() ([]byte, error) {
 	buff := new(bytes.Buffer)
 	if err := binary.Write(buff, binary.BigEndian, ar.Action); err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (ar *AnnounceResp) Marshall() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr, addr [4]byte) {
+func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]byte) {
 	shared.ExpvarAnnounces++
 
 	if announce.Port == 0 {
@@ -104,7 +104,7 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr, addr [4]b
 
 	complete, incomplete := announce.InfoHash.Complete()
 
-	resp := AnnounceResp{
+	resp := announceResp{
 		Action:        1,
 		TransactionID: announce.TransactionID,
 		Interval:      shared.AnnounceInterval,
@@ -112,7 +112,7 @@ func (u *UDPTracker) Announce(announce *Announce, remote *net.UDPAddr, addr [4]b
 		Seeders:       complete,
 		Peers:         announce.InfoHash.PeerListBytes(int(announce.NumWant)),
 	}
-	respBytes, err := resp.Marshall()
+	respBytes, err := resp.marshall()
 	if err != nil {
 		u.conn.WriteToUDP(newServerError("AnnounceResp.Marshall()", err, announce.TransactionID), remote)
 		return

@@ -9,23 +9,22 @@ import (
 	"go.uber.org/zap"
 )
 
-// https://www.libtorrent.org/udp_tracker_protocol.html
-
-type UDPTracker struct {
+type udpTracker struct {
 	conn    *net.UDPConn
 	avgResp time.Time
 }
 
-func (u *UDPTracker) Trimmer() {
-	for c := time.Tick(1 * time.Minute); ; <-c {
-		connDB.Trim()
-	}
+// Run runs the UDP tracker
+func Run(trimInterval time.Duration) {
+	u := udpTracker{}
+	u.listen()
+	go shared.RunOn(trimInterval, connDB.trim)
 }
 
-func (u *UDPTracker) Listen() {
+func (u *udpTracker) listen() {
 	var err error
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
-	connDB = make(UDPConnDB)
+	connDB = make(udpConnDB)
 
 	u.conn, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: shared.UDPPort, Zone: ""})
 	if err != nil {
@@ -40,49 +39,49 @@ func (u *UDPTracker) Listen() {
 			shared.Logger.Error("ReadFromUDP()", zap.Error(err))
 			continue
 		}
-		go u.Process(len, remote, buf)
+		go u.process(len, remote, buf)
 	}
 }
 
-func (u *UDPTracker) Process(len int, remote *net.UDPAddr, data []byte) {
-	connect := Connect{}
-	connect.Unmarshall(data)
+func (u *udpTracker) process(len int, remote *net.UDPAddr, data []byte) {
+	base := connect{}
+	base.unmarshall(data)
 	var addr [4]byte
 	ip := remote.IP.To4()
 	copy(addr[:], ip)
 
 	if ip == nil {
-		u.conn.WriteToUDP(newClientError("how did you use ipv6???", connect.TransactionID, zap.ByteString("ip", remote.IP)), remote)
+		u.conn.WriteToUDP(newClientError("how did you use ipv6???", base.TransactionID, zap.ByteString("ip", remote.IP)), remote)
 		return
 	}
 
-	if connect.Action == 0 { // connect.ConnectionID == 0x41727101980
-		u.Connect(&connect, remote, addr)
+	if base.Action == 0 { // connect.ConnectionID == 0x41727101980
+		u.connect(&base, remote, addr)
 		return
 	}
 
-	if ok := connDB.Check(connect.ConnectionID, addr); !ok {
-		u.conn.WriteToUDP(newClientError("bad connid", connect.TransactionID), remote)
+	if ok := connDB.check(base.ConnectionID, addr); !ok {
+		u.conn.WriteToUDP(newClientError("bad connid", base.TransactionID), remote)
 		return
 	}
 
-	switch connect.Action {
+	switch base.Action {
 	case 1:
-		announce := Announce{}
-		if err := announce.Unmarshall(data); err != nil {
-			u.conn.WriteToUDP(newServerError("announce.Unmarshall()", err, connect.TransactionID), remote)
+		announce := announce{}
+		if err := announce.unmarshall(data); err != nil {
+			u.conn.WriteToUDP(newServerError("announce.Unmarshall()", err, base.TransactionID), remote)
 			return
 		}
-		u.Announce(&announce, remote, addr)
+		u.announce(&announce, remote, addr)
 
 	case 2:
-		scrape := Scrape{}
-		if err := scrape.Unmarshall(data); err != nil {
-			u.conn.WriteToUDP(newServerError("scrape.Unmarshall()", err, connect.TransactionID), remote)
+		scrape := scrape{}
+		if err := scrape.unmarshall(data); err != nil {
+			u.conn.WriteToUDP(newServerError("scrape.Unmarshall()", err, base.TransactionID), remote)
 			return
 		}
-		u.Scrape(&scrape, remote)
+		u.scrape(&scrape, remote)
 	default:
-		u.conn.WriteToUDP(newClientError("bad action", connect.TransactionID, zap.Int32("action", connect.Action)), remote)
+		u.conn.WriteToUDP(newClientError("bad action", base.TransactionID, zap.Int32("action", base.Action)), remote)
 	}
 }

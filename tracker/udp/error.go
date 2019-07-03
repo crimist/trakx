@@ -8,13 +8,13 @@ import (
 	"go.uber.org/zap"
 )
 
-type Error struct {
+type udperror struct {
 	Action        int32
 	TransactionID int32
 	ErrorString   []uint8
 }
 
-func (e *Error) Marshall() ([]byte, error) {
+func (e *udperror) marshall() ([]byte, error) {
 	buff := new(bytes.Buffer)
 	if err := binary.Write(buff, binary.BigEndian, e.Action); err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func (e *Error) Marshall() ([]byte, error) {
 func newClientError(msg string, TransactionID int32, fields ...zap.Field) []byte {
 	shared.ExpvarClienterrs++
 
-	e := Error{
+	e := udperror{
 		Action:        3,
 		TransactionID: TransactionID,
 		ErrorString:   []byte(msg),
@@ -41,7 +41,7 @@ func newClientError(msg string, TransactionID int32, fields ...zap.Field) []byte
 		shared.Logger.Info("Client Err", fields...)
 	}
 
-	data, err := e.Marshall()
+	data, err := e.marshall()
 	if err != nil {
 		shared.Logger.Error("e.Marshall()", zap.Error(err))
 	}
@@ -51,14 +51,14 @@ func newClientError(msg string, TransactionID int32, fields ...zap.Field) []byte
 func newServerError(msg string, err error, TransactionID int32) []byte {
 	shared.ExpvarErrs++
 
-	e := Error{
+	e := udperror{
 		Action:        3,
 		TransactionID: TransactionID,
 		ErrorString:   []byte("internal err"),
 	}
 	shared.Logger.Error(msg, zap.Error(err))
 
-	data, err := e.Marshall()
+	data, err := e.marshall()
 	if err != nil {
 		shared.Logger.Error("e.Marshall()", zap.Error(err))
 	}

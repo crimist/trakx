@@ -9,24 +9,24 @@ import (
 	"github.com/Syc0x00/Trakx/tracker/shared"
 )
 
-type Connect struct {
+type connect struct {
 	ConnectionID  int64
 	Action        int32
 	TransactionID int32
 }
 
-func (c *Connect) Unmarshall(data []byte) error {
+func (c *connect) unmarshall(data []byte) error {
 	reader := bytes.NewReader(data)
 	return binary.Read(reader, binary.BigEndian, c)
 }
 
-type ConnectResp struct {
+type connectResp struct {
 	Action        int32
 	TransactionID int32
 	ConnectionID  int64
 }
 
-func (cr *ConnectResp) Marshall() ([]byte, error) {
+func (cr *connectResp) marshall() ([]byte, error) {
 	buff := new(bytes.Buffer)
 	if err := binary.Write(buff, binary.BigEndian, cr.Action); err != nil {
 		return nil, err
@@ -40,18 +40,18 @@ func (cr *ConnectResp) Marshall() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (u *UDPTracker) Connect(connect *Connect, remote *net.UDPAddr, addr [4]byte) {
+func (u *udpTracker) connect(connect *connect, remote *net.UDPAddr, addr [4]byte) {
 	shared.ExpvarConnects++
 	id := rand.Int63()
-	connDB.Add(id, addr)
+	connDB.add(id, addr)
 
-	resp := ConnectResp{
+	resp := connectResp{
 		Action:        0,
 		TransactionID: connect.TransactionID,
 		ConnectionID:  id,
 	}
 
-	respBytes, err := resp.Marshall()
+	respBytes, err := resp.marshall()
 	if err != nil {
 		u.conn.WriteToUDP(newServerError("ConnectResp.Marshall()", err, connect.TransactionID), remote)
 		return

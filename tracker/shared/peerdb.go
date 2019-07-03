@@ -110,8 +110,24 @@ func (d *PeerDatabase) Load() {
 	Logger.Info("Loaded database", zap.String("type", loaded), zap.Int("hashes", len(PeerDB)))
 }
 
-// Write dumps the database to a file
-func (d *PeerDatabase) Write(istemp bool) {
+// WriteTmp dumps the database to the tmp file
+func (d *PeerDatabase) WriteTmp() {
+	buff := new(bytes.Buffer)
+	encoder := gob.NewEncoder(buff)
+
+	if err := encoder.Encode(&PeerDB); err != nil {
+		Logger.Error("db gob encoder", zap.Error(err))
+	}
+
+	if err := ioutil.WriteFile(PeerDBTempFilename, buff.Bytes(), 0644); err != nil {
+		Logger.Error("db writefile", zap.Error(err))
+	}
+
+	Logger.Info("Wrote temp database", zap.Int("hashes", len(PeerDB)))
+}
+
+// WriteFull dumps the database to the db file
+func (d *PeerDatabase) WriteFull() {
 	buff := new(bytes.Buffer)
 	encoder := gob.NewEncoder(buff)
 
@@ -121,13 +137,9 @@ func (d *PeerDatabase) Write(istemp bool) {
 		Logger.Error("db gob encoder", zap.Error(err))
 	}
 
-	filename := PeerDBFilename
-	if istemp {
-		filename = PeerDBTempFilename
-	}
-	if err := ioutil.WriteFile(filename, buff.Bytes(), 0644); err != nil {
+	if err := ioutil.WriteFile(PeerDBFilename, buff.Bytes(), 0644); err != nil {
 		Logger.Error("db writefile", zap.Error(err))
 	}
 
-	Logger.Info("Wrote database", zap.String("file", filename), zap.Int("hashes", len(PeerDB)))
+	Logger.Info("Wrote full database", zap.Int("hashes", len(PeerDB)))
 }

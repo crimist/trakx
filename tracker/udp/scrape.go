@@ -8,12 +8,12 @@ import (
 	"github.com/Syc0x00/Trakx/tracker/shared"
 )
 
-type Scrape struct {
-	Base     Connect
+type scrape struct {
+	Base     connect
 	InfoHash []shared.Hash
 }
 
-func (s *Scrape) Unmarshall(data []byte) error {
+func (s *scrape) unmarshall(data []byte) error {
 	baseReader := bytes.NewReader(data[:16])
 	if err := binary.Read(baseReader, binary.BigEndian, &s.Base); err != nil {
 		return err
@@ -30,13 +30,13 @@ type scrapeInfo struct {
 	Incomplete int32
 }
 
-type ScrapeResp struct {
+type scrapeResp struct {
 	Action        int32
 	TransactionID int32
 	Info          []scrapeInfo
 }
 
-func (sr *ScrapeResp) Marshall() ([]byte, error) {
+func (sr *scrapeResp) marshall() ([]byte, error) {
 	buff := new(bytes.Buffer)
 	if err := binary.Write(buff, binary.BigEndian, sr.Action); err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func (sr *ScrapeResp) Marshall() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (u *UDPTracker) Scrape(scrape *Scrape, remote *net.UDPAddr) {
+func (u *udpTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
 	shared.ExpvarScrapes++
 
 	if len(scrape.InfoHash) > 74 {
@@ -58,7 +58,7 @@ func (u *UDPTracker) Scrape(scrape *Scrape, remote *net.UDPAddr) {
 		return
 	}
 
-	resp := ScrapeResp{
+	resp := scrapeResp{
 		Action:        2,
 		TransactionID: scrape.Base.TransactionID,
 	}
@@ -78,7 +78,7 @@ func (u *UDPTracker) Scrape(scrape *Scrape, remote *net.UDPAddr) {
 		resp.Info = append(resp.Info, info)
 	}
 
-	respBytes, err := resp.Marshall()
+	respBytes, err := resp.marshall()
 	if err != nil {
 		u.conn.WriteToUDP(newServerError("ScrapeResp.Marshall()", err, scrape.Base.TransactionID), remote)
 		return

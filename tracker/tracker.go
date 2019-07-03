@@ -55,10 +55,8 @@ func Run(prod, udpTracker, httpTracker bool) {
 	// UDP tracker
 	if udpTracker {
 		shared.Logger.Info("udp tracker on")
-		udp := udptracker.UDPTracker{}
-		go udp.Trimmer()
-		go udp.Listen()
+		udptracker.Run(shared.UDPTrimInterval)
 	}
 
-	select {}
+	select {} // block forever
 }

@@ -7,16 +7,16 @@ import (
 	"go.uber.org/zap"
 )
 
+var connDB udpConnDB
+
 type connID struct {
 	ID     int64
 	cached int64
 }
 
-type UDPConnDB map[[4]byte]connID
+type udpConnDB map[[4]byte]connID
 
-var connDB UDPConnDB
-
-func (db UDPConnDB) Add(id int64, addr [4]byte) {
+func (db udpConnDB) add(id int64, addr [4]byte) {
 	if shared.Env == shared.Dev {
 		shared.Logger.Info("Add UDPConnDB",
 			zap.Int64("ID", id),
@@ -29,7 +29,7 @@ func (db UDPConnDB) Add(id int64, addr [4]byte) {
 	}
 }
 
-func (db UDPConnDB) Check(id int64, addr [4]byte) (ok bool) {
+func (db udpConnDB) check(id int64, addr [4]byte) (ok bool) {
 	if id == db[addr].ID {
 		ok = true
 	}
@@ -38,7 +38,7 @@ func (db UDPConnDB) Check(id int64, addr [4]byte) (ok bool) {
 
 // Spec says to only cache connIDs for 2min but realistically the chances of it being abused for ddos
 // is insanely low so I'll accept them for up to 6 hours
-func (db *UDPConnDB) Trim() {
+func (db *udpConnDB) trim() {
 	trimmed := 0
 	now := time.Now().Unix()
 	for key, cID := range connDB {
