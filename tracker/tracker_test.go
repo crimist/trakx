@@ -277,7 +277,7 @@ func TestAnnounceUDP(t *testing.T) {
 	if cr.Action == 3 {
 		e := Error{}
 		e.Unmarshall(packet, s)
-		t.Error("Tracker err:", e.ErrorString)
+		t.Error("Tracker err:", string(e.ErrorString))
 	}
 
 	if cr.TransactionID != c.TransactionID {
@@ -318,7 +318,7 @@ func TestAnnounceUDP(t *testing.T) {
 	if ar.X.Action == 3 {
 		e := Error{}
 		e.Unmarshall(packet, s)
-		t.Error("Tracker err:", e.ErrorString)
+		t.Error("Tracker err:", string(e.ErrorString))
 		return
 	}
 

@@ -16,8 +16,7 @@ type connect struct {
 }
 
 func (c *connect) unmarshall(data []byte) error {
-	reader := bytes.NewReader(data)
-	return binary.Read(reader, binary.BigEndian, c)
+	return binary.Read(bytes.NewReader(data), binary.BigEndian, c)
 }
 
 type connectResp struct {
@@ -27,17 +26,9 @@ type connectResp struct {
 }
 
 func (cr *connectResp) marshall() ([]byte, error) {
-	buff := new(bytes.Buffer)
-	if err := binary.Write(buff, binary.BigEndian, cr.Action); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buff, binary.BigEndian, cr.TransactionID); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buff, binary.BigEndian, cr.ConnectionID); err != nil {
-		return nil, err
-	}
-	return buff.Bytes(), nil
+	var buff bytes.Buffer
+	err := binary.Write(&buff, binary.BigEndian, cr)
+	return buff.Bytes(), err
 }
 
 func (u *udpTracker) connect(connect *connect, remote *net.UDPAddr, addr [4]byte) {

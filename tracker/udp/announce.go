@@ -36,8 +36,7 @@ type announce struct {
 }
 
 func (a *announce) unmarshall(data []byte) error {
-	reader := bytes.NewReader(data)
-	return binary.Read(reader, binary.BigEndian, a)
+	return binary.Read(bytes.NewReader(data), binary.BigEndian, a)
 }
 
 type announceResp struct {
