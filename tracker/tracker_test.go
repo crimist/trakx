@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"testing"
 	"time"
+	"math/rand"
 
 	"github.com/Syc0x00/Trakx/utils"
 	"github.com/go-torrent/bencode"
@@ -489,5 +490,49 @@ func TestUDPBadPort(t *testing.T) {
 
 	if bytes.Compare(e.ErrorString, []byte("bad port")) != 0 {
 		t.Error("Tracker err should be 'bad port' but got:", string(e.ErrorString))
+	}
+}
+
+func TestUDPTransactionID(t *testing.T) {
+	packet := make([]byte, 0xFF)
+	addr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:1337")
+	if err != nil {
+		t.Error(err)
+	}
+	conn, err := net.DialUDP("udp", nil, addr)
+	if err != nil {
+		t.Error(err)
+	}
+
+	rand.Seed(time.Now().Unix())
+
+	for i := 0; i < 1000; i++ {
+		tID := rand.Int31()
+		c := Connect{
+			ConnectionID:  0x41727101980,
+			Action:        0,
+			TransactionID: tID,
+		}
+	
+		if _, err = conn.Write(c.Marshall()); err != nil {
+			t.Error(err)
+		}
+		size, err := conn.Read(packet)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if size != 16 {
+			e := Error{}
+			e.Unmarshall(packet, size)
+			t.Error("Tracker err:", string(e.ErrorString))
+		}
+	
+		cr := ConnectResp{}
+		cr.Unmarshall(packet)
+
+		if cr.TransactionID != tID {
+			t.Error("Tracker err: tid should be", tID, "but got", cr.TransactionID)
+		}
 	}
 }

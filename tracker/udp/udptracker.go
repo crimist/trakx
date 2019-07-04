@@ -33,20 +33,19 @@ func (u *udpTracker) listen() {
 	}
 	defer u.conn.Close()
 
-	buf := make([]byte, 1496)
+	buff := make([]byte, 1496)
 	for {
-		len, remote, err := u.conn.ReadFromUDP(buf)
+		len, remote, err := u.conn.ReadFromUDP(buff)
 		if err != nil {
 			shared.Logger.Error("ReadFromUDP()", zap.Error(err))
 			continue
 		}
-		go u.process(len, remote, buf)
+		go u.process(len, buff, remote)
 	}
 }
 
-func (u *udpTracker) process(len int, remote *net.UDPAddr, data []byte) {
+func (u *udpTracker) process(len int, data []byte, remote *net.UDPAddr) {
 	base := connect{}
-	base.unmarshall(data)
 	var addr [4]byte
 	ip := remote.IP.To4()
 	copy(addr[:], ip)
@@ -54,6 +53,10 @@ func (u *udpTracker) process(len int, remote *net.UDPAddr, data []byte) {
 	if ip == nil {
 		u.conn.WriteToUDP(newClientError("how did you use ipv6???", base.TransactionID, zap.ByteString("ip", remote.IP)), remote)
 		return
+	}
+	
+	err := base.unmarshall(data); if err != nil {
+		u.conn.WriteToUDP(newServerError("base.unmarshall()", err, base.TransactionID), remote)
 	}
 
 	if base.Action == 0 { // connect.ConnectionID == 0x41727101980
@@ -70,7 +73,7 @@ func (u *udpTracker) process(len int, remote *net.UDPAddr, data []byte) {
 	case 1:
 		announce := announce{}
 		if err := announce.unmarshall(data); err != nil {
-			u.conn.WriteToUDP(newServerError("announce.Unmarshall()", err, base.TransactionID), remote)
+			u.conn.WriteToUDP(newServerError("announce.unmarshall()", err, base.TransactionID), remote)
 			return
 		}
 		u.announce(&announce, remote, addr)
@@ -78,7 +81,7 @@ func (u *udpTracker) process(len int, remote *net.UDPAddr, data []byte) {
 	case 2:
 		scrape := scrape{}
 		if err := scrape.unmarshall(data); err != nil {
-			u.conn.WriteToUDP(newServerError("scrape.Unmarshall()", err, base.TransactionID), remote)
+			u.conn.WriteToUDP(newServerError("scrape.unmarshall()", err, base.TransactionID), remote)
 			return
 		}
 		u.scrape(&scrape, remote)
