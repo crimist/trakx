@@ -82,7 +82,7 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 	}
 
 	if dbID, ok := connDB.check(base.ConnectionID, addr); !ok {
-		u.conn.WriteToUDP(newClientError("Connection ID missmatch.", base.TransactionID, zap.Int64("dbID", dbID)), remote)
+		u.conn.WriteToUDP(newClientError("Connection ID missmatch.", base.TransactionID, zap.Int64("dbID", dbID), zap.Int64("clientID", base.ConnectionID)), remote)
 		return
 	}
 
