@@ -32,7 +32,7 @@ type announce struct {
 	Key           uint32
 	NumWant       int32
 	Port          uint16
-	Extensions    uint16
+	// Extensions    uint16
 }
 
 func (a *announce) unmarshall(data []byte) error {
