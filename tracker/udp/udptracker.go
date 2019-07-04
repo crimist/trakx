@@ -40,26 +40,27 @@ func (u *udpTracker) listen() {
 	}
 
 	for {
-		buff := pool.Get().([]byte)
-		len, remote, err := u.conn.ReadFromUDP(buff)
+		b := pool.Get().([]byte)
+		len, remote, err := u.conn.ReadFromUDP(b)
 		if err != nil {
 			shared.Logger.Error("ReadFromUDP()", zap.Error(err))
+			pool.Put(b)
 			continue
 		}
 		go func() {
-			u.process(len, buff, remote)
+			u.process(b[:len], remote)
 
 			// optimized zero
-			buff = buff[:cap(buff)]
-			for i := range buff {
-				buff[i] = 0
+			b = b[:cap(b)]
+			for i := range b {
+				b[i] = 0
 			}
-			pool.Put(buff)
+			pool.Put(b)
 		}()
 	}
 }
 
-func (u *udpTracker) process(len int, data []byte, remote *net.UDPAddr) {
+func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 	base := connect{}
 	var addr [4]byte
 	ip := remote.IP.To4()
