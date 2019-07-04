@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"net"
 	"time"
+	"sync"
 
 	"github.com/Syc0x00/Trakx/tracker/shared"
 	"go.uber.org/zap"
@@ -33,14 +34,28 @@ func (u *udpTracker) listen() {
 	}
 	defer u.conn.Close()
 
-	buff := make([]byte, 1496)
+	var pool sync.Pool
+	pool.New = func() interface{} {
+		return make([]byte, 2048, 2048)
+	}
+
 	for {
+		buff := pool.Get().([]byte)
 		len, remote, err := u.conn.ReadFromUDP(buff)
 		if err != nil {
 			shared.Logger.Error("ReadFromUDP()", zap.Error(err))
 			continue
 		}
-		go u.process(len, buff, remote)
+		go func() {
+			u.process(len, buff, remote)
+
+			// optimized zero
+			buff = buff[:cap(buff)]
+			for i := range buff {
+				buff[i] = 0
+			}
+			pool.Put(buff)
+		}()
 	}
 }
 
