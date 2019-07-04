@@ -3,8 +3,8 @@ package udp
 import (
 	"math/rand"
 	"net"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/Syc0x00/Trakx/tracker/shared"
 	"go.uber.org/zap"
@@ -36,7 +36,7 @@ func (u *udpTracker) listen() {
 
 	var pool sync.Pool
 	pool.New = func() interface{} {
-		return make([]byte, 2048, 2048)
+		return make([]byte, 1496, 1496)
 	}
 
 	for {
@@ -67,7 +67,7 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 	copy(addr[:], ip)
 
 	if ip == nil {
-		u.conn.WriteToUDP(newClientError("how did you use ipv6???", base.TransactionID, zap.ByteString("ip", remote.IP)), remote)
+		u.conn.WriteToUDP(newClientError("IPv6?", base.TransactionID, zap.String("ip", remote.IP.String())), remote)
 		return
 	}
 
@@ -82,7 +82,7 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 	}
 
 	if dbID, ok := connDB.check(base.ConnectionID, addr); !ok {
-		u.conn.WriteToUDP(newClientError("bad connid", base.TransactionID, zap.Int64("dbID", dbID), zap.Int64("clientID", base.ConnectionID), zap.Int32("action", base.Action)), remote)
+		u.conn.WriteToUDP(newClientError("bad connid", base.TransactionID, zap.Int64("dbID", dbID), zap.Int64("clientID", base.ConnectionID), zap.Int32("action", base.Action), zap.Any("addr", addr)), remote)
 		return
 	}
 
@@ -103,6 +103,6 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 		}
 		u.scrape(&scrape, remote)
 	default:
-		u.conn.WriteToUDP(newClientError("bad action", base.TransactionID, zap.Int32("action", base.Action)), remote)
+		u.conn.WriteToUDP(newClientError("bad action", base.TransactionID, zap.Int32("action", base.Action), zap.Any("addr", addr)), remote)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Syc0x00/Trakx/tracker/shared"
+	"go.uber.org/zap"
 )
 
 type event int32
@@ -75,7 +76,7 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	shared.ExpvarAnnounces++
 
 	if announce.Port == 0 {
-		u.conn.WriteToUDP(newClientError("bad port", announce.TransactionID), remote)
+		u.conn.WriteToUDP(newClientError("bad port", announce.TransactionID, zap.Any("addr", addr), zap.Uint16("port", announce.Port)), remote)
 		return
 	}
 
