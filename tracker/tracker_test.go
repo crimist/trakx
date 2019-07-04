@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"testing"
 	"time"
-	"math/rand"
 
 	"github.com/Syc0x00/Trakx/utils"
 	"github.com/go-torrent/bencode"
@@ -504,17 +503,16 @@ func TestUDPTransactionID(t *testing.T) {
 		t.Error(err)
 	}
 
-	rand.Seed(time.Now().Unix())
+	c := Connect{
+		ConnectionID:  0x41727101980,
+		Action:        0,
+		TransactionID: 0xBAD,
+	}
+	data := c.Marshall()
 
 	for i := 0; i < 1000; i++ {
-		tID := rand.Int31()
-		c := Connect{
-			ConnectionID:  0x41727101980,
-			Action:        0,
-			TransactionID: tID,
-		}
-	
-		if _, err = conn.Write(c.Marshall()); err != nil {
+
+		if _, err = conn.Write(data); err != nil {
 			t.Error(err)
 		}
 		size, err := conn.Read(packet)
@@ -527,12 +525,12 @@ func TestUDPTransactionID(t *testing.T) {
 			e.Unmarshall(packet, size)
 			t.Error(i, "Tracker err:", string(e.ErrorString))
 		}
-	
+
 		cr := ConnectResp{}
 		cr.Unmarshall(packet)
 
-		if cr.TransactionID != tID {
-			t.Error(i, "Tracker err: tid should be", tID, "but got", cr.TransactionID)
+		if cr.TransactionID != 0xBAD {
+			t.Error(i, "Tracker err: tid should be", 0xBAD, "but got", cr.TransactionID)
 		}
 	}
 }

@@ -54,12 +54,13 @@ func (u *udpTracker) process(len int, data []byte, remote *net.UDPAddr) {
 		u.conn.WriteToUDP(newClientError("how did you use ipv6???", base.TransactionID, zap.ByteString("ip", remote.IP)), remote)
 		return
 	}
-	
-	err := base.unmarshall(data); if err != nil {
+
+	err := base.unmarshall(data)
+	if err != nil {
 		u.conn.WriteToUDP(newServerError("base.unmarshall()", err, base.TransactionID), remote)
 	}
 
-	if base.Action == 0 { // connect.ConnectionID == 0x41727101980
+	if base.Action == 0 {
 		u.connect(&base, remote, addr)
 		return
 	}
