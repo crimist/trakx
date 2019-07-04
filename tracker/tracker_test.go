@@ -525,14 +525,14 @@ func TestUDPTransactionID(t *testing.T) {
 		if size != 16 {
 			e := Error{}
 			e.Unmarshall(packet, size)
-			t.Error("Tracker err:", string(e.ErrorString))
+			t.Error(i, "Tracker err:", string(e.ErrorString))
 		}
 	
 		cr := ConnectResp{}
 		cr.Unmarshall(packet)
 
 		if cr.TransactionID != tID {
-			t.Error("Tracker err: tid should be", tID, "but got", cr.TransactionID)
+			t.Error(i, "Tracker err: tid should be", tID, "but got", cr.TransactionID)
 		}
 	}
 }
