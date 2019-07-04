@@ -14,14 +14,12 @@ type scrape struct {
 }
 
 func (s *scrape) unmarshall(data []byte) error {
-	baseReader := bytes.NewReader(data[:16])
-	if err := binary.Read(baseReader, binary.BigEndian, &s.Base); err != nil {
+	if err := binary.Read(bytes.NewReader(data[:16]), binary.BigEndian, &s.Base); err != nil {
 		return err
 	}
 
 	s.InfoHash = make([]shared.Hash, (len(data)-16)/20)
-	hashReader := bytes.NewReader(data[16:])
-	return binary.Read(hashReader, binary.BigEndian, &s.InfoHash)
+	return binary.Read(bytes.NewReader(data[16:]), binary.BigEndian, &s.InfoHash)
 }
 
 type scrapeInfo struct {
@@ -44,7 +42,7 @@ func (sr *scrapeResp) marshall() ([]byte, error) {
 	if err := binary.Write(buff, binary.BigEndian, sr.TransactionID); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(buff, binary.BigEndian, sr.Info); err != nil { // might have 2 loop thru?
+	if err := binary.Write(buff, binary.BigEndian, sr.Info); err != nil {
 		return nil, err
 	}
 	return buff.Bytes(), nil

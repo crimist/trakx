@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Syc0x00/Trakx/tracker/shared"
+	"go.uber.org/zap"
 )
 
 type event int32
@@ -32,12 +33,11 @@ type announce struct {
 	Key           uint32
 	NumWant       int32
 	Port          uint16
-	Extensions    uint16
+	// Extensions    uint16
 }
 
 func (a *announce) unmarshall(data []byte) error {
-	reader := bytes.NewReader(data)
-	return binary.Read(reader, binary.BigEndian, a)
+	return binary.Read(bytes.NewReader(data), binary.BigEndian, a)
 }
 
 type announceResp struct {
@@ -76,7 +76,7 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	shared.ExpvarAnnounces++
 
 	if announce.Port == 0 {
-		u.conn.WriteToUDP(newClientError("bad port", announce.TransactionID), remote)
+		u.conn.WriteToUDP(newClientError("bad port", announce.TransactionID, zap.Any("addr", addr), zap.Uint16("port", announce.Port)), remote)
 		return
 	}
 

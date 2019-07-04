@@ -28,7 +28,7 @@ func (p *Peer) Save(h Hash, id PeerID) {
 	// Create map if it doesn't exist
 	if _, ok := PeerDB[h]; !ok {
 		if Env == Dev {
-			Logger.Info("Created hash map", zap.ByteString("hash", h[:]))
+			Logger.Info("Created hash map", zap.Any("hash", h[:]))
 		}
 		PeerDB[h] = make(map[PeerID]Peer)
 	}

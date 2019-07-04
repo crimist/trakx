@@ -19,7 +19,8 @@ type udpConnDB map[[4]byte]connID
 func (db udpConnDB) add(id int64, addr [4]byte) {
 	if shared.Env == shared.Dev {
 		shared.Logger.Info("Add UDPConnDB",
-			zap.Int64("ID", id),
+			zap.Int64("id", id),
+			zap.Any("addr", addr),
 		)
 	}
 
@@ -29,9 +30,11 @@ func (db udpConnDB) add(id int64, addr [4]byte) {
 	}
 }
 
-func (db udpConnDB) check(id int64, addr [4]byte) (ok bool) {
+func (db udpConnDB) check(id int64, addr [4]byte) (dbID int64, ok bool) {
 	if id == db[addr].ID {
 		ok = true
+	} else {
+		dbID = db[addr].ID
 	}
 	return
 }

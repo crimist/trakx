@@ -3,6 +3,7 @@ package udp
 import (
 	"math/rand"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/Syc0x00/Trakx/tracker/shared"
@@ -33,25 +34,40 @@ func (u *udpTracker) listen() {
 	}
 	defer u.conn.Close()
 
-	buff := make([]byte, 1496)
+	var pool sync.Pool
+	pool.New = func() interface{} {
+		return make([]byte, 1496, 1496)
+	}
+
 	for {
-		len, remote, err := u.conn.ReadFromUDP(buff)
+		b := pool.Get().([]byte)
+		len, remote, err := u.conn.ReadFromUDP(b)
 		if err != nil {
 			shared.Logger.Error("ReadFromUDP()", zap.Error(err))
+			pool.Put(b)
 			continue
 		}
-		go u.process(len, buff, remote)
+		go func() {
+			u.process(b[:len], remote)
+
+			// optimized zero
+			b = b[:cap(b)]
+			for i := range b {
+				b[i] = 0
+			}
+			pool.Put(b)
+		}()
 	}
 }
 
-func (u *udpTracker) process(len int, data []byte, remote *net.UDPAddr) {
+func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 	base := connect{}
 	var addr [4]byte
 	ip := remote.IP.To4()
 	copy(addr[:], ip)
 
 	if ip == nil {
-		u.conn.WriteToUDP(newClientError("how did you use ipv6???", base.TransactionID, zap.ByteString("ip", remote.IP)), remote)
+		u.conn.WriteToUDP(newClientError("IPv6?", base.TransactionID, zap.String("ip", remote.IP.String())), remote)
 		return
 	}
 
@@ -65,8 +81,8 @@ func (u *udpTracker) process(len int, data []byte, remote *net.UDPAddr) {
 		return
 	}
 
-	if ok := connDB.check(base.ConnectionID, addr); !ok {
-		u.conn.WriteToUDP(newClientError("bad connid", base.TransactionID), remote)
+	if dbID, ok := connDB.check(base.ConnectionID, addr); !ok {
+		u.conn.WriteToUDP(newClientError("bad connid", base.TransactionID, zap.Int64("dbID", dbID), zap.Int64("clientID", base.ConnectionID), zap.Int32("action", base.Action), zap.Any("addr", addr)), remote)
 		return
 	}
 
@@ -87,6 +103,6 @@ func (u *udpTracker) process(len int, data []byte, remote *net.UDPAddr) {
 		}
 		u.scrape(&scrape, remote)
 	default:
-		u.conn.WriteToUDP(newClientError("bad action", base.TransactionID, zap.Int32("action", base.Action)), remote)
+		u.conn.WriteToUDP(newClientError("bad action", base.TransactionID, zap.Int32("action", base.Action), zap.Any("addr", addr)), remote)
 	}
 }
