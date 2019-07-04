@@ -81,8 +81,8 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 		return
 	}
 
-	if ok := connDB.check(base.ConnectionID, addr); !ok {
-		u.conn.WriteToUDP(newClientError("bad connid", base.TransactionID), remote)
+	if dbID, ok := connDB.check(base.ConnectionID, addr); !ok {
+		u.conn.WriteToUDP(newClientError("bad connid", base.TransactionID, zap.Int64("dbID", dbID)), remote)
 		return
 	}
 
