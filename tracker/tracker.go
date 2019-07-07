@@ -18,6 +18,7 @@ func Run(prod, udpTracker, httpTracker bool) {
 		panic(err)
 	}
 
+	go handleSigs()
 	go Expvar()
 
 	// HTTP tracker / routes

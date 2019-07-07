@@ -18,7 +18,7 @@ type udpTracker struct {
 // Run runs the UDP tracker
 func Run(trimInterval time.Duration) {
 	u := udpTracker{}
-	connDB = make(udpConnDB)
+	loadConnDB()
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 
 	go shared.RunOn(trimInterval, connDB.trim)
@@ -81,7 +81,7 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 		return
 	}
 
-	if dbID, ok := connDB.check(base.ConnectionID, addr); !ok {
+	if dbID, ok := connDB.check(base.ConnectionID, addr); !ok && shared.UDPCheckConnID {
 		u.conn.WriteToUDP(newClientError("bad connid", base.TransactionID, zap.Int64("dbID", dbID), zap.Int64("clientID", base.ConnectionID), zap.Int32("action", base.Action), zap.Any("addr", addr)), remote)
 		return
 	}

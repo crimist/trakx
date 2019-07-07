@@ -1,6 +1,10 @@
 package udp
 
 import (
+	"bytes"
+	"encoding/gob"
+	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/Syc0x00/Trakx/tracker/shared"
@@ -16,9 +20,42 @@ type connID struct {
 
 type udpConnDB map[[4]byte]connID
 
+func WriteConnDB() {
+	buff := new(bytes.Buffer)
+	encoder := gob.NewEncoder(buff)
+
+	if err := encoder.Encode(&connDB); err != nil {
+		shared.Logger.Error("conndb gob encoder", zap.Error(err))
+	}
+
+	if err := ioutil.WriteFile(shared.ConnDBFilename, buff.Bytes(), 0644); err != nil {
+		shared.Logger.Error("conndb writefile", zap.Error(err))
+	}
+
+	shared.Logger.Info("Wrote conndb", zap.Int("entries", len(connDB)))
+}
+
+func loadConnDB() {
+	file, err := os.Open(shared.ConnDBFilename)
+	if err != nil {
+		shared.Logger.Error("conndb open", zap.Error(err))
+		connDB = make(udpConnDB)
+		return
+	}
+
+	decoder := gob.NewDecoder(file)
+	if err = decoder.Decode(&connDB); err != nil {
+		shared.Logger.Error("conndb decode", zap.Error(err))
+		connDB = make(udpConnDB)
+		return
+	}
+
+	shared.Logger.Info("Loaded conndb", zap.Int("entries", len(connDB)))
+}
+
 func (db udpConnDB) add(id int64, addr [4]byte) {
 	if shared.Env == shared.Dev {
-		shared.Logger.Info("Add UDPConnDB",
+		shared.Logger.Info("Add conndb",
 			zap.Int64("id", id),
 			zap.Any("addr", addr),
 		)
@@ -51,5 +88,5 @@ func (db *udpConnDB) trim() {
 		}
 	}
 
-	shared.Logger.Info("Trim UDPConnDB", zap.Int("trimmed", trimmed), zap.Int("left", len(connDB)))
+	shared.Logger.Info("Trim conndb", zap.Int("trimmed", trimmed), zap.Int("left", len(connDB)))
 }
