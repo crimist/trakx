@@ -42,7 +42,9 @@ func processMetrics() {
 
 	StatsHTML += "<table>"
 	for _, k := range keys {
-		StatsHTML += fmt.Sprintf(`<tr><td>%s</td><td>%d</td></tr>`, k, stats[k])
+		if count, ok := stats[k]; ok && count > 0 {
+			StatsHTML += fmt.Sprintf(`<tr><td>%s</td><td>%d</td></tr>`, k, count)
+		}
 	}
 	StatsHTML += "</table>"
 	Logger.Info("Generated metrics")
