@@ -13,8 +13,9 @@ func Init(prod bool) error {
 	PeerDB.Load()
 	initExpvar()
 
-	go RunOn(WriteDBInterval, PeerDB.WriteTmp)
-	go RunOn(CleanInterval, PeerDB.Clean)
+	go RunOn(writeDBInterval, PeerDB.WriteTmp)
+	go RunOn(cleanInterval, PeerDB.Clean)
+	go RunOn(metricsInterval, processMetrics)
 
 	return nil
 }

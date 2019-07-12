@@ -27,6 +27,7 @@ func Run(prod, udpTracker, httpTracker bool) {
 	trackerMux := http.NewServeMux()
 	trackerMux.HandleFunc("/", index)
 	trackerMux.HandleFunc("/dmca", dmca)
+	trackerMux.HandleFunc("/stats", stats)
 
 	if httpTracker {
 		shared.Logger.Info("http tracker on")
