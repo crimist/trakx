@@ -18,7 +18,7 @@ func processMetrics() {
 
 	for _, peermap := range PeerDB {
 		for peerid := range peermap {
-			if peerid[0] == '-' && peerid[7] == '-' {
+			if peerid[0] == '-' {
 				stats[getAzureus(string(peerid[1:7]))]++
 			} else {
 				stats[getShadow(string(peerid[0:6]))]++
@@ -40,6 +40,8 @@ func processMetrics() {
 	}
 	sort.Strings(keys)
 
+	StatsHTML = "<p>There will be errors in this list because some BT clients use *unique* (stupid) peerid encoding methods and I don't want to build every single edge case in</p>"
+	StatsHTML += "<p>Read https://wiki.theory.org/index.php/BitTorrentSpecification#peer_id for more info</p>"
 	StatsHTML += "<table>"
 	for _, k := range keys {
 		if count, ok := stats[k]; ok && count > 0 {
