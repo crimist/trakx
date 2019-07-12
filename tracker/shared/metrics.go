@@ -260,7 +260,9 @@ func getAzureus(azureus string) string {
 		} else if int(c) > 64 && int(c) < 72 {
 			client += fmt.Sprintf("%d.", int(c)-55)
 		} else {
-			Logger.Info("invalid version char", zap.Any("char", c))
+			if Env == Dev {
+				Logger.Info("invalid version char", zap.Any("char", c))
+			}
 		}
 	}
 
@@ -301,7 +303,9 @@ func getShadow(shadow string) string {
 		} else if int(c) > 64 && int(c) < 91 { // letter
 			client += fmt.Sprintf("%d.", int(c)-55)
 		} else {
-			Logger.Info("invalid version char", zap.Any("char", c))
+			if Env == Dev {
+				Logger.Info("invalid version char", zap.Any("char", c))
+			}
 		}
 	}
 
