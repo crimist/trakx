@@ -2,17 +2,21 @@ package shared
 
 import (
 	"fmt"
+
+	"go.uber.org/zap"
 )
 
 var StatsHTML string
 
 func processMetrics() {
+	Logger.Info("processing metrics")
+
 	stats := make(map[string]int, 300)
 
 	for _, peermap := range PeerDB {
 		for peerid := range peermap {
 			if peerid[0] == '-' && peerid[7] == '-' {
-				stats[getAzureus(string(peerid[1:6]))]++
+				stats[getAzureus(string(peerid[1:7]))]++
 			} else {
 				stats[getShadow(string(peerid[0:6]))]++
 			}
@@ -66,7 +70,7 @@ func getAzureus(azureus string) string {
 		} else if int(c) > 64 && int(c) < 72 {
 			client += fmt.Sprintf("%d.", int(c)-55)
 		} else {
-			panic("invalid version char")
+			Logger.Info("invalid version char", zap.Any("char", c))
 		}
 	}
 
@@ -107,7 +111,7 @@ func getShadow(shadow string) string {
 		} else if int(c) > 64 && int(c) < 91 { // letter
 			client += fmt.Sprintf("%d.", int(c)-55)
 		} else {
-			panic("invalid version char")
+			Logger.Info("invalid version char", zap.Any("char", c))
 		}
 	}
 
