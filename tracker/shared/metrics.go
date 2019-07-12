@@ -2,14 +2,17 @@ package shared
 
 import (
 	"fmt"
+	"sort"
 
 	"go.uber.org/zap"
 )
 
+// https://wiki.theory.org/index.php/BitTorrentSpecification#peer_id
+
 var StatsHTML string
 
 func processMetrics() {
-	Logger.Info("processing metrics")
+	Logger.Info("Processing metrics")
 
 	stats := make(map[string]int, 300)
 
@@ -30,12 +33,19 @@ func processMetrics() {
 		}
 	}
 
-	StatsHTML = ""
+	// Get keys in alpha order
+	keys := make([]string, len(stats))
+	for key := range stats {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
 	StatsHTML += "<table>"
-	for client, count := range stats {
-		StatsHTML += fmt.Sprintf(`<tr><td>%s</td><td>%d</td></tr>`, client, count)
+	for _, k := range keys {
+		StatsHTML += fmt.Sprintf(`<tr><td>%s</td><td>%d</td></tr>`, k, stats[k])
 	}
 	StatsHTML += "</table>"
+	Logger.Info("Generated metrics")
 }
 
 // get the full name of the client w/ azureus method
@@ -43,18 +53,198 @@ func getAzureus(azureus string) string {
 	var client string
 
 	switch string(azureus[0:2]) {
+	case "7T":
+		client += "aTorrent for Android"
+	case "AB":
+		client += "AnyEvent::BitTorrent"
+	case "AG":
+		client += "Ares"
+	case "A~":
+		client += "Ares"
+	case "AR":
+		client += "Arctic"
+	case "AV":
+		client += "Avicora"
+	case "AT":
+		client += "Artemis"
+	case "AX":
+		client += "BitPump"
 	case "AZ":
 		client += "Azureus"
+	case "BB":
+		client += "BitBuddy"
+	case "BC":
+		client += "BitComet"
+	case "BE":
+		client += "Baretorrent"
+	case "BF":
+		client += "Bitflu"
+	case "BG":
+		client += "BTG"
+	case "BL":
+		client += "BitCometLite (uses 6 digit version number) / BitBlinder"
+	case "BP":
+		client += "BitTorrent Pro (Azureus + spyware)"
+	case "BR":
+		client += "BitRocket"
+	case "BS":
+		client += "BTSlave"
+	case "BT":
+		client += "mainline BitTorrent (versions >= 7.9) / BBtor"
+	case "Bt":
+		client += "Bt"
+	case "BW":
+		client += "BitWombat"
+	case "BX":
+		client += "~Bittorrent X"
+	case "CD":
+		client += "Enhanced CTorrent"
+	case "CT":
+		client += "CTorrent"
 	case "DE":
 		client += "DelugeTorrent"
+	case "DP":
+		client += "Propagate Data Client"
+	case "EB":
+		client += "EBit"
+	case "ES":
+		client += "electric sheep"
+	case "FC":
+		client += "FileCroc"
+	case "FD":
+		client += "Free Download Manager (versions >= 5.1.12)"
+	case "FT":
+		client += "FoxTorrent"
+	case "FX":
+		client += "Freebox BitTorrent"
+	case "GS":
+		client += "GSTorrent"
+	case "HK":
+		client += "Hekate"
+	case "HL":
+		client += "Halite"
+	case "HM":
+		client += "hMule (uses Rasterbar libtorrent)"
+	case "HN":
+		client += "Hydranode"
+	case "IL":
+		client += "iLivid"
+	case "JS":
+		client += "Justseed.it client"
+	case "JT":
+		client += "JavaTorrent"
+	case "KG":
+		client += "KGet"
+	case "KT":
+		client += "KTorrent"
+	case "LC":
+		client += "LeechCraft"
+	case "LH":
+		client += "LH-ABC"
+	case "LP":
+		client += "Lphant"
+	case "LT":
+		client += "libtorrent"
+	case "lt":
+		client += "libTorrent"
+	case "LW":
+		client += "LimeWire"
+	case "MK":
+		client += "Meerkat"
+	case "MO":
+		client += "MonoTorrent"
+	case "MP":
+		client += "MooPolice"
+	case "MR":
+		client += "Miro"
+	case "MT":
+		client += "MoonlightTorrent"
+	case "NB":
+		client += "Net::BitTorrent"
+	case "NX":
+		client += "Net Transport"
+	case "OS":
+		client += "OneSwarm"
+	case "OT":
+		client += "OmegaTorrent"
+	case "PB":
+		client += "Protocol::BitTorrent"
+	case "PD":
+		client += "Pando"
+	case "PI":
+		client += "PicoTorrent"
+	case "PT":
+		client += "PHPTracker"
 	case "qB":
 		client += "qBittorrent"
+	case "QD":
+		client += "QQDownload"
+	case "QT":
+		client += "Qt 4 Torrent example"
+	case "RT":
+		client += "Retriever"
+	case "RZ":
+		client += "RezTorrent"
+	case "S~":
+		client += "Shareaza alpha/beta"
+	case "SB":
+		client += "~Swiftbit"
 	case "SD":
-		client += "Thunder"
+		client += "Thunder (aka XùnLéi)"
+	case "SM":
+		client += "SoMud"
+	case "SP":
+		client += "BitSpirit"
+	case "SS":
+		client += "SwarmScope"
+	case "ST":
+		client += "SymTorrent"
+	case "st":
+		client += "sharktorrent"
+	case "SZ":
+		client += "Shareaza"
+	case "TB":
+		client += "Torch"
+	case "TE":
+		client += "terasaur Seed Bank"
+	case "TL":
+		client += "Tribler (versions >= 6.1.0)"
+	case "TN":
+		client += "TorrentDotNET"
+	case "TR":
+		client += "Transmission"
+	case "TS":
+		client += "Torrentstorm"
+	case "TT":
+		client += "TuoTu"
+	case "UL":
+		client += "uLeecher!"
 	case "UM":
-		client += "uTorrent Mac"
+		client += "µTorrent for Mac"
 	case "UT":
-		client += "uTorrent"
+		client += "µTorrent"
+	case "VG":
+		client += "Vagaa"
+	case "WD":
+		client += "WebTorrent Desktop"
+	case "WT":
+		client += "BitLet"
+	case "WW":
+		client += "WebTorrent"
+	case "WY":
+		client += "FireTorrent"
+	case "XF":
+		client += "Xfplay"
+	case "XL":
+		client += "Xunlei"
+	case "XS":
+		client += "XSwifter"
+	case "XT":
+		client += "XanTorrent"
+	case "XX":
+		client += "Xtorrent"
+	case "ZT":
+		client += "ZipTorrent"
 	default:
 		client += azureus[0:2]
 	}
