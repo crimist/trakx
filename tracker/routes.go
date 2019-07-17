@@ -21,7 +21,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func dmca(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://www.youtube.com/watch?v=BwSts2s4ba4", http.StatusMovedPermanently)
+	http.Redirect(w, r, "https://www.youtube.com/watch?v=BwSts2s4ba4", http.StatusTemporaryRedirect)
 }
 
 func stats(w http.ResponseWriter, r *http.Request) {
