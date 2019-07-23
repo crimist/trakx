@@ -14,13 +14,17 @@ Restart netdata with `netdata` to run with the new config
 
 ## pprof
 
+To get a pprof profile and view it
+
 ```bash
 go tool pprof -seconds=180 http://127.0.0.1:1338/debug/pprof/profile
-pprof -http=0.0.0.0:7331 /root/pprof/...
+go tool pprof -http=0.0.0.0:7331 /root/pprof/...
 ```
+
+Go 1.11+ recommended for flamegraph support
 
 ## Resources
 
-* [HTTP spec](https://wiki.theory.org/index.php/BitTorrentSpecification)
-* [UDP spec](https://www.libtorrent.org/udp_tracker_protocol.html)
-* [Sysctl tuning](https://wiki.mikejung.biz/Sysctl_tweaks)
+* [BitTorrent HTTP spec](https://wiki.theory.org/index.php/BitTorrentSpecification)
+* [BitTorrent UDP spec](https://www.libtorrent.org/udp_tracker_protocol.html)
+* [Sysctl tuning](https://wiki.mikejung.biz/Sysctl_tweaks) primarily for TCP
