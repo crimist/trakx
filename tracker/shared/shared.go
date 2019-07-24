@@ -9,9 +9,9 @@ import (
 func Init() error {
 	UDPCheckConnID = true // TODO move to config
 
-	loadConfig()
-	setEnv(Config.Production)
-	if err := setLogger(Config.Production); err != nil {
+	LoadConfig()
+	setEnv(Config.Trakx.Prod)
+	if err := setLogger(Config.Trakx.Prod); err != nil {
 		return err
 	}
 	PeerDB.Load()
@@ -19,10 +19,10 @@ func Init() error {
 	processMetrics()
 
 	// Start threads
-	go RunOn(time.Duration(Config.DBWriteInterval)*time.Second, PeerDB.WriteTmp)
-	go RunOn(time.Duration(Config.DBCleanInterval)*time.Second, PeerDB.Clean)
-	if Config.MetricsInterval > 0 {
-		go RunOn(time.Duration(Config.MetricsInterval)*time.Second, processMetrics)
+	go RunOn(time.Duration(Config.Database.Peer.Write)*time.Second, PeerDB.WriteTmp)
+	go RunOn(time.Duration(Config.Database.Peer.Trim)*time.Second, PeerDB.Trim)
+	if Config.Tracker.MetricsInterval > 0 {
+		go RunOn(time.Duration(Config.Tracker.MetricsInterval)*time.Second, processMetrics)
 	}
 
 	return nil

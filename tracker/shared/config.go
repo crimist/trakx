@@ -8,28 +8,42 @@ import (
 )
 
 var Config struct {
-	Production       bool `yaml:"prod"`
-	HTTPPort         int    `yaml:"httpport"`
-	HTTPTracker             bool    `yaml:"http"`
-	UDPPort          int    `yaml:"udp"`
-	ExpvarPort       int    `yaml:"expvar"`
-	NumwantDefault   int32  `yaml:"numwant"`
-	NumwantMax       int32  `yaml:"maxnumwant"`
-	StoppedMsg       string `yaml:"bye"`
-	UDPTrim          int    `yaml:"udptrim"`
-	MetricsInterval  int    `yaml:"metrics"`
-	DBWriteInterval  int    `yaml:"write"`
-	DBCleanInterval  int    `yaml:"cleaninterval"`
-	DBCleanTimeout   int64  `yaml:"cleantimeout"`
-	AnnounceInterval int32  `yaml:"announce"`
+	Trakx struct {
+		Prod bool `yaml:"prod"`
+	} `yaml:"trakx"`
+
+	Tracker struct {
+		HTTP  bool `yaml:"http"`
+		Ports struct {
+			UDP    int `yaml:"udp"`
+			HTTP   int `yaml:"http"`
+			Expvar int `yaml:"expvar"`
+		} `yaml:"ports"`
+		Numwant struct {
+			Default int32 `yaml:"default"`
+			Max     int32 `yaml:"max"`
+		} `yaml:"numwant"`
+		StoppedMsg       string `yaml:"stopped"`
+		MetricsInterval  int    `yaml:"metrics"`
+		AnnounceInterval int32  `yaml:"announce"`
+	} `yaml:"tracker"`
 
 	Database struct {
-		Peer string `yaml:"peer"`
-		Conn string `yaml:"conn"`
+		Peer struct {
+			Filename string `yaml:"filename"`
+			Trim     int    `yaml:"trim"`
+			Write    int    `yaml:"write"`
+			Timeout  int64  `yaml:"timeout"`
+		} `yaml:"peer"`
+		Conn struct {
+			Filename string `yaml:"filename"`
+			Trim     int    `yaml:"trim"`
+		} `yaml:"conn"`
 	} `yaml:"database"`
 }
 
-func loadConfig() {
+// LoadConfig loads the yaml config at this projects root
+func LoadConfig() {
 	data, err := ioutil.ReadFile("trakx.yaml")
 	if err != nil {
 		Logger.Panic("Failed to load config", zap.Error(err))

@@ -83,7 +83,7 @@ func (a *announce) SetCompact(compact string) {
 }
 
 func (a *announce) SetNumwant(numwant string) bool {
-	a.numwant = int(shared.Config.NumwantDefault)
+	a.numwant = int(shared.Config.Tracker.Numwant.Default)
 
 	if numwant != "" {
 		numwantInt, err := strconv.ParseInt(numwant, 10, 64)
@@ -91,7 +91,7 @@ func (a *announce) SetNumwant(numwant string) bool {
 			clientError("Invalid numwant", a.writer, zap.String("numwant", numwant))
 			return false
 		}
-		if numwantInt < int64(shared.Config.NumwantMax) {
+		if numwantInt < int64(shared.Config.Tracker.Numwant.Max) {
 			a.numwant = int(numwantInt)
 		}
 	}
@@ -132,7 +132,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	if event == "stopped" {
 		a.peer.Delete(a.infohash, a.peerid)
 		shared.ExpvarAnnouncesOK++
-		w.Write([]byte(shared.Config.StoppedMsg))
+		w.Write([]byte(shared.Config.Tracker.StoppedMsg))
 		return
 	}
 
@@ -142,7 +142,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// Bencode response
 	d := bencoding.NewDict()
-	d.Add("interval", shared.Config.AnnounceInterval)
+	d.Add("interval", shared.Config.Tracker.AnnounceInterval)
 	d.Add("complete", complete)
 	d.Add("incomplete", incomplete)
 

@@ -12,22 +12,25 @@ import (
 
 func handleSigs() {
 	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGUSR1)
+	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGUSR1, syscall.SIGUSR2)
 
 	for {
 		sig := <-c
 
-		if sig == os.Interrupt || sig == os.Kill || sig == syscall.SIGTERM {
-			shared.Logger.Info("Exiting", zap.Any("Signal", sig))
+		switch sig {
+		case os.Interrupt, os.Kill:
+			shared.Logger.Info("Exiting")
 
 			shared.PeerDB.WriteFull()
 			udptracker.WriteConnDB()
 			os.Exit(128 + int(sig.(syscall.Signal)))
-		} else if sig == syscall.SIGUSR1 {
-			shared.Logger.Info("Toggling connID check", zap.Any("Signal", sig))
-
+		case syscall.SIGUSR1:
+			shared.Logger.Info("Toggling connID check")
 			shared.UDPCheckConnID = !shared.UDPCheckConnID
-		} else {
+		case syscall.SIGUSR2:
+			shared.Logger.Info("Reloading config (not all setting will apply until restart)")
+			shared.LoadConfig()
+		default:
 			shared.Logger.Info("Got unknown sig", zap.Any("Signal", sig))
 		}
 	}
