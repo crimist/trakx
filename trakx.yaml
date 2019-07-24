@@ -1,0 +1,37 @@
+# Trakx YAML config
+# TODO: Better config
+
+# Production mode
+prod: true 
+# HTTP port (0 = off)
+httpport: 1337
+# HTTP tracker
+http: false
+# UDP port (0 = off)
+udp: 1337
+# Expvar port (0 = off)
+expvar: 1338
+# Default numwant
+numwant: 75
+# Maximum numwant
+maxnumwant: 400
+# Message for stopped clients
+bye: "See you space cowboy..."
+# Time between peer database clean in seconds
+cleaninterval: 180
+# Time peer inactive before trimming in seconds
+cleantimeout: 2800
+# Time between udp trims in seconds
+udptrim: 300
+# Time between peer metrics update in seconds (0 = off)
+metrics: 1800
+# Time between db writes in seconds
+write: 300
+# Announce interval for clients
+announce: 1200
+
+database:
+  # Peer database filename
+  peer: "peers.db"
+  # Connection database filename
+  conn: "conn.db"

@@ -28,7 +28,7 @@ func Run(trimInterval time.Duration) {
 func (u *udpTracker) listen() {
 	var err error
 
-	u.conn, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: shared.UDPPort, Zone: ""})
+	u.conn, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: shared.Config.UDPPort, Zone: ""})
 	if err != nil {
 		panic(err)
 	}

@@ -1,8 +1,8 @@
 package tracker
 
 import (
+	"fmt"
 	"net/http"
-	_ "net/http/pprof"
 	"time"
 
 	httptracker "github.com/Syc0x00/Trakx/tracker/http"
@@ -12,14 +12,16 @@ import (
 )
 
 // Run runs the tracker
-func Run(prod, udpTracker, httpTracker bool) {
+func Run() {
 	// Init shared stuff
-	if err := shared.Init(prod); err != nil {
+	if err := shared.Init(); err != nil {
 		panic(err)
 	}
 
 	go handleSigs()
-	go Expvar()
+	if shared.Config.ExpvarPort != 0 {
+		go Expvar()
+	}
 
 	// HTTP tracker / routes
 	initRoutes()
@@ -29,7 +31,7 @@ func Run(prod, udpTracker, httpTracker bool) {
 	trackerMux.HandleFunc("/dmca", dmca)
 	trackerMux.HandleFunc("/stats", stats)
 
-	if httpTracker {
+	if shared.Config.HTTPTracker {
 		shared.Logger.Info("http tracker on")
 		trackerMux.HandleFunc("/scrape", httptracker.ScrapeHandle)
 		trackerMux.HandleFunc("/announce", httptracker.AnnounceHandle)
@@ -40,7 +42,7 @@ func Run(prod, udpTracker, httpTracker bool) {
 	}
 
 	server := http.Server{
-		Addr:         ":" + shared.HTTPPort,
+		Addr:         fmt.Sprintf(":%d", shared.Config.HTTPPort),
 		Handler:      trackerMux,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 7 * time.Second,
@@ -55,9 +57,9 @@ func Run(prod, udpTracker, httpTracker bool) {
 	}()
 
 	// UDP tracker
-	if udpTracker {
+	if shared.Config.UDPPort != 0 {
 		shared.Logger.Info("udp tracker on")
-		udptracker.Run(shared.UDPTrimInterval)
+		udptracker.Run(time.Duration(shared.Config.UDPTrim) * time.Second)
 	}
 
 	select {} // block forever

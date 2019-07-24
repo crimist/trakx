@@ -3,7 +3,9 @@ package tracker
 import (
 	"expvar"
 	"net/http"
+	_ "net/http/pprof"
 	"time"
+	"fmt"
 
 	"github.com/Syc0x00/Trakx/tracker/shared"
 )
@@ -30,7 +32,8 @@ func Expvar() {
 	connects := expvar.NewInt("tracker.performance.connects")
 	connectsOK := expvar.NewInt("tracker.performance.connectsok")
 
-	go http.ListenAndServe("127.0.0.1:"+shared.ExpvarPort, nil) // only on localhost
+	// only listen on localhost
+	go http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", shared.Config.ExpvarPort), nil)
 
 	nextTime := time.Now().Truncate(time.Second)
 

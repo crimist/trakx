@@ -89,14 +89,14 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	if announce.Event == completed || announce.Left == 0 {
 		peer.Complete = true
 	}
-	if announce.NumWant < 1 || announce.NumWant > shared.MaxNumwant {
-		announce.NumWant = shared.DefaultNumwant
+	if announce.NumWant < 1 || announce.NumWant > shared.Config.NumwantMax {
+		announce.NumWant = shared.Config.NumwantDefault
 	}
 
 	if announce.Event == stopped {
 		peer.Delete(announce.InfoHash, announce.PeerID)
 		shared.ExpvarAnnouncesOK++
-		u.conn.WriteToUDP([]byte(shared.Bye), remote)
+		u.conn.WriteToUDP([]byte(shared.Config.StoppedMsg), remote)
 		return
 	}
 
@@ -107,7 +107,7 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	resp := announceResp{
 		Action:        1,
 		TransactionID: announce.TransactionID,
-		Interval:      shared.AnnounceInterval,
+		Interval:      shared.Config.AnnounceInterval,
 		Leechers:      incomplete,
 		Seeders:       complete,
 		Peers:         announce.InfoHash.PeerListBytes(int(announce.NumWant)),

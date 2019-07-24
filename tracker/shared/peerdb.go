@@ -12,14 +12,14 @@ import (
 
 type PeerDatabase map[Hash]map[PeerID]Peer
 
-// Clean removes all peers that haven't checked in in CleanTimeout
+// Clean removes all peers that haven't checked in since timeout
 func (d *PeerDatabase) Clean() {
 	var peers, hashes int
 	now := time.Now().Unix()
 
 	for hash, peermap := range PeerDB {
 		for id, peer := range peermap {
-			if now-peer.LastSeen > CleanTimeout {
+			if now-peer.LastSeen > Config.DBCleanTimeout {
 				peer.Delete(hash, id)
 				peers++
 			}
@@ -47,7 +47,7 @@ func (d *PeerDatabase) load(filename string) error {
 func (d *PeerDatabase) Load() {
 	loadtemp := false
 
-	infoFull, err := os.Stat(peerDBFilename)
+	infoFull, err := os.Stat(Config.Database.Peer)
 	if err != nil {
 		if os.IsNotExist(err) {
 			Logger.Info("No full peerdb")
@@ -56,7 +56,7 @@ func (d *PeerDatabase) Load() {
 			Logger.Error("os.Stat", zap.Error(err))
 		}
 	}
-	infoTemp, err := os.Stat(peerDBFilename + ".tmp")
+	infoTemp, err := os.Stat(Config.Database.Peer + ".tmp")
 	if err != nil {
 		if os.IsNotExist(err) {
 			Logger.Info("No temp peerdb")
@@ -78,10 +78,10 @@ func (d *PeerDatabase) Load() {
 
 	loaded := ""
 	if loadtemp == true {
-		if err := d.load(peerDBFilename + ".tmp"); err != nil {
+		if err := d.load(Config.Database.Peer + ".tmp"); err != nil {
 			Logger.Info("Loading temp peerdb failed", zap.Error(err))
 
-			if err := d.load(peerDBFilename); err != nil {
+			if err := d.load(Config.Database.Peer); err != nil {
 				Logger.Info("Loading full peerdb failed", zap.Error(err))
 				PeerDB = make(PeerDatabase)
 				return
@@ -92,10 +92,10 @@ func (d *PeerDatabase) Load() {
 			loaded = "temp"
 		}
 	} else {
-		if err := d.load(peerDBFilename); err != nil {
+		if err := d.load(Config.Database.Peer); err != nil {
 			Logger.Info("Loading full peerdb failed", zap.Error(err))
 
-			if err := d.load(peerDBFilename + ".tmp"); err != nil {
+			if err := d.load(Config.Database.Peer + ".tmp"); err != nil {
 				Logger.Info("Loading temp peerdb failed", zap.Error(err))
 				PeerDB = make(PeerDatabase)
 				return
@@ -119,7 +119,7 @@ func (d *PeerDatabase) WriteTmp() {
 		Logger.Error("peerdb gob encoder", zap.Error(err))
 	}
 
-	if err := ioutil.WriteFile(peerDBFilename+".tmp", buff.Bytes(), 0644); err != nil {
+	if err := ioutil.WriteFile(Config.Database.Peer+".tmp", buff.Bytes(), 0644); err != nil {
 		Logger.Error("peerdb writefile", zap.Error(err))
 	}
 
@@ -137,7 +137,7 @@ func (d *PeerDatabase) WriteFull() {
 		Logger.Error("peerdb gob encoder", zap.Error(err))
 	}
 
-	if err := ioutil.WriteFile(peerDBFilename, buff.Bytes(), 0644); err != nil {
+	if err := ioutil.WriteFile(Config.Database.Peer, buff.Bytes(), 0644); err != nil {
 		Logger.Error("peerdb writefile", zap.Error(err))
 	}
 

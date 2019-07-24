@@ -1,13 +1,17 @@
 package shared
 
 import (
+	"time"
+
 	"go.uber.org/zap"
 )
 
-func Init(prod bool) error {
-	UDPCheckConnID = true
-	setEnv(prod)
-	if err := setLogger(prod); err != nil {
+func Init() error {
+	UDPCheckConnID = true // TODO move to config
+
+	loadConfig()
+	setEnv(Config.Production)
+	if err := setLogger(Config.Production); err != nil {
 		return err
 	}
 	PeerDB.Load()
@@ -15,9 +19,11 @@ func Init(prod bool) error {
 	processMetrics()
 
 	// Start threads
-	go RunOn(writeDBInterval, PeerDB.WriteTmp)
-	go RunOn(cleanInterval, PeerDB.Clean)
-	go RunOn(metricsInterval, processMetrics)
+	go RunOn(time.Duration(Config.DBWriteInterval)*time.Second, PeerDB.WriteTmp)
+	go RunOn(time.Duration(Config.DBCleanInterval)*time.Second, PeerDB.Clean)
+	if Config.MetricsInterval > 0 {
+		go RunOn(time.Duration(Config.MetricsInterval)*time.Second, processMetrics)
+	}
 
 	return nil
 }

@@ -28,7 +28,7 @@ func WriteConnDB() {
 		shared.Logger.Error("conndb gob encoder", zap.Error(err))
 	}
 
-	if err := ioutil.WriteFile(shared.ConnDBFilename, buff.Bytes(), 0644); err != nil {
+	if err := ioutil.WriteFile(shared.Config.Database.Conn, buff.Bytes(), 0644); err != nil {
 		shared.Logger.Error("conndb writefile", zap.Error(err))
 	}
 
@@ -36,7 +36,7 @@ func WriteConnDB() {
 }
 
 func loadConnDB() {
-	file, err := os.Open(shared.ConnDBFilename)
+	file, err := os.Open(shared.Config.Database.Conn)
 	if err != nil {
 		shared.Logger.Error("conndb open", zap.Error(err))
 		connDB = make(udpConnDB)
