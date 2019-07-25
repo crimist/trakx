@@ -78,7 +78,7 @@ func (p *Peer) Delete(h Hash, id PeerID) {
 	}
 
 	ExpvarIPs[p.IP]--
-	if num := ExpvarIPs[p.IP]; num < 1 {
+	if ExpvarIPs[p.IP] < 1 {
 		delete(ExpvarIPs, p.IP)
 	}
 

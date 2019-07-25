@@ -7,40 +7,46 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var Config struct {
-	Trakx struct {
-		Prod bool `yaml:"prod"`
-	} `yaml:"trakx"`
+var (
+	PeerDB PeerDatabase
+	Logger *zap.Logger
+	Env    Enviroment
+	Config struct {
+		Trakx struct {
+			Prod bool `yaml:"prod"`
+		} `yaml:"trakx"`
 
-	Tracker struct {
-		HTTP  bool `yaml:"http"`
-		Ports struct {
-			UDP    int `yaml:"udp"`
-			HTTP   int `yaml:"http"`
-			Expvar int `yaml:"expvar"`
-		} `yaml:"ports"`
-		Numwant struct {
-			Default int32 `yaml:"default"`
-			Max     int32 `yaml:"max"`
-		} `yaml:"numwant"`
-		StoppedMsg       string `yaml:"stopped"`
-		MetricsInterval  int    `yaml:"metrics"`
-		AnnounceInterval int32  `yaml:"announce"`
-	} `yaml:"tracker"`
+		Tracker struct {
+			HTTP        bool `yaml:"http"`
+			Checkconnid bool `yaml:"checkconnid"`
+			Ports       struct {
+				UDP    int `yaml:"udp"`
+				HTTP   int `yaml:"http"`
+				Expvar int `yaml:"expvar"`
+			} `yaml:"ports"`
+			Numwant struct {
+				Default int32 `yaml:"default"`
+				Max     int32 `yaml:"max"`
+			} `yaml:"numwant"`
+			StoppedMsg       string `yaml:"stopped"`
+			MetricsInterval  int    `yaml:"metrics"`
+			AnnounceInterval int32  `yaml:"announce"`
+		} `yaml:"tracker"`
 
-	Database struct {
-		Peer struct {
-			Filename string `yaml:"filename"`
-			Trim     int    `yaml:"trim"`
-			Write    int    `yaml:"write"`
-			Timeout  int64  `yaml:"timeout"`
-		} `yaml:"peer"`
-		Conn struct {
-			Filename string `yaml:"filename"`
-			Trim     int    `yaml:"trim"`
-		} `yaml:"conn"`
-	} `yaml:"database"`
-}
+		Database struct {
+			Peer struct {
+				Filename string `yaml:"filename"`
+				Trim     int    `yaml:"trim"`
+				Write    int    `yaml:"write"`
+				Timeout  int64  `yaml:"timeout"`
+			} `yaml:"peer"`
+			Conn struct {
+				Filename string `yaml:"filename"`
+				Trim     int    `yaml:"trim"`
+			} `yaml:"conn"`
+		} `yaml:"database"`
+	}
+)
 
 // LoadConfig loads the yaml config at this projects root
 func LoadConfig() {
@@ -52,10 +58,3 @@ func LoadConfig() {
 		Logger.Panic("Failed to parse config", zap.Error(err))
 	}
 }
-
-var (
-	PeerDB         PeerDatabase
-	Logger         *zap.Logger
-	Env            Enviroment
-	UDPCheckConnID bool
-)

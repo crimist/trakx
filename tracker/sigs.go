@@ -12,7 +12,7 @@ import (
 
 func handleSigs() {
 	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGUSR1, syscall.SIGUSR2)
+	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGUSR1)
 
 	for {
 		sig := <-c
@@ -25,9 +25,6 @@ func handleSigs() {
 			udptracker.WriteConnDB()
 			os.Exit(128 + int(sig.(syscall.Signal)))
 		case syscall.SIGUSR1:
-			shared.Logger.Info("Toggling connID check")
-			shared.UDPCheckConnID = !shared.UDPCheckConnID
-		case syscall.SIGUSR2:
 			shared.Logger.Info("Reloading config (not all setting will apply until restart)")
 			shared.LoadConfig()
 		default:

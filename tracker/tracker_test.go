@@ -46,6 +46,11 @@ func TestAnnounceHTTP(t *testing.T) {
 		t.Error(err)
 	}
 	resp.Body.Close()
+
+	if len(body) == 0 {
+		t.Error("body empty")
+	}
+
 	var decoded map[string]interface{}
 	if err = bencode.Unmarshal(body, &decoded); err != nil {
 		t.Error(err)

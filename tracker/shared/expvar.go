@@ -16,7 +16,7 @@ var (
 
 func initExpvar() {
 	// Might as well alloc capcity at start
-	ExpvarIPs = make(map[PeerIP]int8, 50000)
+	ExpvarIPs = make(map[PeerIP]int8, 30000)
 
 	if PeerDB == nil {
 		panic("peerDB not init before expvars")

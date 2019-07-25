@@ -5,6 +5,7 @@ trakx:
 
 tracker:
   http: false # http tracker on/off
+  checkconnid: true # whether trakx should check the udp connid
   ports: # 0 = off for ports
     udp: 1337
     http: 1337

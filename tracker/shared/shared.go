@@ -7,8 +7,6 @@ import (
 )
 
 func Init() error {
-	UDPCheckConnID = true // TODO move to config
-
 	LoadConfig()
 	setEnv(Config.Trakx.Prod)
 	if err := setLogger(Config.Trakx.Prod); err != nil {
@@ -44,7 +42,7 @@ func setLogger(prod bool) error {
 		cfg = zap.NewProductionConfig()
 	} else {
 		cfg = zap.NewDevelopmentConfig()
-		cfg.OutputPaths = append(cfg.OutputPaths, "trakx.log")
+		cfg.OutputPaths = append(cfg.OutputPaths, "cache/trakx.log")
 	}
 	Logger, err = cfg.Build()
 	return err

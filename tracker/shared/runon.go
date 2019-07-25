@@ -5,7 +5,7 @@ import (
 )
 
 // RunOn will run the given function at the exact tick of the duration
-// for example runOn(1 * time.Second, ...) would run on the second every second
+// Ex: runOn(1 * time.Second, ...) would run on the second
 func RunOn(duration time.Duration, run func()) {
 	nextTick := time.Now().Truncate(duration)
 	for {

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Syc0x00/Trakx/bencoding"
 	httptracker "github.com/Syc0x00/Trakx/tracker/http"
 	"github.com/Syc0x00/Trakx/tracker/shared"
 	udptracker "github.com/Syc0x00/Trakx/tracker/udp"
@@ -32,13 +33,24 @@ func Run() {
 	trackerMux.HandleFunc("/stats", stats)
 
 	if shared.Config.Tracker.HTTP {
-		shared.Logger.Info("http tracker on")
+		shared.Logger.Info("http tracker enabled")
 		trackerMux.HandleFunc("/scrape", httptracker.ScrapeHandle)
 		trackerMux.HandleFunc("/announce", httptracker.AnnounceHandle)
 	} else {
-		emptyHandler := func(w http.ResponseWriter, r *http.Request) {}
-		trackerMux.HandleFunc("/scrape", emptyHandler)
-		trackerMux.HandleFunc("/announce", emptyHandler)
+		// TODO: Interval is the only thing needed on qBit but need to test other clients
+		d := bencoding.NewDict()
+		d.Add("interval", 432000) // 5 days
+		/* Need to consider these
+		d.Add("failure reason", "REMOVE THIS TRACKER")
+		d.Add("complete", -1)
+		d.Add("incomplete", -1)
+		d.Add("peers", "")*/
+		errResp := []byte(d.Get())
+
+		trackerMux.HandleFunc("/scrape", func(w http.ResponseWriter, r *http.Request) {})
+		trackerMux.HandleFunc("/announce", func(w http.ResponseWriter, r *http.Request) {
+			w.Write(errResp)
+		})
 	}
 
 	server := http.Server{
@@ -57,8 +69,8 @@ func Run() {
 	}()
 
 	// UDP tracker
-	if shared.Config.Database.Conn.Trim != 0 {
-		shared.Logger.Info("udp tracker on")
+	if shared.Config.Tracker.Ports.UDP != 0 {
+		shared.Logger.Info("udp tracker enabled")
 		udptracker.Run(time.Duration(shared.Config.Database.Conn.Trim) * time.Second)
 	}
 

@@ -12,7 +12,7 @@ import (
 var StatsHTML string
 
 func processMetrics() {
-	Logger.Info("Processing metrics")
+	Logger.Info("Generating metrics...")
 
 	stats := make(map[string]int, 300)
 
@@ -49,7 +49,7 @@ func processMetrics() {
 		}
 	}
 	StatsHTML += "</table>"
-	Logger.Info("Generated metrics")
+	Logger.Info("Metric generated")
 }
 
 // get the full name of the client w/ azureus method
