@@ -42,7 +42,6 @@ func setLogger(prod bool) error {
 		cfg = zap.NewProductionConfig()
 	} else {
 		cfg = zap.NewDevelopmentConfig()
-		cfg.OutputPaths = append(cfg.OutputPaths, "cache/trakx.log")
 	}
 	Logger, err = cfg.Build()
 	return err

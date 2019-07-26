@@ -10,6 +10,11 @@ import (
 	"go.uber.org/zap"
 )
 
+var (
+	SigStop   = os.Interrupt
+	SigReload = syscall.SIGUSR1
+)
+
 func handleSigs() {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGUSR1)
@@ -18,7 +23,7 @@ func handleSigs() {
 		sig := <-c
 
 		switch sig {
-		case os.Interrupt, os.Kill:
+		case os.Interrupt, os.Kill, syscall.SIGTERM:
 			shared.Logger.Info("Exiting")
 
 			shared.PeerDB.WriteFull()
