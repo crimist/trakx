@@ -12,18 +12,39 @@ import (
 	"github.com/Syc0x00/Trakx/tracker"
 )
 
-var (
-	trakxPidFile = "/var/run/trakx.pid"
-	trakxLogFile = "/var/log/trakx.log"
+const (
+	trakxPerms = 0740
 )
 
-const (
-	trakxPidPerms = 644
-	trakxLogPerms = 644
-)
+type Files struct {
+	root string
+	pid  string
+	log  string
+}
+
+var files Files
+
+func (f *Files) init() {
+	oldMask := syscall.Umask(0)
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+
+	f.root = home + "/.trakx"
+	f.pid = f.root + "/trakx.pid"
+	f.log = f.root + "/trakx.log"
+
+	if err := os.MkdirAll(f.root, 0740); err != nil {
+		panic(err)
+	}
+
+	syscall.Umask(oldMask)
+}
 
 func readPid() int {
-	data, err := ioutil.ReadFile(trakxPidFile)
+	data, err := ioutil.ReadFile(files.pid)
 	if os.IsNotExist(err) || string(data) == "" {
 		return -1
 	} else if err != nil {
@@ -38,13 +59,13 @@ func readPid() int {
 
 func writePid(pid int) {
 	data := []byte(fmt.Sprintf("%d", pid))
-	if err := ioutil.WriteFile(trakxPidFile, data, trakxPidPerms); err != nil {
+	if err := ioutil.WriteFile(files.pid, data, trakxPerms); err != nil {
 		panic(err)
 	}
 }
 
 func clearPid() {
-	pidFile, err := os.OpenFile(trakxPidFile, os.O_CREATE|os.O_RDWR, trakxPidPerms)
+	pidFile, err := os.OpenFile(files.pid, os.O_CREATE|os.O_RDWR, trakxPerms)
 	if err != nil {
 		panic(err)
 	}
@@ -70,6 +91,7 @@ func printHelp(arg string) {
 		fmt.Fprintf(os.Stderr, "Invalid argument: \"%s\"\n\n", arg)
 	}
 	help := "Trakx commands:\n"
+	help += fmt.Sprintf("  %-12s Wipes trakx pid file\n", "wipe")
 	help += fmt.Sprintf("  %-12s Runs Trakx (doesn't return)\n", "run")
 	help += fmt.Sprintf("  %-12s Starts Trakx as a service\n", "start")
 	help += fmt.Sprintf("  %-12s Stops Trakx service\n", "stop")
@@ -84,11 +106,11 @@ func printHelp(arg string) {
 }
 
 func start() {
-	logFile, err := os.OpenFile(trakxLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, trakxLogPerms)
+	logFile, err := os.OpenFile(files.log, os.O_APPEND|os.O_CREATE|os.O_WRONLY, trakxPerms)
 	if err != nil {
 		panic(err)
 	}
-	defer logFile.Close()
+	defer logFile.Close() // TODO test
 	cmd := exec.Command(os.Args[0], "run")
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
@@ -123,12 +145,18 @@ func stop() {
 }
 
 func main() {
+	files.init()
+
 	if len(os.Args) < 2 {
 		printHelp("")
 		return
 	}
 
 	switch os.Args[1] {
+	case "wipe":
+		fmt.Println("wiping...")
+		clearPid()
+		fmt.Println("wiped...")
 	case "run":
 		if readPid() != -1 {
 			fmt.Fprint(os.Stderr, "Trakx is already running\n")

@@ -2,6 +2,7 @@ package shared
 
 import (
 	"io/ioutil"
+	"os"
 
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
@@ -45,6 +46,7 @@ var (
 				Trim     int    `yaml:"trim"`
 			} `yaml:"conn"`
 		} `yaml:"database"`
+		TrakxRoot string
 	}
 )
 
@@ -57,4 +59,13 @@ func LoadConfig() {
 	if err = yaml.Unmarshal(data, &Config); err != nil {
 		Logger.Panic("Failed to parse config", zap.Error(err))
 	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		Logger.Panic("os.UserHomeDir() failed", zap.Error(err))
+	}
+
+	Config.TrakxRoot = home + "/.trakx"
+	Config.Database.Peer.Filename = Config.TrakxRoot + Config.Database.Peer.Filename
+	Config.Database.Conn.Filename = Config.TrakxRoot + Config.Database.Conn.Filename
 }

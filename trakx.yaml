@@ -20,13 +20,13 @@ tracker:
   # Announce interval for clients
   announce: 1200
 
-# TODO databases have absolute paths
+# Databases are in ~/.trakx
 database:
   peer:
-    filename: "~/go/src/github.com/Syc0x00/Trakx/cache/peers.db"
+    filename: "/peers.db"
     trim: 300  # how often to trim in seconds
     write: 300 # write interval in seconds
     timeout: 2800 # peer timeout for trim
   conn:
-    filename: "~/go/src/github.com/Syc0x00/Trakx/cache/conn.db"
+    filename: "/conn.db"
     trim: 300 # how often to trim in seconds
