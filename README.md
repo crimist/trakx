@@ -1,10 +1,10 @@
-# Trakx
+# trakx
 
 Efficient bittorrent tracker written in go.
 
 ## Install
 
-* `go get -v github.com/Syc0x00/Trakx`
+* `go get -v github.com/syc0x00/trakx`
 
 ## Setup
 
