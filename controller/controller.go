@@ -8,6 +8,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"net"
 
 	"github.com/Syc0x00/Trakx/tracker"
 )
@@ -44,9 +45,7 @@ func (c *Controller) Run() {
 }
 
 func (c *Controller) Start() error {
-	if pid, err := c.pID.Read(); err != nil {
-		return err
-	} else if pid != trakxNotRunning {
+	if c.isRunning() {
 		return errors.New("Trakx is already running")
 	}
 
@@ -112,4 +111,17 @@ func (c *Controller) Reload() error {
 		return err
 	}
 	return process.Release()
+}
+
+func (c *Controller) isRunning() (running bool) {
+	if conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: 1337, Zone: ""}); err != nil {
+		if strings.Contains(err.Error(), "address already in use") {
+			running = true
+		} else {
+			panic(err)
+		}
+	} else {
+		conn.Close()
+	}
+	return
 }

@@ -63,11 +63,11 @@ func main() {
 		fmt.Println("stopped!")
 	case "restart", "reboot":
 		fmt.Println("rebooting...")
-		if err := c.Start(); err != nil {
+		if err := c.Stop(); err != nil {
 			fmt.Fprintf(os.Stderr, err.Error()+"\n")
 			os.Exit(-1)
 		}
-		if err := c.Stop(); err != nil {
+		if err := c.Start(); err != nil {
 			fmt.Fprintf(os.Stderr, err.Error()+"\n")
 			os.Exit(-1)
 		}
