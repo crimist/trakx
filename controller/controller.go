@@ -1,0 +1,115 @@
+package controller
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"syscall"
+	"time"
+
+	"github.com/Syc0x00/Trakx/tracker"
+)
+
+type Controller struct {
+	rootPerms uint
+	pID       *pID
+	logPath   string
+}
+
+// Creates controller with root at given dir
+func NewController(root string, perms os.FileMode) (*Controller, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+	root = strings.Replace(root, "~", home, 1)
+
+	c := &Controller{}
+	c.pID = NewpID(root+"/trakx.pid", perms)
+	c.logPath = root + "/trakx.log"
+
+	oldMask := syscall.Umask(0)
+	if err := os.MkdirAll(root, 0740); err != nil {
+		panic(err)
+	}
+	syscall.Umask(oldMask)
+
+	return c, nil
+}
+
+func (c *Controller) Run() {
+	tracker.Run()
+}
+
+func (c *Controller) Start() error {
+	if pid, err := c.pID.Read(); err != nil {
+		return err
+	} else if pid != trakxNotRunning {
+		return errors.New("Trakx is already running")
+	}
+
+	logFile, err := os.OpenFile(c.logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.FileMode(c.rootPerms))
+	if err != nil {
+		return err
+	}
+	defer logFile.Close()
+
+	cmd := exec.Command(os.Args[0], "run")
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	return c.pID.Write(cmd.Process.Pid)
+}
+
+func (c *Controller) Stop() error {
+	process, err := c.pID.Process()
+	if err != nil {
+		return err
+	}
+	if err := process.Signal(tracker.SigStop); err != nil {
+		return err
+	}
+	if err := process.Release(); err != nil {
+		return err
+	}
+
+	pid, err := c.pID.Read()
+	if err != nil {
+		return err
+	}
+
+	// process.Wait() fails on most systems since it's not a child
+	// As such we just have to keep checking if the process died
+
+	start := time.Now()
+	for ; err == nil; err = syscall.Kill(pid, syscall.Signal(0)) {
+		fmt.Println("Waiting for death", time.Since(start))
+		time.Sleep(50 * time.Millisecond)
+	}
+	if err.Error() != "no such process" {
+		return err
+	}
+
+	return c.pID.Clear()
+}
+
+func (c *Controller) Wipe() error {
+	return c.pID.Clear()
+}
+
+func (c *Controller) Reload() error {
+	process, err := c.pID.Process()
+	if err != nil {
+		return err
+	}
+
+	if err := process.Signal(tracker.SigReload); err != nil {
+		return err
+	}
+	return process.Release()
+}
