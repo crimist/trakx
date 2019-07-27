@@ -17,6 +17,7 @@ func printHelp(arg string) {
 		fmt.Fprintf(os.Stderr, "Invalid argument: \"%s\"\n\n", arg)
 	}
 	help := "Trakx commands:\n"
+	help += fmt.Sprintf("  %-12s Checks if Trakx is running\n", "status")
 	help += fmt.Sprintf("  %-12s Runs Trakx (doesn't return)\n", "run")
 	help += fmt.Sprintf("  %-12s Starts Trakx as a service\n", "start")
 	help += fmt.Sprintf("  %-12s Stops Trakx service\n", "stop")
@@ -44,6 +45,12 @@ func main() {
 	}
 
 	switch os.Args[1] {
+	case "status":
+		if c.IsRunning() {
+			fmt.Println("Trakx is running")
+		} else {
+			fmt.Println("Trakx is not running")
+		}
 	case "run":
 		fmt.Println("Running...")
 		c.Run()

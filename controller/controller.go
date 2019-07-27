@@ -45,7 +45,7 @@ func (c *Controller) Run() {
 }
 
 func (c *Controller) Start() error {
-	if c.isRunning() {
+	if c.IsRunning() {
 		return errors.New("Trakx is already running")
 	}
 
@@ -113,7 +113,7 @@ func (c *Controller) Reload() error {
 	return process.Release()
 }
 
-func (c *Controller) isRunning() (running bool) {
+func (c *Controller) IsRunning() (running bool) {
 	if conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: 1337, Zone: ""}); err != nil {
 		if strings.Contains(err.Error(), "address already in use") {
 			running = true
