@@ -4,6 +4,7 @@ trakx:
   prod: true
 
 tracker:
+  index: "index.html"
   http: false # http tracker on/off
   checkconnid: true # whether trakx should check the udp connid
   ports: # 0 = off for ports

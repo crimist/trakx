@@ -11,7 +11,7 @@ var indexData []byte
 
 func initRoutes() {
 	var err error
-	if indexData, err = ioutil.ReadFile("tracker/index.html"); err != nil {
+	if indexData, err = ioutil.ReadFile(shared.Config.Tracker.Index); err != nil {
 		panic(err)
 	}
 }

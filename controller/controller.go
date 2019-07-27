@@ -28,8 +28,8 @@ func NewController(root string, perms os.FileMode) (*Controller, error) {
 	root = strings.Replace(root, "~", home, 1)
 
 	c := &Controller{}
-	c.pID = NewpID(root+"/trakx.pid", perms)
-	c.logPath = root + "/trakx.log"
+	c.pID = NewpID(root+"trakx.pid", perms)
+	c.logPath = root + "trakx.log"
 
 	oldMask := syscall.Umask(0)
 	if err := os.MkdirAll(root, 0740); err != nil {

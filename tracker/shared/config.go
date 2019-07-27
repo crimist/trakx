@@ -18,8 +18,9 @@ var (
 		} `yaml:"trakx"`
 
 		Tracker struct {
-			HTTP        bool `yaml:"http"`
-			Checkconnid bool `yaml:"checkconnid"`
+			Index       string `yaml:"index"`
+			HTTP        bool   `yaml:"http"`
+			Checkconnid bool   `yaml:"checkconnid"`
 			Ports       struct {
 				UDP    int `yaml:"udp"`
 				HTTP   int `yaml:"http"`
@@ -65,6 +66,7 @@ func LoadConfig() {
 		Logger.Panic("Failed to parse config", zap.Error(err))
 	}
 
+	Config.Tracker.Index = root + Config.Tracker.Index
 	Config.Database.Peer.Filename = root + Config.Database.Peer.Filename
 	Config.Database.Conn.Filename = root + Config.Database.Conn.Filename
 }

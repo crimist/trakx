@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	trakxRoot  = "~/.trakx/"
 	trakxPerms = 0740
 )
 
@@ -36,7 +37,7 @@ func main() {
 		return
 	}
 
-	c, err := controller.NewController("~/.trakx", trakxPerms)
+	c, err := controller.NewController(trakxRoot, trakxPerms)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error()+"\n")
 		os.Exit(-1)
