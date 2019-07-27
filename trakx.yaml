@@ -10,7 +10,7 @@ tracker:
     udp: 1337
     http: 1337
     expvar: 1338
-  nuwamt:
+  numwant:
     default: 75
     max: 400
   # message for stopping clients

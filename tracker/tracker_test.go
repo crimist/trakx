@@ -18,7 +18,7 @@ var client = &http.Client{
 	Timeout: 2 * time.Second,
 }
 
-func TestAnnounceHTTP(t *testing.T) {
+func TestHTTPAnnounce(t *testing.T) {
 	req, err := http.NewRequest("GET", "http://127.0.0.1:1337/announce", nil)
 	if err != nil {
 		t.Error(err)
@@ -81,7 +81,7 @@ func TestAnnounceHTTP(t *testing.T) {
 	}
 }
 
-func TestAnnounceCompactHTTP(t *testing.T) {
+func TestHTTPAnnounceCompact(t *testing.T) {
 	req, err := http.NewRequest("GET", "http://127.0.0.1:1337/announce", nil)
 	if err != nil {
 		t.Error(err)
@@ -251,7 +251,7 @@ func (ar *AnnounceResp) Unmarshall(data []byte, size int) {
 	}
 }
 
-func TestAnnounceUDP(t *testing.T) {
+func TestUDPAnnounce(t *testing.T) {
 	packet := make([]byte, 0xFFFF)
 	addr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:1337")
 	if err != nil {
@@ -338,6 +338,11 @@ func TestAnnounceUDP(t *testing.T) {
 	}
 	if ar.X.Seeders != 0 {
 		t.Error("Invalid seeders should be 1 but got", ar.X.Seeders)
+	}
+
+	if len(ar.Peers) < 1 {
+		t.Error("No peers")
+		return
 	}
 
 	if ar.Peers[0].Port != 1337 {
