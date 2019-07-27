@@ -1,5 +1,5 @@
 # Update
-env GIT_TERMINAL_PROMPT=1 go get -u -v github.com/Syc0x00/Trakx
+env GIT_TERMINAL_PROMPT=1 go get -u -v github.com/syc0x00/trakx
 
 # Setup root if not setup
 mkdir -p ~/.trakx/
