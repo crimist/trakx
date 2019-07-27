@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Syc0x00/Trakx/bencoding"
-	httptracker "github.com/Syc0x00/Trakx/tracker/http"
-	"github.com/Syc0x00/Trakx/tracker/shared"
-	udptracker "github.com/Syc0x00/Trakx/tracker/udp"
+	"github.com/syc0x00/trakx/bencoding"
+	httptracker "github.com/syc0x00/trakx/tracker/http"
+	"github.com/syc0x00/trakx/tracker/shared"
+	udptracker "github.com/syc0x00/trakx/tracker/udp"
 	"go.uber.org/zap"
 )
 

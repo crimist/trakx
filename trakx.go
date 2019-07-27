@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Syc0x00/Trakx/controller"
+	"github.com/syc0x00/trakx/controller"
 )
 
 const (

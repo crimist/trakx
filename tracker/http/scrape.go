@@ -3,8 +3,8 @@ package http
 import (
 	"net/http"
 
-	"github.com/Syc0x00/Trakx/bencoding"
-	"github.com/Syc0x00/Trakx/tracker/shared"
+	"github.com/syc0x00/trakx/bencoding"
+	"github.com/syc0x00/trakx/tracker/shared"
 )
 
 func ScrapeHandle(w http.ResponseWriter, r *http.Request) {

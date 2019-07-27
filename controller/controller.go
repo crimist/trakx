@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Syc0x00/Trakx/tracker"
+	"github.com/syc0x00/trakx/tracker"
 )
 
 type Controller struct {

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Syc0x00/Trakx/utils"
+	"github.com/syc0x00/trakx/utils"
 	"github.com/go-torrent/bencode"
 )
 

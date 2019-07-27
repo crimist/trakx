@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Syc0x00/Trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/shared"
 	"go.uber.org/zap"
 )
 

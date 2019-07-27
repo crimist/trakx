@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"net"
 
-	"github.com/Syc0x00/Trakx/bencoding"
+	"github.com/syc0x00/trakx/bencoding"
 )
 
 // Hash is the infohash of a torrent
