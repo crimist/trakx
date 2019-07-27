@@ -3,12 +3,12 @@ package controller
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
 	"syscall"
 	"time"
-	"net"
 
 	"github.com/Syc0x00/Trakx/tracker"
 )

@@ -46,13 +46,18 @@ var (
 				Trim     int    `yaml:"trim"`
 			} `yaml:"conn"`
 		} `yaml:"database"`
-		TrakxRoot string
 	}
 )
 
 // LoadConfig loads the yaml config at this projects root
 func LoadConfig() {
-	data, err := ioutil.ReadFile("trakx.yaml")
+	root, err := os.UserHomeDir()
+	if err != nil {
+		Logger.Panic("os.UserHomeDir() failed", zap.Error(err))
+	}
+	root += "/.trakx/"
+
+	data, err := ioutil.ReadFile(root + "config.yaml")
 	if err != nil {
 		Logger.Panic("Failed to load config", zap.Error(err))
 	}
@@ -60,12 +65,6 @@ func LoadConfig() {
 		Logger.Panic("Failed to parse config", zap.Error(err))
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		Logger.Panic("os.UserHomeDir() failed", zap.Error(err))
-	}
-
-	Config.TrakxRoot = home + "/.trakx"
-	Config.Database.Peer.Filename = Config.TrakxRoot + Config.Database.Peer.Filename
-	Config.Database.Conn.Filename = Config.TrakxRoot + Config.Database.Conn.Filename
+	Config.Database.Peer.Filename = root + Config.Database.Peer.Filename
+	Config.Database.Conn.Filename = root + Config.Database.Conn.Filename
 }

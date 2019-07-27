@@ -2,12 +2,22 @@
 
 Efficient bittorrent tracker written in go.
 
-## Netdata Setup
+## Install
 
-* Open python conf with `/etc/netdata/edit-config python.d.conf` and change `go_expvar` to `yes`
-* Go inside `netdata/` and run `install.sh`
+* `go get -v github.com/Syc0x00/Trakx`
 
-If you have other go program with expvar in netdata you'll have to edit go_expvar.conf with `/etc/netdata/edit-config python.d/go_expvar.conf` and paste in the contents of `trakx_expvar.conf` while keeping your other programs config as well. The `install.sh` script will overwrite your other program otherwise.
+## Setup
+
+Note: If you have other go program with expvar in netdata you'll have to edit go_expvar.conf with `/etc/netdata/edit-config python.d/go_expvar.conf` and paste in the contents of `trakx_expvar.conf` while keeping your other programs config as well. The `install.sh` script will overwrite your other program otherwise.
+
+* cd into Trakx in the gopath
+* Open netdata python conf with `/etc/netdata/edit-config python.d.conf` and change `go_expvar` to `yes`
+* Install netdata plugins with `sh netdata/install.sh`
+* Run `sh setup.sh` to setup root directory and copy the config
+
+## Updating
+
+* Running `sh setup.sh` will update without overwriting config if it already exists
 
 ## pprof
 
