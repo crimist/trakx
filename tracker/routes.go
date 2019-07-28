@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
 
@@ -12,7 +13,7 @@ var indexData []byte
 func initRoutes() {
 	var err error
 	if indexData, err = ioutil.ReadFile(shared.Config.Tracker.Index); err != nil {
-		panic(err)
+		shared.Logger.Panic("Failed to read index", zap.Error(err))
 	}
 }
 
