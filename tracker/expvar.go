@@ -12,6 +12,10 @@ import (
 
 // Expvar is for netdata
 func Expvar() {
+	if shared.Config.Trakx.Expvar.Every < 1 {
+		shared.Logger.Panic("Expvar.Every < 1")
+	}
+
 	var errsOld int64
 
 	// Stats
@@ -36,29 +40,27 @@ func Expvar() {
 	go http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", shared.Config.Trakx.Expvar.Port), nil)
 
 	shared.RunOn(time.Duration(shared.Config.Trakx.Expvar.Every)*time.Second, func() {
-		for {
-			uniqueIP.Set(int64(len(shared.ExpvarIPs)))
-			uniqueHash.Set(int64(len(shared.PeerDB)))
-			uniquePeer.Set(shared.ExpvarSeeds + shared.ExpvarLeeches)
-			seeds.Set(shared.ExpvarSeeds)
-			leeches.Set(shared.ExpvarLeeches)
-			announcesSec.Set(shared.ExpvarAnnounces)
-			shared.ExpvarAnnounces = 0
-			announcesSecOK.Set(shared.ExpvarAnnouncesOK)
-			shared.ExpvarAnnouncesOK = 0
-			scrapesSec.Set(shared.ExpvarScrapes)
-			shared.ExpvarScrapes = 0
-			scrapesSecOK.Set(shared.ExpvarScrapesOK)
-			shared.ExpvarScrapesOK = 0
-			clineterrs.Set(shared.ExpvarClienterrs)
-			shared.ExpvarClienterrs = 0
-			errors.Set(shared.ExpvarErrs)
-			errorsSec.Set(shared.ExpvarErrs - errsOld)
-			errsOld = shared.ExpvarErrs
-			connects.Set(shared.ExpvarConnects)
-			shared.ExpvarConnects = 0
-			connectsOK.Set(shared.ExpvarConnectsOK)
-			shared.ExpvarConnectsOK = 0
-		}
+		uniqueIP.Set(int64(len(shared.ExpvarIPs)))
+		uniqueHash.Set(int64(len(shared.PeerDB)))
+		uniquePeer.Set(shared.ExpvarSeeds + shared.ExpvarLeeches)
+		seeds.Set(shared.ExpvarSeeds)
+		leeches.Set(shared.ExpvarLeeches)
+		announcesSec.Set(shared.ExpvarAnnounces)
+		shared.ExpvarAnnounces = 0
+		announcesSecOK.Set(shared.ExpvarAnnouncesOK)
+		shared.ExpvarAnnouncesOK = 0
+		scrapesSec.Set(shared.ExpvarScrapes)
+		shared.ExpvarScrapes = 0
+		scrapesSecOK.Set(shared.ExpvarScrapesOK)
+		shared.ExpvarScrapesOK = 0
+		clineterrs.Set(shared.ExpvarClienterrs)
+		shared.ExpvarClienterrs = 0
+		errors.Set(shared.ExpvarErrs)
+		errorsSec.Set(shared.ExpvarErrs - errsOld)
+		errsOld = shared.ExpvarErrs
+		connects.Set(shared.ExpvarConnects)
+		shared.ExpvarConnects = 0
+		connectsOK.Set(shared.ExpvarConnectsOK)
+		shared.ExpvarConnectsOK = 0
 	})
 }
