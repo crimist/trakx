@@ -31,14 +31,15 @@ func (e *udperror) marshall() ([]byte, error) {
 func newClientError(msg string, TransactionID int32, fields ...zap.Field) []byte {
 	shared.ExpvarClienterrs++
 
+	if shared.Env == shared.Dev {
+		fields = append(fields, zap.String("msg", msg))
+		shared.Logger.Info("Client Err", fields...)
+	}
+
 	e := udperror{
 		Action:        3,
 		TransactionID: TransactionID,
 		ErrorString:   []byte(msg),
-	}
-	if shared.Env == shared.Dev {
-		fields = append(fields, zap.String("msg", msg))
-		shared.Logger.Info("Client Err", fields...)
 	}
 
 	data, err := e.marshall()

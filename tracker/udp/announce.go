@@ -76,7 +76,7 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	shared.ExpvarAnnounces++
 
 	if announce.Port == 0 {
-		u.conn.WriteToUDP(newClientError("bad port", announce.TransactionID, zap.Any("addr", addr), zap.Uint16("port", announce.Port)), remote)
+		u.conn.WriteToUDP(newClientError("bad port", announce.TransactionID, zap.Reflect("addr", addr), zap.Uint16("port", announce.Port)), remote)
 		return
 	}
 

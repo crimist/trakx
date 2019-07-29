@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/syc0x00/trakx/utils"
 	"github.com/go-torrent/bencode"
+	"github.com/syc0x00/trakx/utils"
 )
 
 var client = &http.Client{
