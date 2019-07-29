@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Update
 env GIT_TERMINAL_PROMPT=1 go get -u -v github.com/syc0x00/trakx
 

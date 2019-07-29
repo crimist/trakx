@@ -7,11 +7,17 @@ import (
 )
 
 func Init() error {
+	// temp logger
+	if err := setLogger(false); err != nil {
+		return err
+	}
 	LoadConfig()
-	setEnv(Config.Trakx.Prod)
+
+	// get logger based on config
 	if err := setLogger(Config.Trakx.Prod); err != nil {
 		return err
 	}
+
 	PeerDB.Load()
 	initExpvar()
 	processMetrics()
@@ -24,14 +30,6 @@ func Init() error {
 	}
 
 	return nil
-}
-
-func setEnv(prod bool) {
-	if prod == true {
-		Env = Prod
-	} else {
-		Env = Dev
-	}
 }
 
 func setLogger(prod bool) error {

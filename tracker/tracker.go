@@ -20,7 +20,7 @@ func Run() {
 	}
 
 	go handleSigs()
-	if shared.Config.Tracker.Ports.Expvar != 0 {
+	if shared.Config.Trakx.Expvar.Enabled {
 		go Expvar()
 	}
 
@@ -32,7 +32,7 @@ func Run() {
 	trackerMux.HandleFunc("/dmca", dmca)
 	trackerMux.HandleFunc("/stats", stats)
 
-	if shared.Config.Tracker.HTTP {
+	if shared.Config.Tracker.HTTP.Enabled {
 		shared.Logger.Info("http tracker enabled")
 		trackerMux.HandleFunc("/scrape", httptracker.ScrapeHandle)
 		trackerMux.HandleFunc("/announce", httptracker.AnnounceHandle)
@@ -54,7 +54,7 @@ func Run() {
 	}
 
 	server := http.Server{
-		Addr:         fmt.Sprintf(":%d", shared.Config.Tracker.Ports.HTTP),
+		Addr:         fmt.Sprintf(":%d", shared.Config.Tracker.HTTP.Port),
 		Handler:      trackerMux,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 7 * time.Second,
@@ -69,9 +69,9 @@ func Run() {
 	}()
 
 	// UDP tracker
-	if shared.Config.Tracker.Ports.UDP != 0 {
+	if shared.Config.Tracker.UDP.Enabled {
 		shared.Logger.Info("udp tracker enabled")
-		udptracker.Run(time.Duration(shared.Config.Database.Conn.Trim) * time.Second)
+		udptracker.Run()
 	}
 
 	select {} // block forever

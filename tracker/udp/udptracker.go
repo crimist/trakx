@@ -16,19 +16,19 @@ type udpTracker struct {
 }
 
 // Run runs the UDP tracker
-func Run(trimInterval time.Duration) {
+func Run() {
 	u := udpTracker{}
 	loadConnDB()
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 
-	go shared.RunOn(trimInterval, connDB.trim)
+	go shared.RunOn(time.Duration(shared.Config.Database.Conn.Trim)*time.Second, connDB.trim)
 	u.listen()
 }
 
 func (u *udpTracker) listen() {
 	var err error
 
-	u.conn, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: shared.Config.Tracker.Ports.UDP, Zone: ""})
+	u.conn, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: shared.Config.Tracker.UDP.Port, Zone: ""})
 	if err != nil {
 		panic(err)
 	}
@@ -81,7 +81,7 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 		return
 	}
 
-	if dbID, ok := connDB.check(base.ConnectionID, addr); !ok && shared.Config.Tracker.Checkconnid {
+	if dbID, ok := connDB.check(base.ConnectionID, addr); !ok && shared.Config.Tracker.UDP.CheckConnID {
 		u.conn.WriteToUDP(newClientError("bad connid", base.TransactionID), remote)
 		if shared.Env == shared.Dev {
 			shared.Logger.Info("Bad connid", zap.Int64("dbID", dbID), zap.Int64("clientID", base.ConnectionID), zap.Reflect("ip", ip))

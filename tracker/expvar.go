@@ -33,35 +33,32 @@ func Expvar() {
 	connectsOK := expvar.NewInt("tracker.performance.connectsok")
 
 	// only listen on localhost
-	go http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", shared.Config.Tracker.Ports.Expvar), nil)
+	go http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", shared.Config.Trakx.Expvar.Port), nil)
 
-	nextTime := time.Now().Truncate(time.Second)
-
-	for {
-		uniqueIP.Set(int64(len(shared.ExpvarIPs)))
-		uniqueHash.Set(int64(len(shared.PeerDB)))
-		uniquePeer.Set(shared.ExpvarSeeds + shared.ExpvarLeeches)
-		seeds.Set(shared.ExpvarSeeds)
-		leeches.Set(shared.ExpvarLeeches)
-		announcesSec.Set(shared.ExpvarAnnounces)
-		shared.ExpvarAnnounces = 0
-		announcesSecOK.Set(shared.ExpvarAnnouncesOK)
-		shared.ExpvarAnnouncesOK = 0
-		scrapesSec.Set(shared.ExpvarScrapes)
-		shared.ExpvarScrapes = 0
-		scrapesSecOK.Set(shared.ExpvarScrapesOK)
-		shared.ExpvarScrapesOK = 0
-		clineterrs.Set(shared.ExpvarClienterrs)
-		shared.ExpvarClienterrs = 0
-		errors.Set(shared.ExpvarErrs)
-		errorsSec.Set(shared.ExpvarErrs - errsOld)
-		errsOld = shared.ExpvarErrs
-		connects.Set(shared.ExpvarConnects)
-		shared.ExpvarConnects = 0
-		connectsOK.Set(shared.ExpvarConnectsOK)
-		shared.ExpvarConnectsOK = 0
-
-		nextTime = nextTime.Add(time.Second)
-		time.Sleep(time.Until(nextTime))
-	}
+	shared.RunOn(time.Duration(shared.Config.Trakx.Expvar.Every)*time.Second, func() {
+		for {
+			uniqueIP.Set(int64(len(shared.ExpvarIPs)))
+			uniqueHash.Set(int64(len(shared.PeerDB)))
+			uniquePeer.Set(shared.ExpvarSeeds + shared.ExpvarLeeches)
+			seeds.Set(shared.ExpvarSeeds)
+			leeches.Set(shared.ExpvarLeeches)
+			announcesSec.Set(shared.ExpvarAnnounces)
+			shared.ExpvarAnnounces = 0
+			announcesSecOK.Set(shared.ExpvarAnnouncesOK)
+			shared.ExpvarAnnouncesOK = 0
+			scrapesSec.Set(shared.ExpvarScrapes)
+			shared.ExpvarScrapes = 0
+			scrapesSecOK.Set(shared.ExpvarScrapesOK)
+			shared.ExpvarScrapesOK = 0
+			clineterrs.Set(shared.ExpvarClienterrs)
+			shared.ExpvarClienterrs = 0
+			errors.Set(shared.ExpvarErrs)
+			errorsSec.Set(shared.ExpvarErrs - errsOld)
+			errsOld = shared.ExpvarErrs
+			connects.Set(shared.ExpvarConnects)
+			shared.ExpvarConnects = 0
+			connectsOK.Set(shared.ExpvarConnectsOK)
+			shared.ExpvarConnectsOK = 0
+		}
+	})
 }

@@ -14,27 +14,32 @@ var (
 	Env    Enviroment
 	Config struct {
 		Trakx struct {
-			Prod bool `yaml:"prod"`
+			Prod   bool   `yaml:"prod"`
+			Index  string `yaml:"index"`
+			Expvar struct {
+				Enabled bool `yaml:"enabled"`
+				Every   int  `yaml:"every"`
+				Port    int  `yaml:"port"`
+			} `yaml:"expvar"`
 		} `yaml:"trakx"`
-
 		Tracker struct {
-			Index       string `yaml:"index"`
-			HTTP        bool   `yaml:"http"`
-			Checkconnid bool   `yaml:"checkconnid"`
-			Ports       struct {
-				UDP    int `yaml:"udp"`
-				HTTP   int `yaml:"http"`
-				Expvar int `yaml:"expvar"`
-			} `yaml:"ports"`
+			HTTP struct {
+				Enabled bool `yaml:"enabled"`
+				Port    int  `yaml:"port"`
+			} `yaml:"http"`
+			UDP struct {
+				Enabled     bool `yaml:"enabled"`
+				Port        int  `yaml:"port"`
+				CheckConnID bool `yaml:"checkconnid"`
+			} `yaml:"udp"`
 			Numwant struct {
 				Default int32 `yaml:"default"`
 				Max     int32 `yaml:"max"`
 			} `yaml:"numwant"`
-			StoppedMsg       string `yaml:"stopped"`
+			StoppedMsg       string `yaml:"stoppedmsg"`
 			MetricsInterval  int    `yaml:"metrics"`
 			AnnounceInterval int32  `yaml:"announce"`
 		} `yaml:"tracker"`
-
 		Database struct {
 			Peer struct {
 				Filename string `yaml:"filename"`
@@ -45,6 +50,7 @@ var (
 			Conn struct {
 				Filename string `yaml:"filename"`
 				Trim     int    `yaml:"trim"`
+				Timeout  int64  `yaml:"timeout"`
 			} `yaml:"conn"`
 		} `yaml:"database"`
 	}
@@ -60,13 +66,17 @@ func LoadConfig() {
 
 	data, err := ioutil.ReadFile(root + "config.yaml")
 	if err != nil {
-		Logger.Panic("Failed to load config", zap.Error(err))
+		Logger.Panic("Failed to read config", zap.Error(err))
 	}
 	if err = yaml.Unmarshal(data, &Config); err != nil {
 		Logger.Panic("Failed to parse config", zap.Error(err))
 	}
 
-	Config.Tracker.Index = root + Config.Tracker.Index
+	Config.Trakx.Index = root + Config.Trakx.Index
 	Config.Database.Peer.Filename = root + Config.Database.Peer.Filename
 	Config.Database.Conn.Filename = root + Config.Database.Conn.Filename
+
+	if Config.Trakx.Prod {
+		Env = Prod
+	}
 }

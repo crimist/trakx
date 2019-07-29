@@ -3,6 +3,7 @@ package shared
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -12,6 +13,7 @@ import (
 var StatsHTML string
 
 func processMetrics() {
+	start := time.Now()
 	Logger.Info("Generating metrics...")
 
 	stats := make(map[string]int, 300)
@@ -40,16 +42,14 @@ func processMetrics() {
 	}
 	sort.Strings(keys)
 
-	StatsHTML = "<p>There will be errors in this list because some BT clients use *unique* (stupid) peerid encoding methods and I don't want to build every single edge case in</p>"
-	StatsHTML += "<p>Read https://wiki.theory.org/index.php/BitTorrentSpecification#peer_id for more info</p>"
-	StatsHTML += "<table>"
+	StatsHTML = "<p>There will be errors in this list because some BT clients use *unique* (stupid) peerid encoding methods and I don't want to build every single edge case in</p><p>Read https://wiki.theory.org/index.php/BitTorrentSpecification#peer_id for more info</p><table>"
 	for _, k := range keys {
 		if count, ok := stats[k]; ok && count > 0 {
 			StatsHTML += fmt.Sprintf(`<tr><td>%s</td><td>%d</td></tr>`, k, count)
 		}
 	}
 	StatsHTML += "</table>"
-	Logger.Info("Metric generated")
+	Logger.Info("Metric generated", zap.Duration("duration", time.Since(start)))
 }
 
 // get the full name of the client w/ azureus method

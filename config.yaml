@@ -1,23 +1,35 @@
 # Trakx YAML config
+# All times are measured in seconds
+# Set timers to 0 for off
 
 trakx:
   prod: true
+  index: "index.html"
+  expvar:
+    enabled: true
+    every: 1
+    port: 1338
 
 tracker:
-  index: "index.html"
-  http: false # http tracker on/off
-  checkconnid: true # whether trakx should check the udp connid
-  ports: # 0 = off for ports
-    udp: 1337
-    http: 1337
-    expvar: 1338
+  http:
+    enabled: false
+    port: 1337 # also serves the index
+
+  udp:
+    enabled: true
+    port: 1337
+    checkconnid: true
+
   numwant:
     default: 75
     max: 400
+
   # message for stopping clients
-  stopped: "See you space cowboy..."
-  # time between metrics generation (0 = off)
+  stoppedmsg: "See you space cowboy..."
+
+  # time between metrics generation
   metrics: 1800
+  
   # Announce interval for clients
   announce: 1200
 
@@ -25,9 +37,10 @@ tracker:
 database:
   peer:
     filename: "peers.db"
-    trim: 300  # how often to trim in seconds
-    write: 300 # write interval in seconds
-    timeout: 2800 # peer timeout for trim
+    trim: 300
+    write: 300
+    timeout: 2800
   conn:
     filename: "conn.db"
-    trim: 300 # how often to trim in seconds
+    trim: 300
+    timeout: 86400 # 24h

@@ -76,13 +76,13 @@ func (db udpConnDB) check(id int64, addr [4]byte) (dbID int64, ok bool) {
 	return
 }
 
-// Spec says to only cache connIDs for 2min but realistically the chances of it being abused for ddos
-// is insanely low so I'll accept them for up to 6 hours
+// Spec says to only cache connIDs for 2min but realistically ips changing for ddos is unlikely so
+// by default the timeout is 24h
 func (db *udpConnDB) trim() {
 	trimmed := 0
 	now := time.Now().Unix()
 	for key, cID := range connDB {
-		if now-cID.cached > 21600 { // read note
+		if now-cID.cached > shared.Config.Database.Conn.Timeout { // read note
 			delete(connDB, key)
 			trimmed++
 		}

@@ -96,7 +96,9 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	if announce.Event == stopped {
 		peer.Delete(announce.InfoHash, announce.PeerID)
 		shared.ExpvarAnnouncesOK++
-		u.conn.WriteToUDP([]byte(shared.Config.Tracker.StoppedMsg), remote)
+		if shared.Config.Tracker.StoppedMsg != "" {
+			u.conn.WriteToUDP([]byte(shared.Config.Tracker.StoppedMsg), remote)
+		}
 		return
 	}
 
