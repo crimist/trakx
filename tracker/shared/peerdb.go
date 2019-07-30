@@ -68,10 +68,10 @@ func (db *PeerDatabase) Save(p *Peer, h Hash, id PeerID) {
 	db.mu.Unlock()
 }
 
-// Delete deletes peer
-func (db *PeerDatabase) Delete(p *Peer, h Hash, id PeerID) {
+// Drop deletes peer
+func (db *PeerDatabase) Drop(p *Peer, h Hash, id PeerID) {
 	if !Config.Trakx.Prod {
-		Logger.Info("Delete",
+		Logger.Info("Drop",
 			zap.Any("hash", h),
 			zap.Any("peerid", id),
 			zap.Any("Peer", p),
@@ -97,6 +97,13 @@ func (db *PeerDatabase) Delete(p *Peer, h Hash, id PeerID) {
 	db.mu.Unlock()
 }
 
+// Delete deletes a hash
+func (db *PeerDatabase) delete(h Hash) {
+	db.mu.Lock()
+	delete(db.db, h)
+	db.mu.Unlock()
+}
+
 // Trim removes all peers that haven't checked in since timeout
 func (db *PeerDatabase) Trim() {
 	var peers, hashes int
@@ -105,14 +112,12 @@ func (db *PeerDatabase) Trim() {
 	for hash, peermap := range db.db {
 		for id, peer := range peermap {
 			if now-peer.LastSeen > Config.Database.Peer.Timeout {
-				db.Delete(&peer, hash, id)
+				db.Drop(&peer, hash, id)
 				peers++
 			}
 		}
 		if len(peermap) == 0 {
-			db.mu.Lock()
-			delete(db.db, hash)
-			db.mu.Unlock()
+			db.delete(hash)
 			hashes++
 		}
 	}

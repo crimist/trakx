@@ -42,7 +42,7 @@ func Expvar() {
 
 	shared.RunOn(time.Duration(shared.Config.Trakx.Expvar.Every)*time.Second, func() {
 		uniqueIP.Set(int64(len(shared.ExpvarIPs)))
-		uniqueHash.Set(int64(len(shared.PeerDB)))
+		uniqueHash.Set(int64(shared.PeerDB.Len()))
 
 		s := atomic.LoadInt64(&shared.ExpvarSeeds)
 		l := atomic.LoadInt64(&shared.ExpvarLeeches)

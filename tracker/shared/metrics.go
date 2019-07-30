@@ -18,7 +18,7 @@ func processMetrics() {
 
 	stats := make(map[string]int, 300)
 
-	PeerDB.mu.Lock()
+	// Read only no lock
 	for _, peermap := range PeerDB.db {
 		for peerid := range peermap {
 			if peerid[0] == '-' {
@@ -26,16 +26,8 @@ func processMetrics() {
 			} else {
 				stats[getShadow(string(peerid[0:6]))]++
 			}
-			/*
-				else if string(peerid[6:9]) == "---" {
-					Shadows[string(peerid[0:6])]++
-				} else if peerid[6] == peerid[7] && peerid[7] == peerid[8] {
-					Shadows[string(peerid[0:6])]++
-				}
-			*/
 		}
 	}
-	PeerDB.mu.Unlock()
 
 	// Get keys in alpha order
 	keys := make([]string, len(stats))

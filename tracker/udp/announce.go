@@ -95,7 +95,7 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	}
 
 	if announce.Event == stopped {
-		shared.PeerDB.Delete(&peer, announce.InfoHash, announce.PeerID)
+		shared.PeerDB.Drop(&peer, announce.InfoHash, announce.PeerID)
 
 		atomic.AddInt64(&shared.ExpvarAnnouncesOK, 1)
 		if shared.Config.Tracker.StoppedMsg != "" {

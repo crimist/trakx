@@ -131,7 +131,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// If the peer stopped delete() them and exit
 	if event == "stopped" {
-		shared.PeerDB.Delete(&a.peer, a.infohash, a.peerid)
+		shared.PeerDB.Drop(&a.peer, a.infohash, a.peerid)
 		atomic.AddInt64(&shared.ExpvarAnnouncesOK, 1)
 		w.Write([]byte(shared.Config.Tracker.StoppedMsg))
 		return
