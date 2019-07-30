@@ -2,13 +2,14 @@ package http
 
 import (
 	"net/http"
+	"sync/atomic"
 
 	"github.com/syc0x00/trakx/bencoding"
 	"github.com/syc0x00/trakx/tracker/shared"
 )
 
 func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
-	shared.ExpvarScrapes++
+	atomic.AddInt64(&shared.ExpvarScrapes, 1)
 
 	infohashes := r.URL.Query()["info_hash"]
 	if len(infohashes) == 0 {
@@ -42,5 +43,5 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte(dict.Get()))
-	shared.ExpvarScrapesOK++
+	atomic.AddInt64(&shared.ExpvarScrapesOK, 1)
 }

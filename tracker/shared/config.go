@@ -11,7 +11,7 @@ import (
 var (
 	PeerDB PeerDatabase
 	Logger *zap.Logger
-	Env    Enviroment
+
 	Config struct {
 		Trakx struct {
 			Prod   bool   `yaml:"prod"`
@@ -60,23 +60,19 @@ var (
 func LoadConfig() {
 	root, err := os.UserHomeDir()
 	if err != nil {
-		Logger.Panic("os.UserHomeDir() failed", zap.Error(err))
+		panic("os.UserHomeDir() failed: " + err.Error())
 	}
 	root += "/.trakx/"
 
 	data, err := ioutil.ReadFile(root + "config.yaml")
 	if err != nil {
-		Logger.Panic("Failed to read config", zap.Error(err))
+		panic("Failed to read config: " + err.Error())
 	}
 	if err = yaml.Unmarshal(data, &Config); err != nil {
-		Logger.Panic("Failed to parse config", zap.Error(err))
+		panic("Failed to parse config: " + err.Error())
 	}
 
 	Config.Trakx.Index = root + Config.Trakx.Index
 	Config.Database.Peer.Filename = root + Config.Database.Peer.Filename
 	Config.Database.Conn.Filename = root + Config.Database.Conn.Filename
-
-	if Config.Trakx.Prod {
-		Env = Prod
-	}
 }

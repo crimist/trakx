@@ -1,6 +1,7 @@
 package shared
 
 var (
+	// These should only be accessed with atomic
 	ExpvarConnects    int64
 	ExpvarConnectsOK  int64
 	ExpvarAnnounces   int64
@@ -15,7 +16,6 @@ var (
 )
 
 func initExpvar() {
-	// Might as well alloc capcity at start
 	ExpvarIPs = make(map[PeerIP]int8, 30000)
 
 	if PeerDB == nil {

@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"sync/atomic"
 
 	"github.com/syc0x00/trakx/bencoding"
 	"github.com/syc0x00/trakx/tracker/shared"
@@ -15,16 +16,16 @@ func writeErr(msg string, writer http.ResponseWriter) {
 }
 
 func clientError(msg string, writer http.ResponseWriter, fields ...zap.Field) {
-	shared.ExpvarClienterrs++
+	atomic.AddInt64(&shared.ExpvarClienterrs, 1)
 	writeErr(msg, writer)
-	if shared.Env == shared.Dev {
+	if !shared.Config.Trakx.Prod {
 		fields = append(fields, zap.String("msg", msg))
 		shared.Logger.Info("Client Error", fields...)
 	}
 }
 
 func internalError(errmsg string, err error, writer http.ResponseWriter) {
-	shared.ExpvarErrs++
+	atomic.AddInt64(&shared.ExpvarErrs, 1)
 	writeErr("internal server error", writer)
 	shared.Logger.Error(errmsg, zap.Error(err))
 }

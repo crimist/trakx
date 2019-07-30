@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"sync/atomic"
 	"time"
 
 	"github.com/syc0x00/trakx/tracker/shared"
@@ -30,7 +31,7 @@ func Expvar() {
 	announcesSecOK := expvar.NewInt("tracker.performance.announcesok")
 	errors := expvar.NewInt("tracker.performance.errors")
 	errorsSec := expvar.NewInt("tracker.performance.errorssec")
-	clineterrs := expvar.NewInt("tracker.performance.clienterrs")
+	clientErrors := expvar.NewInt("tracker.performance.clienterrs")
 	scrapesSec := expvar.NewInt("tracker.performance.scrapes")
 	scrapesSecOK := expvar.NewInt("tracker.performance.scrapesok")
 	connects := expvar.NewInt("tracker.performance.connects")
@@ -42,25 +43,37 @@ func Expvar() {
 	shared.RunOn(time.Duration(shared.Config.Trakx.Expvar.Every)*time.Second, func() {
 		uniqueIP.Set(int64(len(shared.ExpvarIPs)))
 		uniqueHash.Set(int64(len(shared.PeerDB)))
-		uniquePeer.Set(shared.ExpvarSeeds + shared.ExpvarLeeches)
-		seeds.Set(shared.ExpvarSeeds)
-		leeches.Set(shared.ExpvarLeeches)
-		announcesSec.Set(shared.ExpvarAnnounces)
-		shared.ExpvarAnnounces = 0
-		announcesSecOK.Set(shared.ExpvarAnnouncesOK)
-		shared.ExpvarAnnouncesOK = 0
-		scrapesSec.Set(shared.ExpvarScrapes)
-		shared.ExpvarScrapes = 0
-		scrapesSecOK.Set(shared.ExpvarScrapesOK)
-		shared.ExpvarScrapesOK = 0
-		clineterrs.Set(shared.ExpvarClienterrs)
-		shared.ExpvarClienterrs = 0
-		errors.Set(shared.ExpvarErrs)
-		errorsSec.Set(shared.ExpvarErrs - errsOld)
-		errsOld = shared.ExpvarErrs
-		connects.Set(shared.ExpvarConnects)
-		shared.ExpvarConnects = 0
-		connectsOK.Set(shared.ExpvarConnectsOK)
-		shared.ExpvarConnectsOK = 0
+
+		s := atomic.LoadInt64(&shared.ExpvarSeeds)
+		l := atomic.LoadInt64(&shared.ExpvarLeeches)
+		uniquePeer.Set(s + l)
+		seeds.Set(s)
+		leeches.Set(l)
+
+		announcesSec.Set(atomic.LoadInt64(&shared.ExpvarAnnounces))
+		atomic.StoreInt64(&shared.ExpvarAnnounces, 0)
+
+		announcesSecOK.Set(atomic.LoadInt64(&shared.ExpvarAnnouncesOK))
+		atomic.StoreInt64(&shared.ExpvarAnnouncesOK, 0)
+
+		scrapesSec.Set(atomic.LoadInt64(&shared.ExpvarScrapes))
+		atomic.StoreInt64(&shared.ExpvarScrapes, 0)
+
+		scrapesSecOK.Set(atomic.LoadInt64(&shared.ExpvarScrapesOK))
+		atomic.StoreInt64(&shared.ExpvarScrapesOK, 0)
+
+		clientErrors.Set(atomic.LoadInt64(&shared.ExpvarClienterrs))
+		atomic.StoreInt64(&shared.ExpvarClienterrs, 0)
+
+		e := atomic.LoadInt64(&shared.ExpvarErrs)
+		errors.Set(e)
+		errorsSec.Set(e - errsOld)
+		errsOld = e
+
+		connects.Set(atomic.LoadInt64(&shared.ExpvarConnects))
+		atomic.StoreInt64(&shared.ExpvarConnects, 0)
+
+		connectsOK.Set(atomic.LoadInt64(&shared.ExpvarConnectsOK))
+		atomic.StoreInt64(&shared.ExpvarConnectsOK, 0)
 	})
 }

@@ -11,14 +11,14 @@ import (
 	"go.uber.org/zap"
 )
 
-var connDB udpConnDB
+var connDB connectionDatabase
 
 type connID struct {
 	ID     int64
 	cached int64
 }
 
-type udpConnDB map[[4]byte]connID
+type connectionDatabase map[[4]byte]connID
 
 func WriteConnDB() {
 	buff := new(bytes.Buffer)
@@ -39,22 +39,22 @@ func loadConnDB() {
 	file, err := os.Open(shared.Config.Database.Conn.Filename)
 	if err != nil {
 		shared.Logger.Error("conndb open", zap.Error(err))
-		connDB = make(udpConnDB)
+		connDB = make(connectionDatabase)
 		return
 	}
 
 	decoder := gob.NewDecoder(file)
 	if err = decoder.Decode(&connDB); err != nil {
 		shared.Logger.Error("conndb decode", zap.Error(err))
-		connDB = make(udpConnDB)
+		connDB = make(connectionDatabase)
 		return
 	}
 
 	shared.Logger.Info("Loaded conndb", zap.Int("entries", len(connDB)))
 }
 
-func (db udpConnDB) add(id int64, addr [4]byte) {
-	if shared.Env == shared.Dev {
+func (db connectionDatabase) add(id int64, addr [4]byte) {
+	if !shared.Config.Trakx.Prod {
 		shared.Logger.Info("Add conndb",
 			zap.Int64("id", id),
 			zap.Any("addr", addr),
@@ -67,7 +67,7 @@ func (db udpConnDB) add(id int64, addr [4]byte) {
 	}
 }
 
-func (db udpConnDB) check(id int64, addr [4]byte) (dbID int64, ok bool) {
+func (db connectionDatabase) check(id int64, addr [4]byte) (dbID int64, ok bool) {
 	if id == db[addr].ID {
 		ok = true
 	} else {
@@ -76,13 +76,12 @@ func (db udpConnDB) check(id int64, addr [4]byte) (dbID int64, ok bool) {
 	return
 }
 
-// Spec says to only cache connIDs for 2min but realistically ips changing for ddos is unlikely so
-// by default the timeout is 24h
-func (db *udpConnDB) trim() {
+// Spec says to only cache connIDs for 2min but realistically ips changing for ddos is unlikely so higher can be used
+func (db *connectionDatabase) trim() {
 	trimmed := 0
 	now := time.Now().Unix()
-	for key, cID := range connDB {
-		if now-cID.cached > shared.Config.Database.Conn.Timeout { // read note
+	for key, conn := range connDB {
+		if now-conn.cached > shared.Config.Database.Conn.Timeout {
 			delete(connDB, key)
 			trimmed++
 		}

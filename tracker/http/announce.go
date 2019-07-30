@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/syc0x00/trakx/bencoding"
@@ -27,7 +28,7 @@ func (a *announce) SetPeer(postIP, port, event, left string) bool {
 	var err error
 	var parsedIP net.IP
 
-	if shared.Env == shared.Dev && postIP != "" {
+	if !shared.Config.Trakx.Prod && postIP != "" {
 		parsedIP = net.ParseIP(postIP).To4()
 	} else {
 		ipStr, _, _ := net.SplitHostPort(a.req.RemoteAddr)
@@ -106,7 +107,7 @@ func (a *announce) SetNopeerid(nopeerid string) {
 
 // AnnounceHandle processes an announce http request
 func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
-	shared.ExpvarAnnounces++
+	atomic.AddInt64(&shared.ExpvarAnnounces, 1)
 	query := r.URL.Query()
 
 	event := query.Get("event")
@@ -130,13 +131,13 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// If the peer stopped delete() them and exit
 	if event == "stopped" {
-		a.peer.Delete(a.infohash, a.peerid)
-		shared.ExpvarAnnouncesOK++
+		shared.PeerDB.Delete(&a.peer, a.infohash, a.peerid)
+		atomic.AddInt64(&shared.ExpvarAnnouncesOK, 1)
 		w.Write([]byte(shared.Config.Tracker.StoppedMsg))
 		return
 	}
 
-	a.peer.Save(a.infohash, a.peerid)
+	shared.PeerDB.Save(&a.peer, a.infohash, a.peerid)
 
 	complete, incomplete := a.infohash.Complete()
 
@@ -155,6 +156,6 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 		d.Add("peers", peerList)
 	}
 
-	shared.ExpvarAnnouncesOK++
+	atomic.AddInt64(&shared.ExpvarAnnouncesOK, 1)
 	w.Write([]byte(d.Get()))
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"net"
+	"sync/atomic"
 
 	"github.com/syc0x00/trakx/tracker/shared"
 )
@@ -49,7 +50,7 @@ func (sr *scrapeResp) marshall() ([]byte, error) {
 }
 
 func (u *udpTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
-	shared.ExpvarScrapes++
+	atomic.AddInt64(&shared.ExpvarScrapes, 1)
 
 	if len(scrape.InfoHash) > 74 {
 		u.conn.WriteToUDP(newClientError("74 hashes max", scrape.Base.TransactionID), remote)
@@ -83,6 +84,6 @@ func (u *udpTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
 	}
 
 	u.conn.WriteToUDP(respBytes, remote)
-	shared.ExpvarScrapesOK++
+	atomic.AddInt64(&shared.ExpvarScrapesOK, 1)
 	return
 }

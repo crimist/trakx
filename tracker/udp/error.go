@@ -3,6 +3,7 @@ package udp
 import (
 	"bytes"
 	"encoding/binary"
+	"sync/atomic"
 
 	"github.com/syc0x00/trakx/tracker/shared"
 	"go.uber.org/zap"
@@ -29,9 +30,9 @@ func (e *udperror) marshall() ([]byte, error) {
 }
 
 func newClientError(msg string, TransactionID int32, fields ...zap.Field) []byte {
-	shared.ExpvarClienterrs++
+	atomic.AddInt64(&shared.ExpvarClienterrs, 1)
 
-	if shared.Env == shared.Dev {
+	if !shared.Config.Trakx.Prod {
 		fields = append(fields, zap.String("msg", msg))
 		shared.Logger.Info("Client Err", fields...)
 	}
@@ -50,7 +51,7 @@ func newClientError(msg string, TransactionID int32, fields ...zap.Field) []byte
 }
 
 func newServerError(msg string, err error, TransactionID int32) []byte {
-	shared.ExpvarErrs++
+	atomic.AddInt64(&shared.ExpvarErrs, 1)
 
 	e := udperror{
 		Action:        3,

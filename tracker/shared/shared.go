@@ -7,10 +7,6 @@ import (
 )
 
 func Init() error {
-	// temp logger
-	if err := setLogger(false); err != nil {
-		return err
-	}
 	LoadConfig()
 
 	// get logger based on config

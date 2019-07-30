@@ -83,7 +83,7 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 
 	if dbID, ok := connDB.check(base.ConnectionID, addr); !ok && shared.Config.Tracker.UDP.CheckConnID {
 		u.conn.WriteToUDP(newClientError("bad connid", base.TransactionID), remote)
-		if shared.Env == shared.Dev {
+		if !shared.Config.Trakx.Prod {
 			shared.Logger.Info("Bad connid", zap.Int64("dbID", dbID), zap.Int64("clientID", base.ConnectionID), zap.Reflect("ip", ip))
 		}
 		return

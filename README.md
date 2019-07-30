@@ -4,6 +4,8 @@ Efficient bittorrent tracker written in go.
 
 ## Install
 
+Requires Go 1.12+
+
 * `go get -v github.com/syc0x00/trakx`
 
 ## Setup
