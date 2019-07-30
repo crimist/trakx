@@ -14,7 +14,7 @@ type Hash [20]byte
 
 // Complete returns number of complete and incomplete peers associated with the hash
 func (h *Hash) Complete() (complete, incomplete int32) {
-	peerMap, _ := PeerDB[*h]
+	peerMap, _ := PeerDB.db[*h]
 
 	for _, peer := range peerMap {
 		if peer.Complete == true {
@@ -29,7 +29,7 @@ func (h *Hash) Complete() (complete, incomplete int32) {
 
 // PeerList returns the peerlist bencoded
 func (h *Hash) PeerList(num int, noPeerID bool) []string {
-	peerMap, _ := PeerDB[*h]
+	peerMap, _ := PeerDB.db[*h]
 	if num > len(peerMap) {
 		num = len(peerMap)
 	}
@@ -56,7 +56,7 @@ func (h *Hash) PeerList(num int, noPeerID bool) []string {
 
 // PeerListBytes returns the peer list byte encoded
 func (h *Hash) PeerListBytes(num int) []byte {
-	peerMap, _ := PeerDB[*h]
+	peerMap, _ := PeerDB.db[*h]
 	if num > len(peerMap) {
 		num = len(peerMap)
 	}

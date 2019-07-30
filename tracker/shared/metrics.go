@@ -18,7 +18,8 @@ func processMetrics() {
 
 	stats := make(map[string]int, 300)
 
-	for _, peermap := range PeerDB {
+	PeerDB.mu.Lock()
+	for _, peermap := range PeerDB.db {
 		for peerid := range peermap {
 			if peerid[0] == '-' {
 				stats[getAzureus(string(peerid[1:7]))]++
@@ -34,6 +35,7 @@ func processMetrics() {
 			*/
 		}
 	}
+	PeerDB.mu.Unlock()
 
 	// Get keys in alpha order
 	keys := make([]string, len(stats))

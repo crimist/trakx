@@ -18,11 +18,11 @@ var (
 func initExpvar() {
 	ExpvarIPs = make(map[PeerIP]int8, 30000)
 
-	if PeerDB == nil {
+	if PeerDB.db == nil {
 		panic("peerDB not init before expvars")
 	}
 
-	for _, peermap := range PeerDB {
+	for _, peermap := range PeerDB.db {
 		for _, peer := range peermap {
 			ExpvarIPs[peer.IP]++
 			if peer.Complete == true {
