@@ -95,7 +95,7 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	}
 
 	if announce.Event == stopped {
-		shared.PeerDB.Drop(&peer, announce.InfoHash, announce.PeerID)
+		shared.PeerDB.Drop(&peer, &announce.InfoHash, &announce.PeerID)
 
 		atomic.AddInt64(&shared.ExpvarAnnouncesOK, 1)
 		if shared.Config.Tracker.StoppedMsg != "" {
@@ -104,9 +104,9 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		return
 	}
 
-	shared.PeerDB.Save(&peer, announce.InfoHash, announce.PeerID)
+	shared.PeerDB.Save(&peer, &announce.InfoHash, &announce.PeerID)
 
-	complete, incomplete := announce.InfoHash.Complete()
+	complete, incomplete := shared.PeerDB.HashStats(&announce.InfoHash)
 
 	resp := announceResp{
 		Action:        1,
@@ -114,7 +114,7 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		Interval:      shared.Config.Tracker.AnnounceInterval,
 		Leechers:      incomplete,
 		Seeders:       complete,
-		Peers:         announce.InfoHash.PeerListBytes(int(announce.NumWant)),
+		Peers:         shared.PeerDB.PeerListBytes(&announce.InfoHash, int(announce.NumWant)),
 	}
 	respBytes, err := resp.marshall()
 	if err != nil {

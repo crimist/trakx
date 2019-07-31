@@ -12,10 +12,15 @@ import (
 // Hash is the infohash of a torrent
 type Hash [20]byte
 
-// Complete returns number of complete and incomplete peers associated with the hash
-func (h *Hash) Complete() (complete, incomplete int32) {
-	peerMap, _ := PeerDB.db[*h]
+// Hashes gets the number of hashes
+func (db *PeerDatabase) Hashes() int {
+	return len(db.db)
+}
 
+// HashStats returns number of complete and incomplete peers associated with the hash
+func (db *PeerDatabase) HashStats(h *Hash) (complete, incomplete int32) {
+	db.mu.RLock()
+	peerMap, _ := db.db[*h]
 	for _, peer := range peerMap {
 		if peer.Complete == true {
 			complete++
@@ -23,13 +28,15 @@ func (h *Hash) Complete() (complete, incomplete int32) {
 			incomplete++
 		}
 	}
+	db.mu.RUnlock()
 
 	return complete, incomplete
 }
 
-// PeerList returns the peerlist bencoded
-func (h *Hash) PeerList(num int, noPeerID bool) []string {
-	peerMap, _ := PeerDB.db[*h]
+// PeerList returns a peer list for the given hash capped at num
+func (db *PeerDatabase) PeerList(h *Hash, num int, noPeerID bool) []string {
+	db.mu.RLock()
+	peerMap, _ := db.db[*h]
 	if num > len(peerMap) {
 		num = len(peerMap)
 	}
@@ -50,12 +57,14 @@ func (h *Hash) PeerList(num int, noPeerID bool) []string {
 		peerList[i] = dict.Get()
 		i++
 	}
+	db.mu.RUnlock()
 
 	return peerList
 }
 
-// PeerListBytes returns the peer list byte encoded
-func (h *Hash) PeerListBytes(num int) []byte {
+// PeerListBytes returns a byte encoded peer list for the given hash capped at num
+func (db *PeerDatabase) PeerListBytes(h *Hash, num int) []byte {
+	db.mu.RLock()
 	peerMap, _ := PeerDB.db[*h]
 	if num > len(peerMap) {
 		num = len(peerMap)
@@ -73,6 +82,7 @@ func (h *Hash) PeerListBytes(num int) []byte {
 		binary.Write(writer, binary.BigEndian, peer.Port)
 		num--
 	}
+	db.mu.RUnlock()
 
 	writer.Flush()
 	return peerList.Bytes()

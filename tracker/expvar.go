@@ -40,7 +40,9 @@ func publishExpvar() {
 	go http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", shared.Config.Trakx.Expvar.Port), nil)
 
 	shared.RunOn(time.Duration(shared.Config.Trakx.Expvar.Every)*time.Second, func() {
+		shared.ExpvarIPs.Lock()
 		uniqueIP.Set(int64(len(shared.ExpvarIPs.M)))
+		shared.ExpvarIPs.Unlock()
 		uniqueHash.Set(int64(shared.PeerDB.Hashes()))
 
 		s := atomic.LoadInt64(&shared.ExpvarSeeds)

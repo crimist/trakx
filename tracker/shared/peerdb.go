@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -24,121 +23,30 @@ func (db *PeerDatabase) check() (ok bool) {
 	return
 }
 
-// Hashes gets the number of hashes
-func (db *PeerDatabase) Hashes() int {
-	return len(db.db)
-}
-
-// Save creates or updates peer
-func (db *PeerDatabase) Save(p *Peer, h Hash, id PeerID) {
-	if !Config.Trakx.Prod {
-		Logger.Info("Save",
-			zap.Any("hash", h),
-			zap.Any("peerid", id),
-			zap.Any("Peer", p),
-		)
-	}
-
-	db.mu.Lock()
-
-	// Create map if it doesn't exist
-	if _, ok := db.db[h]; !ok {
-		db.db[h] = make(map[PeerID]Peer)
-		if !Config.Trakx.Prod {
-			Logger.Info("Created hash map", zap.Any("hash", h[:]))
-		}
-	}
-
-	dbPeer, ok := db.db[h][id]
-	if ok { // Already in db
-		if dbPeer.Complete == false && p.Complete == true { // They completed
-			atomic.AddInt64(&ExpvarLeeches, -1)
-			atomic.AddInt64(&ExpvarSeeds, 1)
-		}
-		if dbPeer.Complete == true && p.Complete == false { // They uncompleted?
-			atomic.AddInt64(&ExpvarSeeds, -1)
-			atomic.AddInt64(&ExpvarLeeches, 1)
-		}
-		if dbPeer.IP != p.IP { // IP changed
-			ExpvarIPs.Lock()
-			delete(ExpvarIPs.M, dbPeer.IP)
-			ExpvarIPs.M[p.IP]++
-			ExpvarIPs.Unlock()
-		}
-	} else { // New
-		ExpvarIPs.Lock()
-		ExpvarIPs.M[p.IP]++
-		ExpvarIPs.Unlock()
-		if p.Complete {
-			atomic.AddInt64(&ExpvarSeeds, 1)
-		} else {
-			atomic.AddInt64(&ExpvarLeeches, 1)
-		}
-	}
-
-	db.db[h][id] = *p
-	db.mu.Unlock()
-}
-
-// Drop deletes peer
-func (db *PeerDatabase) Drop(p *Peer, h Hash, id PeerID) {
-	if !Config.Trakx.Prod {
-		Logger.Info("Drop",
-			zap.Any("hash", h),
-			zap.Any("peerid", id),
-			zap.Any("Peer", p),
-		)
-	}
-
-	db.mu.Lock()
-
-	if peer, ok := db.db[h][id]; ok {
-		if peer.Complete {
-			atomic.AddInt64(&ExpvarSeeds, -1)
-		} else {
-			atomic.AddInt64(&ExpvarLeeches, -1)
-		}
-	}
-
-	ExpvarIPs.Lock()
-	ExpvarIPs.M[p.IP]--
-	if ExpvarIPs.M[p.IP] < 1 {
-		delete(ExpvarIPs.M, p.IP)
-	}
-	ExpvarIPs.Unlock()
-
-	delete(db.db[h], id)
-	db.mu.Unlock()
-}
-
-// Delete deletes a hash
-func (db *PeerDatabase) delete(h Hash) {
-	db.mu.Lock()
-	delete(db.db, h)
-	db.mu.Unlock()
-}
-
 // Trim removes all peers that haven't checked in since timeout
 func (db *PeerDatabase) Trim() {
+	start := time.Now()
+	Logger.Info("Trimming database")
 	var peers, hashes int
 	now := time.Now().Unix()
 
-	db.mu.RLock()
+	db.mu.Lock()
 	for hash, peermap := range db.db {
 		for id, peer := range peermap {
 			if now-peer.LastSeen > Config.Database.Peer.Timeout {
-				db.Drop(&peer, hash, id)
+				db.deletePeer(&peer, &hash, &id)
+				db.deleteIP(peer.IP)
 				peers++
 			}
 		}
 		if len(peermap) == 0 {
-			db.delete(hash)
+			delete(db.db, hash)
 			hashes++
 		}
 	}
-	db.mu.RUnlock()
+	db.mu.Unlock()
 
-	Logger.Info("Trimmed PeerDatabase", zap.Int("peers", peers), zap.Int("hashes", hashes))
+	Logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
 }
 
 func (db *PeerDatabase) load(filename string) error {
@@ -228,12 +136,17 @@ func (db *PeerDatabase) write(temp bool) {
 		db.Trim()
 	}
 
-	if err := encoder.Encode(&PeerDB.db); err != nil {
+	db.mu.RLock()
+	err := encoder.Encode(&PeerDB.db)
+	db.mu.RUnlock()
+	if err != nil {
 		Logger.Error("peerdb gob encoder", zap.Error(err))
+		return
 	}
 
 	if err := ioutil.WriteFile(filename, buff.Bytes(), 0644); err != nil {
 		Logger.Error("peerdb writefile", zap.Error(err))
+		return
 	}
 
 	Logger.Info("Wrote PeerDatabase", zap.String("filename", filename), zap.Int("hashes", PeerDB.Hashes()))
@@ -244,7 +157,7 @@ func (db *PeerDatabase) WriteTmp() {
 	db.write(true)
 }
 
-// WriteFull writes	 the database to file
+// WriteFull writes the database to file
 func (db *PeerDatabase) WriteFull() {
 	db.write(false)
 }
