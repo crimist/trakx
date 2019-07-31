@@ -25,6 +25,8 @@ type connectionDatabase struct {
 }
 
 func (db *connectionDatabase) conns() int {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
 	return len(db.db)
 }
 

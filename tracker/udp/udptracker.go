@@ -15,6 +15,11 @@ type udpTracker struct {
 	avgResp time.Time
 }
 
+// GetConnCount get the number of connections in the database
+func GetConnCount() int {
+	return connDB.conns()
+}
+
 // WriteConns writes the connection database to file
 func WriteConns() {
 	connDB.write()

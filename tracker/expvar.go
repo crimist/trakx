@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/udp"
 )
 
 func publishExpvar() {
@@ -24,6 +25,9 @@ func publishExpvar() {
 	uniquePeer := expvar.NewInt("tracker.stats.peers")
 	seeds := expvar.NewInt("tracker.stats.seeds")
 	leeches := expvar.NewInt("tracker.stats.leeches")
+
+	// database
+	conns := expvar.NewInt("trakx.database.connections")
 
 	// Performance
 	announcesSec := expvar.NewInt("tracker.performance.announces")
@@ -50,6 +54,9 @@ func publishExpvar() {
 		uniquePeer.Set(s + l)
 		seeds.Set(s)
 		leeches.Set(l)
+
+		// database
+		conns.Set(int64(udp.GetConnCount()))
 
 		announcesSec.Set(atomic.LoadInt64(&shared.ExpvarAnnounces))
 		atomic.StoreInt64(&shared.ExpvarAnnounces, 0)
