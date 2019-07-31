@@ -105,7 +105,6 @@ func (a *announce) SetNopeerid(nopeerid string) {
 	}
 }
 
-// AnnounceHandle processes an announce http request
 func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	atomic.AddInt64(&shared.ExpvarAnnounces, 1)
 	query := r.URL.Query()

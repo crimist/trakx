@@ -14,14 +14,13 @@ import (
 
 // Run runs the tracker
 func Run() {
-	// Init shared stuff
 	if err := shared.Init(); err != nil {
 		panic(err)
 	}
 
 	go handleSigs()
 	if shared.Config.Trakx.Expvar.Enabled {
-		go Expvar()
+		go publishExpvar()
 	}
 
 	// HTTP tracker / routes

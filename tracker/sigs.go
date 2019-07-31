@@ -27,7 +27,7 @@ func handleSigs() {
 			shared.Logger.Info("Exiting")
 
 			shared.PeerDB.WriteFull()
-			udptracker.WriteConnDB()
+			udptracker.WriteConns()
 			os.Exit(128 + int(sig.(syscall.Signal)))
 		case syscall.SIGUSR1:
 			shared.Logger.Info("Reloading config (not all setting will apply until restart)")

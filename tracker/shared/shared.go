@@ -7,11 +7,18 @@ import (
 )
 
 func Init() error {
+	var cfg zap.Config
+	var err error
+
 	LoadConfig()
 
-	// get logger based on config
-	if err := setLogger(Config.Trakx.Prod); err != nil {
-		return err
+	if Config.Trakx.Prod {
+		cfg = zap.NewProductionConfig()
+	} else {
+		cfg = zap.NewDevelopmentConfig()
+	}
+	if Logger, err = cfg.Build(); err != nil {
+		panic(err)
 	}
 
 	PeerDB.Load()
@@ -26,17 +33,4 @@ func Init() error {
 	}
 
 	return nil
-}
-
-func setLogger(prod bool) error {
-	var err error
-	var cfg zap.Config
-
-	if prod == true {
-		cfg = zap.NewProductionConfig()
-	} else {
-		cfg = zap.NewDevelopmentConfig()
-	}
-	Logger, err = cfg.Build()
-	return err
 }

@@ -346,7 +346,7 @@ func TestUDPAnnounce(t *testing.T) {
 	if ar.Peers[0].Port != 1337 {
 		t.Error("Invalid peer port should be 1337 but got", ar.Peers[0].Port)
 	}
-	ip := utils.Int2IP(ar.Peers[0].IP)
+	ip := utils.IntToIP(ar.Peers[0].IP)
 	ipstr := fmt.Sprintf("%d.%d.%d.%d", ar.Peers[0].IP>>24, uint16(ar.Peers[0].IP)>>16, uint16(ar.Peers[0].IP)>>8, byte(ar.Peers[0].IP))
 	if bytes.Compare(ip, net.IPv4(127, 0, 0, 1)) == 0 {
 		t.Error("Invalid peer ip should be 127.0.0.1 but got", ip)

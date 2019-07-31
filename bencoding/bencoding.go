@@ -8,18 +8,15 @@ import (
 	"strings"
 )
 
-// String encodes a string
-func String(str string) string {
+func str(str string) string {
 	return fmt.Sprintf("%d:%s", len(str), str)
 }
 
-// Integer encodes an int
-func Integer(num int) string {
+func integer(num interface{}) string {
 	return fmt.Sprintf("i%de", num)
 }
 
-// List encodes multiple strings into a list
-func List(list ...string) string {
+func list(list ...string) string {
 	encoded := "l"
 	for _, str := range list {
 		encoded += fmt.Sprintf("%d:%s", len(str), str)
@@ -28,25 +25,24 @@ func List(list ...string) string {
 	return encoded
 }
 
-// Dictionary encodes a dict
-func Dictionary(dict ...string) string {
+func dict(dict ...string) string {
 	encoded := "d"
 	for _, part := range dict {
 		parts := strings.Split(part, " ")
 		// parts[0] key
 		// parts[1] value
-		encoded += String(parts[0]) // Add the key
+		encoded += str(parts[0]) // Add the key
 
 		if len(parts) > 2 { // its a list
 			// remove index since weve already added it
 			parts = append(parts[:0], parts[0+1:]...)
-			encoded += List(parts...)
+			encoded += list(parts...)
 		} else { // string or int
 			valInt, err := strconv.Atoi(parts[1])
 			if err != nil {
-				encoded += Integer(valInt)
+				encoded += integer(valInt)
 			} else {
-				encoded += String(parts[1])
+				encoded += str(parts[1])
 			}
 		}
 	}
@@ -54,12 +50,13 @@ func Dictionary(dict ...string) string {
 	return encoded
 }
 
-// Dict x
 type Dict struct {
 	encoded string
+
+	finished bool
 }
 
-// NewDict x
+// NewDict creates a new dictionary
 func NewDict() Dict {
 	dict := Dict{}
 	dict.encoded += "d"
@@ -68,20 +65,25 @@ func NewDict() Dict {
 
 // Add x
 func (d *Dict) Add(key string, v interface{}) error {
-	d.encoded += String(key) // Add the key
+	if d.finished {
+		return errors.New("Add after Get")
+	}
+
+	// Add the key
+	d.encoded += str(key)
 
 	switch v := v.(type) {
 	case string:
-		d.encoded += String(v)
+		d.encoded += str(v)
 	case []byte:
-		d.encoded += String(string(v))
+		d.encoded += str(string(v))
 	case []string:
 		r := reflect.ValueOf(v)
 		slice := make([]string, r.Len())
 		for i := 0; i < r.Len(); i++ {
 			slice[i] = r.Index(i).String()
 		}
-		d.encoded += List(slice...)
+		d.encoded += list(slice...)
 	case map[string]interface{}:
 		dict := NewDict()
 		for k, v := range v {
@@ -101,9 +103,9 @@ func (d *Dict) Add(key string, v interface{}) error {
 		}
 		d.encoded += dict.Get()
 	case int, int8, int16, int32, int64:
-		d.encoded += Integer(int(reflect.ValueOf(v).Int()))
+		d.encoded += integer(v)
 	case uint, uint8, uint16, uint32, uint64:
-		d.encoded += Integer(int(reflect.ValueOf(v).Uint()))
+		d.encoded += integer(v)
 	default:
 		return errors.New("Invalid type")
 	}
@@ -113,6 +115,9 @@ func (d *Dict) Add(key string, v interface{}) error {
 
 // Get ends the dicts and returns it as a string
 func (d *Dict) Get() string {
-	d.encoded += "e"
+	if !d.finished {
+		d.encoded += "e"
+		d.finished = true
+	}
 	return d.encoded
 }

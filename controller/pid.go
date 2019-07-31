@@ -15,7 +15,7 @@ type pID struct {
 	perms os.FileMode
 }
 
-func NewpID(path string, perms os.FileMode) *pID {
+func newpID(path string, perms os.FileMode) *pID {
 	p := &pID{}
 	p.path = path
 	p.perms = perms
@@ -23,8 +23,8 @@ func NewpID(path string, perms os.FileMode) *pID {
 	return p
 }
 
-// Read gets the pid. Returns -1 if there's no pid.
-func (p *pID) Read() (int, error) {
+// read gets the pid. Returns -1 if there's no pid.
+func (p *pID) read() (int, error) {
 	data, err := ioutil.ReadFile(p.path)
 	if os.IsNotExist(err) || string(data) == "" {
 		return trakxNotRunning, nil
@@ -38,11 +38,11 @@ func (p *pID) Read() (int, error) {
 	return pid, nil
 }
 
-func (p *pID) Write(pid int) error {
+func (p *pID) write(pid int) error {
 	return ioutil.WriteFile(p.path, []byte(fmt.Sprintf("%d", pid)), p.perms)
 }
 
-func (p *pID) Clear() error {
+func (p *pID) clear() error {
 	file, err := os.OpenFile(p.path, os.O_CREATE|os.O_RDWR, p.perms)
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func (p *pID) Clear() error {
 }
 
 func (p *pID) Process() (*os.Process, error) {
-	pid, err := p.Read()
+	pid, err := p.read()
 	if err != nil {
 		return nil, err
 	} else if pid == trakxNotRunning {

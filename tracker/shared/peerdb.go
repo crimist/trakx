@@ -13,11 +13,19 @@ import (
 )
 
 type PeerDatabase struct {
-	mu sync.Mutex
+	mu sync.RWMutex
 	db map[Hash]map[PeerID]Peer
 }
 
-func (db *PeerDatabase) Len() int {
+func (db *PeerDatabase) check() (ok bool) {
+	if db.db != nil {
+		ok = true
+	}
+	return
+}
+
+// Hashes gets the number of hashes
+func (db *PeerDatabase) Hashes() int {
 	return len(db.db)
 }
 
@@ -52,11 +60,15 @@ func (db *PeerDatabase) Save(p *Peer, h Hash, id PeerID) {
 			atomic.AddInt64(&ExpvarLeeches, 1)
 		}
 		if dbPeer.IP != p.IP { // IP changed
-			delete(ExpvarIPs, dbPeer.IP)
-			ExpvarIPs[p.IP]++
+			ExpvarIPs.Lock()
+			delete(ExpvarIPs.M, dbPeer.IP)
+			ExpvarIPs.M[p.IP]++
+			ExpvarIPs.Unlock()
 		}
 	} else { // New
-		ExpvarIPs[p.IP]++
+		ExpvarIPs.Lock()
+		ExpvarIPs.M[p.IP]++
+		ExpvarIPs.Unlock()
 		if p.Complete {
 			atomic.AddInt64(&ExpvarSeeds, 1)
 		} else {
@@ -88,10 +100,12 @@ func (db *PeerDatabase) Drop(p *Peer, h Hash, id PeerID) {
 		}
 	}
 
-	ExpvarIPs[p.IP]--
-	if ExpvarIPs[p.IP] < 1 {
-		delete(ExpvarIPs, p.IP)
+	ExpvarIPs.Lock()
+	ExpvarIPs.M[p.IP]--
+	if ExpvarIPs.M[p.IP] < 1 {
+		delete(ExpvarIPs.M, p.IP)
 	}
+	ExpvarIPs.Unlock()
 
 	delete(db.db[h], id)
 	db.mu.Unlock()
@@ -109,6 +123,7 @@ func (db *PeerDatabase) Trim() {
 	var peers, hashes int
 	now := time.Now().Unix()
 
+	db.mu.RLock()
 	for hash, peermap := range db.db {
 		for id, peer := range peermap {
 			if now-peer.LastSeen > Config.Database.Peer.Timeout {
@@ -121,6 +136,7 @@ func (db *PeerDatabase) Trim() {
 			hashes++
 		}
 	}
+	db.mu.RUnlock()
 
 	Logger.Info("Trimmed PeerDatabase", zap.Int("peers", peers), zap.Int("hashes", hashes))
 }
@@ -132,7 +148,7 @@ func (db *PeerDatabase) load(filename string) error {
 	}
 
 	decoder := gob.NewDecoder(file)
-	return decoder.Decode(&PeerDB)
+	return decoder.Decode(&PeerDB.db)
 }
 
 // Load loads a database into memory
@@ -199,39 +215,36 @@ func (db *PeerDatabase) Load() {
 		}
 	}
 
-	Logger.Info("Loaded peerdb", zap.String("type", loaded), zap.Int("hashes", PeerDB.Len()))
+	Logger.Info("Loaded peerdb", zap.String("type", loaded), zap.Int("hashes", PeerDB.Hashes()))
 }
 
-// WriteTmp dumps the database to the tmp file
+func (db *PeerDatabase) write(temp bool) {
+	buff := new(bytes.Buffer)
+	encoder := gob.NewEncoder(buff)
+	filename := Config.Database.Peer.Filename
+	if temp {
+		filename += ".tmp"
+	} else {
+		db.Trim()
+	}
+
+	if err := encoder.Encode(&PeerDB.db); err != nil {
+		Logger.Error("peerdb gob encoder", zap.Error(err))
+	}
+
+	if err := ioutil.WriteFile(filename, buff.Bytes(), 0644); err != nil {
+		Logger.Error("peerdb writefile", zap.Error(err))
+	}
+
+	Logger.Info("Wrote PeerDatabase", zap.String("filename", filename), zap.Int("hashes", PeerDB.Hashes()))
+}
+
+// WriteTmp writes the database to tmp file
 func (db *PeerDatabase) WriteTmp() {
-	buff := new(bytes.Buffer)
-	encoder := gob.NewEncoder(buff)
-
-	if err := encoder.Encode(&PeerDB); err != nil {
-		Logger.Error("peerdb gob encoder", zap.Error(err))
-	}
-
-	if err := ioutil.WriteFile(Config.Database.Peer.Filename+".tmp", buff.Bytes(), 0644); err != nil {
-		Logger.Error("peerdb writefile", zap.Error(err))
-	}
-
-	Logger.Info("Wrote temp peerdb", zap.Int("hashes", PeerDB.Len()))
+	db.write(true)
 }
 
-// WriteFull dumps the database to the db file
+// WriteFull writes	 the database to file
 func (db *PeerDatabase) WriteFull() {
-	buff := new(bytes.Buffer)
-	encoder := gob.NewEncoder(buff)
-
-	db.Trim() // trim to remove nil refs
-
-	if err := encoder.Encode(&PeerDB); err != nil {
-		Logger.Error("peerdb gob encoder", zap.Error(err))
-	}
-
-	if err := ioutil.WriteFile(Config.Database.Peer.Filename, buff.Bytes(), 0644); err != nil {
-		Logger.Error("peerdb writefile", zap.Error(err))
-	}
-
-	Logger.Info("Wrote full peerdb", zap.Int("hashes", PeerDB.Len()))
+	db.write(false)
 }

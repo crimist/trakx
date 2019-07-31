@@ -19,7 +19,7 @@ type Controller struct {
 	logPath   string
 }
 
-// Creates controller with root at given dir
+// NewController creates a controller with root at given dir
 func NewController(root string, perms os.FileMode) (*Controller, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -28,7 +28,7 @@ func NewController(root string, perms os.FileMode) (*Controller, error) {
 	root = strings.Replace(root, "~", home, 1)
 
 	c := &Controller{}
-	c.pID = NewpID(root+"trakx.pid", perms)
+	c.pID = newpID(root+"trakx.pid", perms)
 	c.logPath = root + "trakx.log"
 
 	oldMask := syscall.Umask(0)
@@ -40,10 +40,12 @@ func NewController(root string, perms os.FileMode) (*Controller, error) {
 	return c, nil
 }
 
+// Run runs trakx
 func (c *Controller) Run() {
 	tracker.Run()
 }
 
+// Start starts trakx as a service
 func (c *Controller) Start() error {
 	if c.IsRunning() {
 		return errors.New("Trakx is already running")
@@ -62,9 +64,10 @@ func (c *Controller) Start() error {
 		return err
 	}
 
-	return c.pID.Write(cmd.Process.Pid)
+	return c.pID.write(cmd.Process.Pid)
 }
 
+// Stop stops the trakx service
 func (c *Controller) Stop() error {
 	process, err := c.pID.Process()
 	if err != nil {
@@ -77,7 +80,7 @@ func (c *Controller) Stop() error {
 		return err
 	}
 
-	pid, err := c.pID.Read()
+	pid, err := c.pID.read()
 	if err != nil {
 		return err
 	}
@@ -94,13 +97,15 @@ func (c *Controller) Stop() error {
 		return err
 	}
 
-	return c.pID.Clear()
+	return c.pID.clear()
 }
 
+// Wipe clears the trakx pid file
 func (c *Controller) Wipe() error {
-	return c.pID.Clear()
+	return c.pID.clear()
 }
 
+// Reload sends the reload config signal to trakx
 func (c *Controller) Reload() error {
 	process, err := c.pID.Process()
 	if err != nil {
@@ -113,6 +118,7 @@ func (c *Controller) Reload() error {
 	return process.Release()
 }
 
+// IsRunning checks if trakx is running using bind
 func (c *Controller) IsRunning() (running bool) {
 	if conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: 1337, Zone: ""}); err != nil {
 		if strings.Contains(err.Error(), "address already in use") {

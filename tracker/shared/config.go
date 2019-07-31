@@ -56,7 +56,7 @@ var (
 	}
 )
 
-// LoadConfig loads the yaml config at this projects root
+// LoadConfig loads the yaml config at the projects root
 func LoadConfig() {
 	root, err := os.UserHomeDir()
 	if err != nil {
