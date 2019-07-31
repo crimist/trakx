@@ -73,6 +73,9 @@ func (db *connectionDatabase) trim() {
 }
 
 func (db *connectionDatabase) write() {
+	shared.Logger.Info("Writing connection database")
+
+	start := time.Now()
 	buff := new(bytes.Buffer)
 	encoder := gob.NewEncoder(buff)
 
@@ -87,10 +90,13 @@ func (db *connectionDatabase) write() {
 		shared.Logger.Error("conndb writefile", zap.Error(err))
 	}
 
-	shared.Logger.Info("Wrote conndb", zap.Int("conns", db.conns()))
+	shared.Logger.Info("Wrote connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
 }
 
 func (db *connectionDatabase) load() {
+	shared.Logger.Info("Loading connection database")
+	start := time.Now()
+
 	file, err := os.Open(shared.Config.Database.Conn.Filename)
 	if err != nil {
 		shared.Logger.Error("conndb open", zap.Error(err))
@@ -108,5 +114,5 @@ func (db *connectionDatabase) load() {
 		return
 	}
 
-	shared.Logger.Info("Loaded conndb", zap.Int("conns", db.conns()))
+	shared.Logger.Info("Loaded connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
 }

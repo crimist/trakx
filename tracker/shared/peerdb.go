@@ -62,6 +62,8 @@ func (db *PeerDatabase) load(filename string) error {
 
 // Load loads a database into memory
 func (db *PeerDatabase) Load() {
+	Logger.Info("Loading database")
+	start := time.Now()
 	loadtemp := false
 
 	infoFull, err := os.Stat(Config.Database.Peer.Filename)
@@ -124,7 +126,7 @@ func (db *PeerDatabase) Load() {
 		}
 	}
 
-	Logger.Info("Loaded peerdb", zap.String("type", loaded), zap.Int("hashes", PeerDB.Hashes()))
+	Logger.Info("Loaded database", zap.String("type", loaded), zap.Int("hashes", PeerDB.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 }
 
 func (db *PeerDatabase) write(temp bool) {
