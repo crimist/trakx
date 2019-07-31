@@ -25,8 +25,9 @@ func (db *PeerDatabase) check() (ok bool) {
 
 // Trim removes all peers that haven't checked in since timeout
 func (db *PeerDatabase) Trim() {
-	start := time.Now()
 	Logger.Info("Trimming database")
+
+	start := time.Now()
 	var peers, hashes int
 	now := time.Now().Unix()
 
@@ -127,6 +128,9 @@ func (db *PeerDatabase) Load() {
 }
 
 func (db *PeerDatabase) write(temp bool) {
+	Logger.Info("Writing database")
+
+	start := time.Now()
 	buff := new(bytes.Buffer)
 	encoder := gob.NewEncoder(buff)
 	filename := Config.Database.Peer.Filename
@@ -149,7 +153,7 @@ func (db *PeerDatabase) write(temp bool) {
 		return
 	}
 
-	Logger.Info("Wrote PeerDatabase", zap.String("filename", filename), zap.Int("hashes", PeerDB.Hashes()))
+	Logger.Info("Wrote database", zap.String("filename", filename), zap.Int("hashes", PeerDB.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 }
 
 // WriteTmp writes the database to tmp file

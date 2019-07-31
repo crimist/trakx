@@ -54,19 +54,22 @@ func (db connectionDatabase) check(id int64, addr [4]byte) (dbID int64, ok bool)
 
 // spec says to only cache connIDs for 2min but realistically ips changing for ddos is unlikely so higher can be used
 func (db *connectionDatabase) trim() {
+	shared.Logger.Info("Trimming connection database")
+
+	start := time.Now()
+	epoch := start.Unix()
 	trimmed := 0
-	now := time.Now().Unix()
 
 	db.mu.Lock()
 	for key, conn := range db.db {
-		if now-conn.cached > shared.Config.Database.Conn.Timeout {
+		if epoch-conn.cached > shared.Config.Database.Conn.Timeout {
 			delete(db.db, key)
 			trimmed++
 		}
 	}
 	db.mu.Unlock()
 
-	shared.Logger.Info("Trim conndb", zap.Int("trimmed", trimmed), zap.Int("left", db.conns()))
+	shared.Logger.Info("Trimmed connection database", zap.Int("removed", trimmed), zap.Int("left", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
 }
 
 func (db *connectionDatabase) write() {
