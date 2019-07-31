@@ -7,36 +7,25 @@ import (
 )
 
 func Init() error {
+	var err error
+
 	LoadConfig()
 
-	// get logger based on config
-	if err := setLogger(Config.Trakx.Prod); err != nil {
-		return err
+	cfg := zap.NewDevelopmentConfig()
+	if Logger, err = cfg.Build(); err != nil {
+		panic(err)
 	}
 
 	PeerDB.Load()
 	initExpvar()
-	processMetrics()
+	PeerDB.generateMetrics()
 
 	// Start threads
 	go RunOn(time.Duration(Config.Database.Peer.Write)*time.Second, PeerDB.WriteTmp)
 	go RunOn(time.Duration(Config.Database.Peer.Trim)*time.Second, PeerDB.Trim)
 	if Config.Tracker.MetricsInterval > 0 {
-		go RunOn(time.Duration(Config.Tracker.MetricsInterval)*time.Second, processMetrics)
+		go RunOn(time.Duration(Config.Tracker.MetricsInterval)*time.Second, PeerDB.generateMetrics)
 	}
 
 	return nil
-}
-
-func setLogger(prod bool) error {
-	var err error
-	var cfg zap.Config
-
-	if prod == true {
-		cfg = zap.NewProductionConfig()
-	} else {
-		cfg = zap.NewDevelopmentConfig()
-	}
-	Logger, err = cfg.Build()
-	return err
 }

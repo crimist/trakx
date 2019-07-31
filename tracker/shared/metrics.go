@@ -12,28 +12,22 @@ import (
 
 var StatsHTML string
 
-func processMetrics() {
+func (db *PeerDatabase) generateMetrics() {
 	start := time.Now()
 	Logger.Info("Generating metrics...")
-
 	stats := make(map[string]int, 300)
 
-	for _, peermap := range PeerDB {
+	db.mu.RLock()
+	for _, peermap := range db.db {
 		for peerid := range peermap {
 			if peerid[0] == '-' {
 				stats[getAzureus(string(peerid[1:7]))]++
 			} else {
 				stats[getShadow(string(peerid[0:6]))]++
 			}
-			/*
-				else if string(peerid[6:9]) == "---" {
-					Shadows[string(peerid[0:6])]++
-				} else if peerid[6] == peerid[7] && peerid[7] == peerid[8] {
-					Shadows[string(peerid[0:6])]++
-				}
-			*/
 		}
 	}
+	db.mu.RUnlock()
 
 	// Get keys in alpha order
 	keys := make([]string, len(stats))

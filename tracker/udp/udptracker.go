@@ -15,10 +15,15 @@ type udpTracker struct {
 	avgResp time.Time
 }
 
+// WriteConns writes the connection database to file
+func WriteConns() {
+	connDB.write()
+}
+
 // Run runs the UDP tracker
 func Run() {
 	u := udpTracker{}
-	loadConnDB()
+	connDB.load()
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 
 	go shared.RunOn(time.Duration(shared.Config.Database.Conn.Trim)*time.Second, connDB.trim)

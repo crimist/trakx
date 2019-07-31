@@ -68,7 +68,7 @@ func (u *udpTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
 			return
 		}
 
-		complete, incomplete := hash.Complete()
+		complete, incomplete := shared.PeerDB.HashStats(&hash)
 		info := scrapeInfo{
 			Complete:   complete,
 			Downloaded: -1,

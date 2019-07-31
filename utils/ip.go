@@ -13,8 +13,8 @@ func IPToInt(ip net.IP) uint32 {
 	return binary.BigEndian.Uint32(ip)
 }
 
-// Int2IP converts int to ip bytes
-func Int2IP(nn uint32) net.IP {
+// IntToIP converts int to ip bytes
+func IntToIP(nn uint32) net.IP {
 	ip := make(net.IP, 4)
 	binary.BigEndian.PutUint32(ip, nn)
 	return ip

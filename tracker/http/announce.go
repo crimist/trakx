@@ -105,7 +105,6 @@ func (a *announce) SetNopeerid(nopeerid string) {
 	}
 }
 
-// AnnounceHandle processes an announce http request
 func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	atomic.AddInt64(&shared.ExpvarAnnounces, 1)
 	query := r.URL.Query()
@@ -131,15 +130,15 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// If the peer stopped delete() them and exit
 	if event == "stopped" {
-		shared.PeerDB.Delete(&a.peer, a.infohash, a.peerid)
+		shared.PeerDB.Drop(&a.peer, &a.infohash, &a.peerid)
 		atomic.AddInt64(&shared.ExpvarAnnouncesOK, 1)
 		w.Write([]byte(shared.Config.Tracker.StoppedMsg))
 		return
 	}
 
-	shared.PeerDB.Save(&a.peer, a.infohash, a.peerid)
+	shared.PeerDB.Save(&a.peer, &a.infohash, &a.peerid)
 
-	complete, incomplete := a.infohash.Complete()
+	complete, incomplete := shared.PeerDB.HashStats(&a.infohash)
 
 	// Bencode response
 	d := bencoding.NewDict()
@@ -149,10 +148,10 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// Add peer list
 	if a.compact == true {
-		peerList := string(a.infohash.PeerListBytes(a.numwant))
+		peerList := string(shared.PeerDB.PeerListBytes(&a.infohash, a.numwant))
 		d.Add("peers", peerList)
 	} else {
-		peerList := a.infohash.PeerList(a.numwant, a.noPeerID)
+		peerList := shared.PeerDB.PeerList(&a.infohash, a.numwant, a.noPeerID)
 		d.Add("peers", peerList)
 	}
 
