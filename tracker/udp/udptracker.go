@@ -78,7 +78,6 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 	ip := remote.IP.To4()
 	copy(addr[:], ip)
 
-	connid := int64(binary.BigEndian.Uint64(data[0:8]))
 	action := data[11]
 	txid := int32(binary.BigEndian.Uint32(data[12:16]))
 
@@ -87,7 +86,7 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 		return
 	}
 
-	if data[11] > 2 {
+	if action > 2 {
 		u.conn.WriteToUDP(newClientError("bad action", txid, zap.Uint8("action", data[11]), zap.Reflect("addr", addr)), remote)
 		return
 	}
@@ -101,6 +100,7 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 		return
 	}
 
+	connid := int64(binary.BigEndian.Uint64(data[0:8]))
 	if dbID, ok := connDB.check(connid, addr); !ok && shared.Config.Tracker.UDP.CheckConnID {
 		u.conn.WriteToUDP(newClientError("bad connid", txid), remote)
 		if !shared.Config.Trakx.Prod {
