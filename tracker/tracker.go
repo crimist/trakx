@@ -36,14 +36,8 @@ func Run() {
 		trackerMux.HandleFunc("/scrape", httptracker.ScrapeHandle)
 		trackerMux.HandleFunc("/announce", httptracker.AnnounceHandle)
 	} else {
-		// TODO: Interval is the only thing needed on qBit but need to test other clients
 		d := bencoding.NewDict()
 		d.Add("interval", 432000) // 5 days
-		/* Need to consider these
-		d.Add("failure reason", "REMOVE THIS TRACKER")
-		d.Add("complete", -1)
-		d.Add("incomplete", -1)
-		d.Add("peers", "")*/
 		errResp := []byte(d.Get())
 
 		trackerMux.HandleFunc("/scrape", func(w http.ResponseWriter, r *http.Request) {})
