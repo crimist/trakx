@@ -15,13 +15,13 @@ import (
 var connDB connectionDatabase
 
 type connID struct {
-	ID     int64
-	cached int64
+	ID int64
+	ts int64
 }
 
 type connectionDatabase struct {
 	mu sync.RWMutex
-	db map[[4]byte]connID
+	db map[shared.PeerIP]connID
 }
 
 func (db *connectionDatabase) conns() int {
@@ -30,7 +30,7 @@ func (db *connectionDatabase) conns() int {
 	return len(db.db)
 }
 
-func (db connectionDatabase) add(id int64, addr [4]byte) {
+func (db connectionDatabase) add(id int64, addr shared.PeerIP) {
 	if !shared.Config.Trakx.Prod {
 		shared.Logger.Info("Add conndb",
 			zap.Int64("id", id),
@@ -40,13 +40,13 @@ func (db connectionDatabase) add(id int64, addr [4]byte) {
 
 	db.mu.Lock()
 	db.db[addr] = connID{
-		ID:     id,
-		cached: time.Now().Unix(),
+		ID: id,
+		ts: time.Now().Unix(),
 	}
 	db.mu.Unlock()
 }
 
-func (db connectionDatabase) check(id int64, addr [4]byte) (dbID int64, ok bool) {
+func (db connectionDatabase) check(id int64, addr shared.PeerIP) (dbID int64, ok bool) {
 	db.mu.RLock()
 	dbID = db.db[addr].ID
 	ok = id == dbID
@@ -64,7 +64,7 @@ func (db *connectionDatabase) trim() {
 
 	db.mu.Lock()
 	for key, conn := range db.db {
-		if epoch-conn.cached > shared.Config.Database.Conn.Timeout {
+		if epoch-conn.ts > shared.Config.Database.Conn.Timeout {
 			delete(db.db, key)
 			trimmed++
 		}
@@ -102,7 +102,7 @@ func (db *connectionDatabase) load() {
 	file, err := os.Open(shared.Config.Database.Conn.Filename)
 	if err != nil {
 		shared.Logger.Error("conndb open", zap.Error(err))
-		db.db = make(map[[4]byte]connID)
+		db.db = make(map[shared.PeerIP]connID)
 		return
 	}
 
@@ -112,7 +112,7 @@ func (db *connectionDatabase) load() {
 	db.mu.Unlock()
 	if err != nil {
 		shared.Logger.Error("conndb decode", zap.Error(err))
-		db.db = make(map[[4]byte]connID)
+		db.db = make(map[shared.PeerIP]connID)
 		return
 	}
 

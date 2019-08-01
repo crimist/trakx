@@ -1,6 +1,7 @@
 package udp
 
 import (
+	"encoding/binary"
 	"math/rand"
 	"net"
 	"sync"
@@ -57,9 +58,11 @@ func (u *udpTracker) listen() {
 			pool.Put(b)
 			continue
 		}
-		go func() {
-			u.process(b[:len], remote)
 
+		go func() {
+			if len > 15 { // 16 = minimum connect
+				u.process(b[:len], remote)
+			}
 			// optimized zero
 			b = b[:cap(b)]
 			for i := range b {
@@ -71,39 +74,46 @@ func (u *udpTracker) listen() {
 }
 
 func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
-	base := connect{}
 	var addr [4]byte
 	ip := remote.IP.To4()
 	copy(addr[:], ip)
 
+	connid := int64(binary.BigEndian.Uint64(data[0:8]))
+	action := data[11]
+	txid := int32(binary.BigEndian.Uint32(data[12:16]))
+
 	if ip == nil {
-		u.conn.WriteToUDP(newClientError("IPv6?", base.TransactionID, zap.String("ip", remote.IP.String())), remote)
+		u.conn.WriteToUDP(newClientError("IPv6?", txid, zap.String("ip", remote.IP.String())), remote)
 		return
 	}
 
-	err := base.unmarshall(data)
-	if err != nil {
-		u.conn.WriteToUDP(newServerError("base.unmarshall()", err, base.TransactionID), remote)
-	}
-
-	if base.Action == 0 {
-		u.connect(&base, remote, addr)
+	if data[11] > 2 {
+		u.conn.WriteToUDP(newClientError("bad action", txid, zap.Uint8("action", data[11]), zap.Reflect("addr", addr)), remote)
 		return
 	}
 
-	if dbID, ok := connDB.check(base.ConnectionID, addr); !ok && shared.Config.Tracker.UDP.CheckConnID {
-		u.conn.WriteToUDP(newClientError("bad connid", base.TransactionID), remote)
+	if action == 0 {
+		c := connect{}
+		if err := c.unmarshall(data); err != nil {
+			u.conn.WriteToUDP(newServerError("base.unmarshall()", err, txid), remote)
+		}
+		u.connect(&c, remote, addr)
+		return
+	}
+
+	if dbID, ok := connDB.check(connid, addr); !ok && shared.Config.Tracker.UDP.CheckConnID {
+		u.conn.WriteToUDP(newClientError("bad connid", txid), remote)
 		if !shared.Config.Trakx.Prod {
-			shared.Logger.Info("Bad connid", zap.Int64("dbID", dbID), zap.Int64("clientID", base.ConnectionID), zap.Reflect("ip", ip))
+			shared.Logger.Info("Bad connid", zap.Int64("dbID", dbID), zap.Int64("clientID", connid), zap.Reflect("ip", ip))
 		}
 		return
 	}
 
-	switch base.Action {
+	switch action {
 	case 1:
 		announce := announce{}
 		if err := announce.unmarshall(data); err != nil {
-			u.conn.WriteToUDP(newServerError("announce.unmarshall()", err, base.TransactionID), remote)
+			u.conn.WriteToUDP(newServerError("announce.unmarshall()", err, txid), remote)
 			return
 		}
 		u.announce(&announce, remote, addr)
@@ -111,11 +121,9 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 	case 2:
 		scrape := scrape{}
 		if err := scrape.unmarshall(data); err != nil {
-			u.conn.WriteToUDP(newServerError("scrape.unmarshall()", err, base.TransactionID), remote)
+			u.conn.WriteToUDP(newServerError("scrape.unmarshall()", err, txid), remote)
 			return
 		}
 		u.scrape(&scrape, remote)
-	default:
-		u.conn.WriteToUDP(newClientError("bad action", base.TransactionID, zap.Int32("action", base.Action), zap.Reflect("addr", addr)), remote)
 	}
 }
