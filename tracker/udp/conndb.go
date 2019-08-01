@@ -30,7 +30,7 @@ func (db *connectionDatabase) conns() int {
 	return len(db.db)
 }
 
-func (db connectionDatabase) add(id int64, addr shared.PeerIP) {
+func (db *connectionDatabase) add(id int64, addr shared.PeerIP) {
 	if !shared.Config.Trakx.Prod {
 		shared.Logger.Info("Add conndb",
 			zap.Int64("id", id),
@@ -46,7 +46,7 @@ func (db connectionDatabase) add(id int64, addr shared.PeerIP) {
 	db.mu.Unlock()
 }
 
-func (db connectionDatabase) check(id int64, addr shared.PeerIP) (dbID int64, ok bool) {
+func (db *connectionDatabase) check(id int64, addr shared.PeerIP) (dbID int64, ok bool) {
 	db.mu.RLock()
 	dbID = db.db[addr].ID
 	ok = id == dbID
@@ -80,6 +80,8 @@ func (db *connectionDatabase) write() {
 	start := time.Now()
 	buff := new(bytes.Buffer)
 	encoder := gob.NewEncoder(buff)
+
+	db.trim()
 
 	db.mu.RLock()
 	err := encoder.Encode(&db.db)
