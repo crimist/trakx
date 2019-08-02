@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/syc0x00/trakx/tracker/shared"
-	"go.uber.org/zap"
 )
 
 type event int32
@@ -77,7 +76,8 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	atomic.AddInt64(&shared.ExpvarAnnounces, 1)
 
 	if announce.Port == 0 {
-		u.conn.WriteToUDP(newClientError("bad port", announce.TransactionID, zap.Reflect("addr", addr), zap.Uint16("port", announce.Port)), remote)
+		msg := newClientError("bad port", announce.TransactionID, cerrFields{"addr": addr, "port": announce.Port})
+		u.conn.WriteToUDP(msg, remote)
 		return
 	}
 

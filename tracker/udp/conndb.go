@@ -107,6 +107,7 @@ func (db *connectionDatabase) load() {
 		db.db = make(map[shared.PeerIP]connID)
 		return
 	}
+	defer file.Close()
 
 	decoder := gob.NewDecoder(file)
 	db.mu.Lock()

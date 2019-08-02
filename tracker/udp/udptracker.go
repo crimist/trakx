@@ -82,12 +82,14 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 	txid := int32(binary.BigEndian.Uint32(data[12:16]))
 
 	if ip == nil {
-		u.conn.WriteToUDP(newClientError("IPv6?", txid, zap.String("ip", remote.IP.String())), remote)
+		msg := newClientError("IPv6?", txid, cerrFields{"ip": remote.IP.String()})
+		u.conn.WriteToUDP(msg, remote)
 		return
 	}
 
 	if action > 2 {
-		u.conn.WriteToUDP(newClientError("bad action", txid, zap.Uint8("action", data[11]), zap.Reflect("addr", addr)), remote)
+		msg := newClientError("bad action", txid, cerrFields{"action": data[11], "addr": addr})
+		u.conn.WriteToUDP(msg, remote)
 		return
 	}
 

@@ -17,6 +17,8 @@ type udperror struct {
 
 func (e *udperror) marshall() ([]byte, error) {
 	buff := new(bytes.Buffer)
+	buff.Grow(8 + len(e.ErrorString))
+
 	if err := binary.Write(buff, binary.BigEndian, e.Action); err != nil {
 		return nil, err
 	}
@@ -29,11 +31,19 @@ func (e *udperror) marshall() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func newClientError(msg string, TransactionID int32, fields ...zap.Field) []byte {
+type cerrFields map[string]interface{}
+
+func newClientError(msg string, TransactionID int32, fieldMap ...cerrFields) []byte {
 	atomic.AddInt64(&shared.ExpvarClienterrs, 1)
 
 	if !shared.Config.Trakx.Prod {
-		fields = append(fields, zap.String("msg", msg))
+		fields := []zap.Field{zap.String("msg", msg)}
+		if len(fieldMap) == 1 {
+			for k, v := range fieldMap[0] {
+				fields = append(fields, zap.Any(k, v))
+			}
+		}
+
 		shared.Logger.Info("Client Err", fields...)
 	}
 

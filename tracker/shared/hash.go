@@ -64,20 +64,20 @@ func (db *PeerDatabase) PeerList(h *Hash, num int, noPeerID bool) []string {
 
 // PeerListBytes returns a byte encoded peer list for the given hash capped at num
 func (db *PeerDatabase) PeerListBytes(h *Hash, num int) []byte {
+	var peerList bytes.Buffer
+
 	db.mu.RLock()
 	peerMap, _ := PeerDB.db[*h]
 	if num > len(peerMap) {
 		num = len(peerMap)
 	}
-	var peerList bytes.Buffer
-	writer := bufio.NewWriter(&peerList)
 	peerList.Grow(6 * num)
+	writer := bufio.NewWriterSize(&peerList, 6*num)
 
 	for _, peer := range peerMap {
 		if num == 0 {
 			break
 		}
-
 		binary.Write(writer, binary.BigEndian, peer.IP)
 		binary.Write(writer, binary.BigEndian, peer.Port)
 		num--
