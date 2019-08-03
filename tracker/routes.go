@@ -4,9 +4,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"go.uber.org/zap"
-
 	"github.com/syc0x00/trakx/tracker/shared"
+	"go.uber.org/zap"
 )
 
 var indexData []byte

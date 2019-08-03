@@ -51,21 +51,31 @@ func (db *PeerDatabase) Trim() {
 	var peers, hashes int
 	now := time.Now().Unix()
 
-	db.mu.Lock()
+	// Lock/Unlock spam to give other threads a chance to access resources
+	// Otherwise this blocks for 20-35sec on 2.6Ghz single core @ 1'000'000 peers
+	db.mu.RLock()
 	for hash, peermap := range db.db {
 		for id, peer := range peermap {
 			if now-peer.LastSeen > db.conf.Database.Peer.Timeout {
+				db.mu.RUnlock()
+				db.mu.Lock()
 				db.deletePeer(&peer, &hash, &id)
 				db.deleteIP(peer.IP)
+				db.mu.Unlock()
+				db.mu.RLock()
 				peers++
 			}
 		}
 		if len(peermap) == 0 {
+			db.mu.RUnlock()
+			db.mu.Lock()
 			delete(db.db, hash)
+			db.mu.Unlock()
+			db.mu.RLock()
 			hashes++
 		}
 	}
-	db.mu.Unlock()
+	db.mu.RUnlock()
 
 	db.logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
 }
