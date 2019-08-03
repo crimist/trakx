@@ -1,7 +1,6 @@
 package http
 
 import (
-	"github.com/davecgh/go-spew/spew"
 	"bytes"
 	"fmt"
 	"net"
@@ -50,6 +49,7 @@ func (t *HTTPTracker) Serve(index []byte) {
 		go func() {
 			b := pool.Get().([]byte)
 			defer func() {
+				conn.Close()
 				for i := range b {
 					b[i] = 0
 				}
@@ -67,7 +67,6 @@ func (t *HTTPTracker) Serve(index []byte) {
 			i := bytes.Index(b, []byte(" HTTP/"))
 			if i < 0 {
 				conn.Write([]byte("HTTP/1.1 400\r\n\r\n"))
-				spew.Dump(b)
 				return
 			}
 			u, _ := url.Parse(string(b[4:i]))
@@ -84,8 +83,6 @@ func (t *HTTPTracker) Serve(index []byte) {
 			default:
 				c.WriteHTTP("404", "")
 			}
-
-			conn.Close()
 		}()
 	}
 }
