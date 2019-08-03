@@ -37,11 +37,12 @@ func Run() {
 		panic(err)
 	}
 
-	shared.Init(conf, logger)
+	peerdb := shared.NewPeerDatabase(conf, logger)
+	shared.InitExpvar(peerdb)
 
-	go handleSigs()
+	go handleSigs(peerdb)
 	if conf.Trakx.Expvar.Enabled {
-		go publishExpvar(conf)
+		go publishExpvar(conf, peerdb)
 	}
 
 	// HTTP tracker / routes
@@ -55,7 +56,7 @@ func Run() {
 	if conf.Tracker.HTTP.Enabled {
 		logger.Info("http tracker enabled")
 
-		t := httptracker.NewHTTPTracker(conf, logger)
+		t := httptracker.NewHTTPTracker(conf, logger, peerdb)
 		trackerMux.HandleFunc("/scrape", t.ScrapeHandle)
 		trackerMux.HandleFunc("/announce", t.AnnounceHandle)
 	} else {
@@ -87,7 +88,7 @@ func Run() {
 	// UDP tracker
 	if conf.Tracker.UDP.Enabled {
 		logger.Info("udp tracker enabled")
-		udptracker = udp.NewUDPTracker(conf, logger)
+		udptracker = udp.NewUDPTracker(conf, logger, peerdb)
 	}
 
 	select {} // block forever

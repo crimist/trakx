@@ -12,7 +12,7 @@ trakx:
 
 tracker:
   http:
-    enabled: false
+    enabled: true
     port: 1337 # also serves the index
 
   udp:
@@ -28,19 +28,19 @@ tracker:
   stoppedmsg: "See you space cowboy..."
 
   # time between metrics generation
-  metrics: 1800
+  metrics: 1800 # 30m
   
   # Announce interval for clients
-  announce: 1200
+  announce: 1200 # 20m
 
 # Databases are in ~/.trakx/
 database:
   peer:
     filename: "peers.db"
-    trim: 300
-    write: 300
-    timeout: 2800
+    trim: 600 # 10m
+    write: 900 # 15m
+    timeout: 1800 # 30m
   conn:
     filename: "conn.db"
-    trim: 300
+    trim: 600 # 10m
     timeout: 86400 # 24h

@@ -11,7 +11,7 @@ import (
 	"github.com/syc0x00/trakx/tracker/shared"
 )
 
-func publishExpvar(conf *shared.Config) {
+func publishExpvar(conf *shared.Config, peerdb *shared.PeerDatabase) {
 	var errsOld int64
 
 	// Stats
@@ -42,7 +42,7 @@ func publishExpvar(conf *shared.Config) {
 		shared.Expvar.IPs.Lock()
 		uniqueIP.Set(int64(len(shared.Expvar.IPs.M)))
 		shared.Expvar.IPs.Unlock()
-		uniqueHash.Set(int64(shared.PeerDB.Hashes()))
+		uniqueHash.Set(int64(peerdb.Hashes()))
 
 		s := atomic.LoadInt64(&shared.Expvar.Seeds)
 		l := atomic.LoadInt64(&shared.Expvar.Leeches)

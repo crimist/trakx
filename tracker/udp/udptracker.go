@@ -17,16 +17,18 @@ type UDPTracker struct {
 
 	conf   *shared.Config
 	logger *zap.Logger
+	peerdb *shared.PeerDatabase
 }
 
 // NewUDPTracker creates are runs the UDP tracker
-func NewUDPTracker(conf *shared.Config, logger *zap.Logger) *UDPTracker {
+func NewUDPTracker(conf *shared.Config, logger *zap.Logger, peerdb *shared.PeerDatabase) *UDPTracker {
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 
 	tracker := UDPTracker{
 		conndb: newConnectionDatabase(conf.Database.Conn.Timeout, conf.Database.Conn.Filename, logger),
 		conf:   conf,
 		logger: logger,
+		peerdb: peerdb,
 	}
 
 	go shared.RunOn(time.Duration(conf.Database.Conn.Trim)*time.Second, tracker.conndb.trim)

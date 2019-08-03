@@ -8,12 +8,14 @@ import (
 type HTTPTracker struct {
 	conf   *shared.Config
 	logger *zap.Logger
+	peerdb *shared.PeerDatabase
 }
 
-func NewHTTPTracker(conf *shared.Config, logger *zap.Logger) *HTTPTracker {
+func NewHTTPTracker(conf *shared.Config, logger *zap.Logger, peerdb *shared.PeerDatabase) *HTTPTracker {
 	tracker := HTTPTracker{
 		conf:   conf,
 		logger: logger,
+		peerdb: peerdb,
 	}
 
 	return &tracker

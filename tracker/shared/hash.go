@@ -67,7 +67,7 @@ func (db *PeerDatabase) PeerListBytes(h *Hash, num int) []byte {
 	var peerList bytes.Buffer
 
 	db.mu.RLock()
-	peerMap, _ := PeerDB.db[*h]
+	peerMap, _ := db.db[*h]
 	if num > len(peerMap) {
 		num = len(peerMap)
 	}

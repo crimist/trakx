@@ -14,7 +14,7 @@ var (
 	SigReload = syscall.SIGUSR1
 )
 
-func handleSigs() {
+func handleSigs(peerdb *shared.PeerDatabase) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGUSR1)
 
@@ -25,7 +25,7 @@ func handleSigs() {
 		case os.Interrupt, os.Kill, syscall.SIGTERM:
 			logger.Info("Exiting")
 
-			shared.PeerDB.WriteFull()
+			peerdb.WriteFull()
 			udptracker.WriteConns()
 			os.Exit(128 + int(sig.(syscall.Signal)))
 		case syscall.SIGUSR1:

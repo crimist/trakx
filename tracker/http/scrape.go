@@ -31,7 +31,7 @@ func (t *HTTPTracker) ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 		var hash shared.Hash
 		copy(hash[:], infohash)
 
-		complete, incomplete := shared.PeerDB.HashStats(&hash)
+		complete, incomplete := t.peerdb.HashStats(&hash)
 
 		nestedDict[infohash]["complete"] = complete
 		nestedDict[infohash]["incomplete"] = incomplete

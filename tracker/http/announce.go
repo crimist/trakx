@@ -131,15 +131,15 @@ func (t *HTTPTracker) AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// If the peer stopped delete() them and exit
 	if event == "stopped" {
-		shared.PeerDB.Drop(&a.peer, &a.infohash, &a.peerid)
+		t.peerdb.Drop(&a.peer, &a.infohash, &a.peerid)
 		atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
 		w.Write([]byte(t.conf.Tracker.StoppedMsg))
 		return
 	}
 
-	shared.PeerDB.Save(&a.peer, &a.infohash, &a.peerid)
+	t.peerdb.Save(&a.peer, &a.infohash, &a.peerid)
 
-	complete, incomplete := shared.PeerDB.HashStats(&a.infohash)
+	complete, incomplete := t.peerdb.HashStats(&a.infohash)
 
 	// Bencode response
 	d := bencoding.NewDict()
@@ -149,10 +149,10 @@ func (t *HTTPTracker) AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// Add peer list
 	if a.compact == true {
-		peerList := string(shared.PeerDB.PeerListBytes(&a.infohash, a.numwant))
+		peerList := string(t.peerdb.PeerListBytes(&a.infohash, a.numwant))
 		d.Add("peers", peerList)
 	} else {
-		peerList := shared.PeerDB.PeerList(&a.infohash, a.numwant, a.noPeerID)
+		peerList := t.peerdb.PeerList(&a.infohash, a.numwant, a.noPeerID)
 		d.Add("peers", peerList)
 	}
 
