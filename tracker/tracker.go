@@ -45,42 +45,40 @@ func Run() {
 	// HTTP tracker / routes
 	initRoutes()
 
-	trackerMux := http.NewServeMux()
-	trackerMux.HandleFunc("/", index)
-	trackerMux.HandleFunc("/dmca", dmca)
-	trackerMux.HandleFunc("/stats", stats)
-
 	if conf.Tracker.HTTP.Enabled {
 		logger.Info("http tracker enabled")
 
 		t := httptracker.NewHTTPTracker(conf, logger, peerdb)
-		trackerMux.HandleFunc("/scrape", t.ScrapeHandle)
-		trackerMux.HandleFunc("/announce", t.AnnounceHandle)
+		go t.Serve(indexData)
 	} else {
 		d := bencoding.NewDict()
 		d.Add("interval", 432000) // 5 days
 		errResp := []byte(d.Get())
 
+		trackerMux := http.NewServeMux()
+		trackerMux.HandleFunc("/", index)
+		trackerMux.HandleFunc("/dmca", dmca)
+		trackerMux.HandleFunc("/stats", stats)
 		trackerMux.HandleFunc("/scrape", func(w http.ResponseWriter, r *http.Request) {})
 		trackerMux.HandleFunc("/announce", func(w http.ResponseWriter, r *http.Request) {
 			w.Write(errResp)
 		})
-	}
 
-	server := http.Server{
-		Addr:         fmt.Sprintf(":%d", conf.Tracker.HTTP.Port),
-		Handler:      trackerMux,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 7 * time.Second,
-		IdleTimeout:  0,
-	}
-	server.SetKeepAlivesEnabled(false)
-
-	go func() {
-		if err := server.ListenAndServe(); err != nil {
-			logger.Error("ListenAndServe()", zap.Error(err))
+		server := http.Server{
+			Addr:         fmt.Sprintf(":%d", conf.Tracker.HTTP.Port),
+			Handler:      trackerMux,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 7 * time.Second,
+			IdleTimeout:  0,
 		}
-	}()
+		server.SetKeepAlivesEnabled(false)
+
+		go func() {
+			if err := server.ListenAndServe(); err != nil {
+				logger.Error("ListenAndServe()", zap.Error(err))
+			}
+		}()
+	}
 
 	// UDP tracker
 	if conf.Tracker.UDP.Enabled {

@@ -2,14 +2,12 @@ package http
 
 import (
 	"net"
-	"net/http"
 	"strconv"
 	"sync/atomic"
 	"time"
 
 	"github.com/syc0x00/trakx/bencoding"
 	"github.com/syc0x00/trakx/tracker/shared"
-	"go.uber.org/zap"
 )
 
 type announce struct {
@@ -20,8 +18,7 @@ type announce struct {
 	numwant  int
 	peer     shared.Peer
 
-	writer  http.ResponseWriter
-	req     *http.Request
+	conn    net.Conn
 	tracker *HTTPTracker
 }
 
@@ -32,19 +29,19 @@ func (a *announce) SetPeer(postIP, port, event, left string) bool {
 	if !a.tracker.conf.Trakx.Prod && postIP != "" {
 		parsedIP = net.ParseIP(postIP).To4()
 	} else {
-		ipStr, _, _ := net.SplitHostPort(a.req.RemoteAddr)
+		ipStr, _, _ := net.SplitHostPort(a.conn.RemoteAddr().String())
 		parsedIP = net.ParseIP(ipStr).To4()
 	}
 
 	if parsedIP == nil {
-		a.tracker.clientError("ipv6 unsupported", a.writer)
+		a.tracker.clientError(a.conn, "ipv6 unsupported")
 		return false
 	}
 	copy(a.peer.IP[:], parsedIP)
 
 	portInt, err := strconv.Atoi(port)
 	if err != nil || (portInt > 65535 || portInt < 1) {
-		a.tracker.clientError("Invalid port", a.writer, zap.String("port", port), zap.Int("port", portInt))
+		a.tracker.clientError(a.conn, "Invalid port")
 		return false
 	}
 
@@ -60,7 +57,7 @@ func (a *announce) SetPeer(postIP, port, event, left string) bool {
 
 func (a *announce) SetInfohash(infohash string) bool {
 	if len(infohash) != 20 {
-		a.tracker.clientError("Invalid infohash", a.writer, zap.Int("infoHash len", len(infohash)), zap.Any("infohash", infohash))
+		a.tracker.clientError(a.conn, "Invalid infohash")
 		return false
 	}
 	copy(a.infohash[:], infohash)
@@ -70,7 +67,7 @@ func (a *announce) SetInfohash(infohash string) bool {
 
 func (a *announce) SetPeerid(peerid string) bool {
 	if len(peerid) != 20 {
-		a.tracker.clientError("Invalid peerid", a.writer, zap.Int("peerid len", len(peerid)), zap.Any("peerid", peerid))
+		a.tracker.clientError(a.conn, "Invalid peerid")
 		return false
 	}
 	copy(a.peerid[:], peerid)
@@ -88,13 +85,15 @@ func (a *announce) SetNumwant(numwant string) bool {
 	a.numwant = int(a.tracker.conf.Tracker.Numwant.Default)
 
 	if numwant != "" {
-		numwantInt, err := strconv.ParseInt(numwant, 10, 64)
+		numwantInt, err := strconv.Atoi(numwant)
 		if err != nil {
-			a.tracker.clientError("Invalid numwant", a.writer, zap.String("numwant", numwant))
+			a.tracker.clientError(a.conn, "Invalid numwant")
 			return false
 		}
-		if numwantInt < int64(a.tracker.conf.Tracker.Numwant.Max) {
-			a.numwant = int(numwantInt)
+		if numwantInt > int(a.tracker.conf.Tracker.Numwant.Max) || numwantInt < 1 {
+			a.numwant = int(a.tracker.conf.Tracker.Numwant.Default)
+		} else {
+			a.numwant = numwantInt
 		}
 	}
 	return true
@@ -106,12 +105,12 @@ func (a *announce) SetNopeerid(nopeerid string) {
 	}
 }
 
-func (t *HTTPTracker) AnnounceHandle(w http.ResponseWriter, r *http.Request) {
+func (t *HTTPTracker) Announce(c *ctx) {
 	atomic.AddInt64(&shared.Expvar.Announces, 1)
-	query := r.URL.Query()
+	query := c.u.Query()
 
 	event := query.Get("event")
-	a := &announce{writer: w, req: r, peer: shared.Peer{}, tracker: t}
+	a := &announce{conn: c.conn, peer: shared.Peer{}, tracker: t}
 
 	// Set up announce
 	if ok := a.SetPeer(query.Get("ip"), query.Get("port"), event, query.Get("left")); !ok {
@@ -133,7 +132,7 @@ func (t *HTTPTracker) AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	if event == "stopped" {
 		t.peerdb.Drop(&a.peer, &a.infohash, &a.peerid)
 		atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
-		w.Write([]byte(t.conf.Tracker.StoppedMsg))
+		c.WriteHTTP("200", t.conf.Tracker.StoppedMsg)
 		return
 	}
 
@@ -155,5 +154,5 @@ func (t *HTTPTracker) AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
-	w.Write([]byte(d.Get()))
+	c.WriteHTTP("200", d.Get())
 }

@@ -1,7 +1,7 @@
 package http
 
 import (
-	"net/http"
+	"net"
 	"sync/atomic"
 
 	"github.com/syc0x00/trakx/bencoding"
@@ -9,24 +9,19 @@ import (
 	"go.uber.org/zap"
 )
 
-func writeErr(msg string, writer http.ResponseWriter) {
+func writeErr(conn net.Conn, msg string) {
 	d := bencoding.NewDict()
 	d.Add("failure reason", msg)
-	writer.Write([]byte(d.Get()))
+	conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + d.Get()))
 }
 
-func (t *HTTPTracker) clientError(msg string, writer http.ResponseWriter, fields ...zap.Field) {
-	if !t.conf.Trakx.Prod {
-		fields = append(fields, zap.String("msg", msg))
-		t.logger.Info("Client Error", fields...)
-	}
-
+func (t *HTTPTracker) clientError(conn net.Conn, msg string) {
 	atomic.AddInt64(&shared.Expvar.Clienterrs, 1)
-	writeErr(msg, writer)
+	writeErr(conn, msg)
 }
 
-func (t *HTTPTracker) internalError(errmsg string, err error, writer http.ResponseWriter) {
+func (t *HTTPTracker) internalError(conn net.Conn, errmsg string, err error) {
 	atomic.AddInt64(&shared.Expvar.Errs, 1)
-	writeErr("internal server error", writer)
+	writeErr(conn, "internal server error")
 	t.logger.Error(errmsg, zap.Error(err))
 }
