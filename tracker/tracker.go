@@ -41,9 +41,6 @@ func Run() {
 	shared.InitExpvar(peerdb)
 
 	go handleSigs(peerdb)
-	if conf.Trakx.Expvar.Enabled {
-		go publishExpvar(conf, peerdb)
-	}
 
 	// HTTP tracker / routes
 	initRoutes()
@@ -89,6 +86,10 @@ func Run() {
 	if conf.Tracker.UDP.Enabled {
 		logger.Info("udp tracker enabled")
 		udptracker = udp.NewUDPTracker(conf, logger, peerdb)
+	}
+
+	if conf.Trakx.Expvar.Enabled {
+		go publishExpvar(conf, peerdb)
 	}
 
 	select {} // block forever
