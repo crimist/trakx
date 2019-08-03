@@ -49,11 +49,12 @@ func (sr *scrapeResp) marshall() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (u *udpTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
-	atomic.AddInt64(&shared.ExpvarScrapes, 1)
+func (u *UDPTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
+	atomic.AddInt64(&shared.Expvar.Scrapes, 1)
 
 	if len(scrape.InfoHash) > 74 {
-		u.conn.WriteToUDP(newClientError("74 hashes max", scrape.Base.TransactionID), remote)
+		msg := u.newClientError("74 hashes max", scrape.Base.TransactionID)
+		u.sock.WriteToUDP(msg, remote)
 		return
 	}
 
@@ -64,7 +65,8 @@ func (u *udpTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
 
 	for _, hash := range scrape.InfoHash {
 		if len(hash) != 20 {
-			u.conn.WriteToUDP(newClientError("bad hash", scrape.Base.TransactionID), remote)
+			msg := u.newClientError("bad hash", scrape.Base.TransactionID)
+			u.sock.WriteToUDP(msg, remote)
 			return
 		}
 
@@ -79,11 +81,12 @@ func (u *udpTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
 
 	respBytes, err := resp.marshall()
 	if err != nil {
-		u.conn.WriteToUDP(newServerError("ScrapeResp.Marshall()", err, scrape.Base.TransactionID), remote)
+		msg := u.newServerError("ScrapeResp.Marshall()", err, scrape.Base.TransactionID)
+		u.sock.WriteToUDP(msg, remote)
 		return
 	}
 
-	u.conn.WriteToUDP(respBytes, remote)
-	atomic.AddInt64(&shared.ExpvarScrapesOK, 1)
+	u.sock.WriteToUDP(respBytes, remote)
+	atomic.AddInt64(&shared.Expvar.ScrapesOK, 1)
 	return
 }

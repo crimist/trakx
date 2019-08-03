@@ -12,8 +12,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var connDB connectionDatabase
-
 type connID struct {
 	ID int64
 	ts int64
@@ -22,6 +20,24 @@ type connID struct {
 type connectionDatabase struct {
 	mu sync.RWMutex
 	db map[shared.PeerIP]connID
+
+	timeout  int64
+	filename string
+	logger   *zap.Logger
+}
+
+func newConnectionDatabase(timeout int64, filename string, logger *zap.Logger) *connectionDatabase {
+	db := connectionDatabase{
+		timeout:  timeout,
+		filename: filename,
+		logger:   logger,
+	}
+
+	if success := db.load(); !success {
+		db.make()
+	}
+
+	return &db
 }
 
 func (db *connectionDatabase) conns() int {
@@ -31,13 +47,6 @@ func (db *connectionDatabase) conns() int {
 }
 
 func (db *connectionDatabase) add(id int64, addr shared.PeerIP) {
-	if !shared.Config.Trakx.Prod {
-		shared.Logger.Info("Add conndb",
-			zap.Int64("id", id),
-			zap.Any("addr", addr),
-		)
-	}
-
 	db.mu.Lock()
 	db.db[addr] = connID{
 		ID: id,
@@ -56,7 +65,7 @@ func (db *connectionDatabase) check(id int64, addr shared.PeerIP) (dbID int64, o
 
 // spec says to only cache connIDs for 2min but realistically ips changing for ddos is unlikely so higher can be used
 func (db *connectionDatabase) trim() {
-	shared.Logger.Info("Trimming connection database")
+	db.logger.Info("Trimming connection database")
 
 	start := time.Now()
 	epoch := start.Unix()
@@ -64,18 +73,18 @@ func (db *connectionDatabase) trim() {
 
 	db.mu.Lock()
 	for key, conn := range db.db {
-		if epoch-conn.ts > shared.Config.Database.Conn.Timeout {
+		if epoch-conn.ts > db.timeout {
 			delete(db.db, key)
 			trimmed++
 		}
 	}
 	db.mu.Unlock()
 
-	shared.Logger.Info("Trimmed connection database", zap.Int("removed", trimmed), zap.Int("left", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
+	db.logger.Info("Trimmed connection database", zap.Int("removed", trimmed), zap.Int("left", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
 }
 
 func (db *connectionDatabase) write() {
-	shared.Logger.Info("Writing connection database")
+	db.logger.Info("Writing connection database")
 
 	start := time.Now()
 	buff := new(bytes.Buffer)
@@ -87,25 +96,24 @@ func (db *connectionDatabase) write() {
 	err := encoder.Encode(&db.db)
 	db.mu.RUnlock()
 	if err != nil {
-		shared.Logger.Error("conndb gob encoder", zap.Error(err))
+		db.logger.Error("conndb gob encoder", zap.Error(err))
 	}
 
-	if err := ioutil.WriteFile(shared.Config.Database.Conn.Filename, buff.Bytes(), 0644); err != nil {
-		shared.Logger.Error("conndb writefile", zap.Error(err))
+	if err := ioutil.WriteFile(db.filename, buff.Bytes(), 0644); err != nil {
+		db.logger.Error("conndb writefile", zap.Error(err))
 	}
 
-	shared.Logger.Info("Wrote connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
+	db.logger.Info("Wrote connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
 }
 
-func (db *connectionDatabase) load() {
-	shared.Logger.Info("Loading connection database")
+func (db *connectionDatabase) load() bool {
+	db.logger.Info("Loading connection database")
 	start := time.Now()
 
-	file, err := os.Open(shared.Config.Database.Conn.Filename)
+	file, err := os.Open(db.filename)
 	if err != nil {
-		shared.Logger.Error("conndb open", zap.Error(err))
-		db.db = make(map[shared.PeerIP]connID)
-		return
+		db.logger.Error("conndb open", zap.Error(err))
+		return false
 	}
 	defer file.Close()
 
@@ -114,10 +122,14 @@ func (db *connectionDatabase) load() {
 	err = decoder.Decode(&db.db)
 	db.mu.Unlock()
 	if err != nil {
-		shared.Logger.Error("conndb decode", zap.Error(err))
-		db.db = make(map[shared.PeerIP]connID)
-		return
+		db.logger.Error("conndb decode", zap.Error(err))
+		return false
 	}
 
-	shared.Logger.Info("Loaded connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
+	db.logger.Info("Loaded connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
+	return true
+}
+
+func (db *connectionDatabase) make() {
+	db.db = make(map[shared.PeerIP]connID, 100000)
 }

@@ -15,17 +15,18 @@ func writeErr(msg string, writer http.ResponseWriter) {
 	writer.Write([]byte(d.Get()))
 }
 
-func clientError(msg string, writer http.ResponseWriter, fields ...zap.Field) {
-	atomic.AddInt64(&shared.ExpvarClienterrs, 1)
-	writeErr(msg, writer)
-	if !shared.Config.Trakx.Prod {
+func (t *HTTPTracker) clientError(msg string, writer http.ResponseWriter, fields ...zap.Field) {
+	if !t.conf.Trakx.Prod {
 		fields = append(fields, zap.String("msg", msg))
-		shared.Logger.Info("Client Error", fields...)
+		t.logger.Info("Client Error", fields...)
 	}
+
+	atomic.AddInt64(&shared.Expvar.Clienterrs, 1)
+	writeErr(msg, writer)
 }
 
-func internalError(errmsg string, err error, writer http.ResponseWriter) {
-	atomic.AddInt64(&shared.ExpvarErrs, 1)
+func (t *HTTPTracker) internalError(errmsg string, err error, writer http.ResponseWriter) {
+	atomic.AddInt64(&shared.Expvar.Errs, 1)
 	writeErr("internal server error", writer)
-	shared.Logger.Error(errmsg, zap.Error(err))
+	t.logger.Error(errmsg, zap.Error(err))
 }

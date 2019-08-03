@@ -2,22 +2,26 @@ package shared
 
 import "sync"
 
+type expvarIPmap struct {
+	sync.Mutex
+	M map[PeerIP]int8
+}
+
 var (
 	// These should only be accessed with atomic
-	ExpvarConnects    int64
-	ExpvarConnectsOK  int64
-	ExpvarAnnounces   int64
-	ExpvarAnnouncesOK int64
-	ExpvarScrapes     int64
-	ExpvarScrapesOK   int64
-	ExpvarErrs        int64
-	ExpvarClienterrs  int64
-	ExpvarSeeds       int64
-	ExpvarLeeches     int64
-	ExpvarIPs         = struct {
-		sync.Mutex
-		M map[PeerIP]int8
-	}{M: make(map[PeerIP]int8, 30000)}
+	Expvar struct {
+		Connects    int64
+		ConnectsOK  int64
+		Announces   int64
+		AnnouncesOK int64
+		Scrapes     int64
+		ScrapesOK   int64
+		Errs        int64
+		Clienterrs  int64
+		Seeds       int64
+		Leeches     int64
+		IPs         expvarIPmap
+	}
 )
 
 func initExpvar() {
@@ -25,16 +29,18 @@ func initExpvar() {
 		panic("peerDB not init before expvars")
 	}
 
-	ExpvarIPs.Lock()
+	Expvar.IPs.M = make(map[PeerIP]int8, 30000)
+
+	Expvar.IPs.Lock()
 	for _, peermap := range PeerDB.db {
 		for _, peer := range peermap {
-			ExpvarIPs.M[peer.IP]++
+			Expvar.IPs.M[peer.IP]++
 			if peer.Complete == true {
-				ExpvarSeeds++
+				Expvar.Seeds++
 			} else {
-				ExpvarLeeches++
+				Expvar.Leeches++
 			}
 		}
 	}
-	ExpvarIPs.Unlock()
+	Expvar.IPs.Unlock()
 }

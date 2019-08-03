@@ -8,12 +8,12 @@ import (
 	"github.com/syc0x00/trakx/tracker/shared"
 )
 
-func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
-	atomic.AddInt64(&shared.ExpvarScrapes, 1)
+func (t *HTTPTracker) ScrapeHandle(w http.ResponseWriter, r *http.Request) {
+	atomic.AddInt64(&shared.Expvar.Scrapes, 1)
 
 	infohashes := r.URL.Query()["info_hash"]
 	if len(infohashes) == 0 {
-		clientError("no infohashes", w)
+		t.clientError("no infohashes", w)
 		return
 	}
 
@@ -22,7 +22,7 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 
 	for _, infohash := range infohashes {
 		if len(infohash) != 20 {
-			clientError("invalid infohash", w)
+			t.clientError("invalid infohash", w)
 			return
 		}
 
@@ -38,10 +38,10 @@ func ScrapeHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := dict.Add("files", nestedDict); err != nil {
-		internalError("dict.Add()", err, w)
+		t.internalError("dict.Add()", err, w)
 		return
 	}
 
 	w.Write([]byte(dict.Get()))
-	atomic.AddInt64(&shared.ExpvarScrapesOK, 1)
+	atomic.AddInt64(&shared.Expvar.ScrapesOK, 1)
 }

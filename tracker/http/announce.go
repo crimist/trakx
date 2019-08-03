@@ -20,15 +20,16 @@ type announce struct {
 	numwant  int
 	peer     shared.Peer
 
-	writer http.ResponseWriter
-	req    *http.Request
+	writer  http.ResponseWriter
+	req     *http.Request
+	tracker *HTTPTracker
 }
 
 func (a *announce) SetPeer(postIP, port, event, left string) bool {
 	var err error
 	var parsedIP net.IP
 
-	if !shared.Config.Trakx.Prod && postIP != "" {
+	if !a.tracker.conf.Trakx.Prod && postIP != "" {
 		parsedIP = net.ParseIP(postIP).To4()
 	} else {
 		ipStr, _, _ := net.SplitHostPort(a.req.RemoteAddr)
@@ -36,14 +37,14 @@ func (a *announce) SetPeer(postIP, port, event, left string) bool {
 	}
 
 	if parsedIP == nil {
-		clientError("ipv6 unsupported", a.writer)
+		a.tracker.clientError("ipv6 unsupported", a.writer)
 		return false
 	}
 	copy(a.peer.IP[:], parsedIP)
 
 	portInt, err := strconv.Atoi(port)
 	if err != nil || (portInt > 65535 || portInt < 1) {
-		clientError("Invalid port", a.writer, zap.String("port", port), zap.Int("port", portInt))
+		a.tracker.clientError("Invalid port", a.writer, zap.String("port", port), zap.Int("port", portInt))
 		return false
 	}
 
@@ -59,7 +60,7 @@ func (a *announce) SetPeer(postIP, port, event, left string) bool {
 
 func (a *announce) SetInfohash(infohash string) bool {
 	if len(infohash) != 20 {
-		clientError("Invalid infohash", a.writer, zap.Int("infoHash len", len(infohash)), zap.Any("infohash", infohash))
+		a.tracker.clientError("Invalid infohash", a.writer, zap.Int("infoHash len", len(infohash)), zap.Any("infohash", infohash))
 		return false
 	}
 	copy(a.infohash[:], infohash)
@@ -69,7 +70,7 @@ func (a *announce) SetInfohash(infohash string) bool {
 
 func (a *announce) SetPeerid(peerid string) bool {
 	if len(peerid) != 20 {
-		clientError("Invalid peerid", a.writer, zap.Int("peerid len", len(peerid)), zap.Any("peerid", peerid))
+		a.tracker.clientError("Invalid peerid", a.writer, zap.Int("peerid len", len(peerid)), zap.Any("peerid", peerid))
 		return false
 	}
 	copy(a.peerid[:], peerid)
@@ -84,15 +85,15 @@ func (a *announce) SetCompact(compact string) {
 }
 
 func (a *announce) SetNumwant(numwant string) bool {
-	a.numwant = int(shared.Config.Tracker.Numwant.Default)
+	a.numwant = int(a.tracker.conf.Tracker.Numwant.Default)
 
 	if numwant != "" {
 		numwantInt, err := strconv.ParseInt(numwant, 10, 64)
 		if err != nil {
-			clientError("Invalid numwant", a.writer, zap.String("numwant", numwant))
+			a.tracker.clientError("Invalid numwant", a.writer, zap.String("numwant", numwant))
 			return false
 		}
-		if numwantInt < int64(shared.Config.Tracker.Numwant.Max) {
+		if numwantInt < int64(a.tracker.conf.Tracker.Numwant.Max) {
 			a.numwant = int(numwantInt)
 		}
 	}
@@ -105,12 +106,12 @@ func (a *announce) SetNopeerid(nopeerid string) {
 	}
 }
 
-func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
-	atomic.AddInt64(&shared.ExpvarAnnounces, 1)
+func (t *HTTPTracker) AnnounceHandle(w http.ResponseWriter, r *http.Request) {
+	atomic.AddInt64(&shared.Expvar.Announces, 1)
 	query := r.URL.Query()
 
 	event := query.Get("event")
-	a := &announce{writer: w, req: r, peer: shared.Peer{}}
+	a := &announce{writer: w, req: r, peer: shared.Peer{}, tracker: t}
 
 	// Set up announce
 	if ok := a.SetPeer(query.Get("ip"), query.Get("port"), event, query.Get("left")); !ok {
@@ -131,8 +132,8 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	// If the peer stopped delete() them and exit
 	if event == "stopped" {
 		shared.PeerDB.Drop(&a.peer, &a.infohash, &a.peerid)
-		atomic.AddInt64(&shared.ExpvarAnnouncesOK, 1)
-		w.Write([]byte(shared.Config.Tracker.StoppedMsg))
+		atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
+		w.Write([]byte(t.conf.Tracker.StoppedMsg))
 		return
 	}
 
@@ -142,7 +143,7 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 
 	// Bencode response
 	d := bencoding.NewDict()
-	d.Add("interval", shared.Config.Tracker.AnnounceInterval)
+	d.Add("interval", t.conf.Tracker.AnnounceInterval)
 	d.Add("complete", complete)
 	d.Add("incomplete", incomplete)
 
@@ -155,6 +156,6 @@ func AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 		d.Add("peers", peerList)
 	}
 
-	atomic.AddInt64(&shared.ExpvarAnnouncesOK, 1)
+	atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
 	w.Write([]byte(d.Get()))
 }

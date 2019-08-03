@@ -11,39 +11,54 @@ import (
 	"go.uber.org/zap"
 )
 
-type udpTracker struct {
-	conn    *net.UDPConn
-	avgResp time.Time
+type UDPTracker struct {
+	sock   *net.UDPConn
+	conndb *connectionDatabase
+
+	conf   *shared.Config
+	logger *zap.Logger
 }
 
-// GetConnCount get the number of connections in the database
-func GetConnCount() int {
-	return connDB.conns()
+// NewUDPTracker creates are runs the UDP tracker
+func NewUDPTracker(conf *shared.Config, logger *zap.Logger) *UDPTracker {
+	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
+
+	tracker := UDPTracker{
+		conndb: newConnectionDatabase(conf.Database.Conn.Timeout, conf.Database.Conn.Filename, logger),
+		conf:   conf,
+		logger: logger,
+	}
+
+	go shared.RunOn(time.Duration(conf.Database.Conn.Trim)*time.Second, tracker.conndb.trim)
+	go tracker.listen()
+
+	return &tracker
+}
+
+// GetConnCount get the number of connections in the connection database
+func (u *UDPTracker) GetConnCount() int {
+	if u.conndb == nil {
+		return -1
+	}
+	return u.conndb.conns()
 }
 
 // WriteConns writes the connection database to file
-func WriteConns() {
-	connDB.write()
+func (u *UDPTracker) WriteConns() {
+	if u.conndb == nil {
+		return
+	}
+	u.conndb.write()
 }
 
-// Run runs the UDP tracker
-func Run() {
-	u := udpTracker{}
-	connDB.load()
-	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
-
-	go shared.RunOn(time.Duration(shared.Config.Database.Conn.Trim)*time.Second, connDB.trim)
-	u.listen()
-}
-
-func (u *udpTracker) listen() {
+func (u *UDPTracker) listen() {
 	var err error
 
-	u.conn, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: shared.Config.Tracker.UDP.Port, Zone: ""})
+	u.sock, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: u.conf.Tracker.UDP.Port, Zone: ""})
 	if err != nil {
 		panic(err)
 	}
-	defer u.conn.Close()
+	defer u.sock.Close()
 
 	var pool sync.Pool
 	pool.New = func() interface{} {
@@ -52,9 +67,9 @@ func (u *udpTracker) listen() {
 
 	for {
 		b := pool.Get().([]byte)
-		len, remote, err := u.conn.ReadFromUDP(b)
+		len, remote, err := u.sock.ReadFromUDP(b)
 		if err != nil {
-			shared.Logger.Error("ReadFromUDP()", zap.Error(err))
+			u.logger.Error("ReadFromUDP()", zap.Error(err))
 			pool.Put(b)
 			continue
 		}
@@ -73,7 +88,7 @@ func (u *udpTracker) listen() {
 	}
 }
 
-func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
+func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 	var addr [4]byte
 	ip := remote.IP.To4()
 	copy(addr[:], ip)
@@ -82,32 +97,31 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 	txid := int32(binary.BigEndian.Uint32(data[12:16]))
 
 	if ip == nil {
-		msg := newClientError("IPv6?", txid, cerrFields{"ip": remote.IP.String()})
-		u.conn.WriteToUDP(msg, remote)
+		msg := u.newClientError("IPv6?", txid, cerrFields{"ip": remote.IP.String()})
+		u.sock.WriteToUDP(msg, remote)
 		return
 	}
 
 	if action > 2 {
-		msg := newClientError("bad action", txid, cerrFields{"action": data[11], "addr": addr})
-		u.conn.WriteToUDP(msg, remote)
+		msg := u.newClientError("bad action", txid, cerrFields{"action": data[11], "addr": addr})
+		u.sock.WriteToUDP(msg, remote)
 		return
 	}
 
 	if action == 0 {
 		c := connect{}
 		if err := c.unmarshall(data); err != nil {
-			u.conn.WriteToUDP(newServerError("base.unmarshall()", err, txid), remote)
+			msg := u.newServerError("base.unmarshall()", err, txid)
+			u.sock.WriteToUDP(msg, remote)
 		}
 		u.connect(&c, remote, addr)
 		return
 	}
 
 	connid := int64(binary.BigEndian.Uint64(data[0:8]))
-	if dbID, ok := connDB.check(connid, addr); !ok && shared.Config.Tracker.UDP.CheckConnID {
-		u.conn.WriteToUDP(newClientError("bad connid", txid), remote)
-		if !shared.Config.Trakx.Prod {
-			shared.Logger.Info("Bad connid", zap.Int64("dbID", dbID), zap.Int64("clientID", connid), zap.Reflect("ip", ip))
-		}
+	if dbID, ok := u.conndb.check(connid, addr); !ok && u.conf.Tracker.UDP.CheckConnID {
+		msg := u.newClientError("bad connid", txid, cerrFields{"dbID": dbID, "clientID": connid, "ip": ip})
+		u.sock.WriteToUDP(msg, remote)
 		return
 	}
 
@@ -115,7 +129,8 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 	case 1:
 		announce := announce{}
 		if err := announce.unmarshall(data); err != nil {
-			u.conn.WriteToUDP(newServerError("announce.unmarshall()", err, txid), remote)
+			msg := u.newServerError("announce.unmarshall()", err, txid)
+			u.sock.WriteToUDP(msg, remote)
 			return
 		}
 		u.announce(&announce, remote, addr)
@@ -123,7 +138,8 @@ func (u *udpTracker) process(data []byte, remote *net.UDPAddr) {
 	case 2:
 		scrape := scrape{}
 		if err := scrape.unmarshall(data); err != nil {
-			u.conn.WriteToUDP(newServerError("scrape.unmarshall()", err, txid), remote)
+			msg := u.newServerError("scrape.unmarshall()", err, txid)
+			u.sock.WriteToUDP(msg, remote)
 			return
 		}
 		u.scrape(&scrape, remote)

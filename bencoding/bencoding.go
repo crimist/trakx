@@ -57,10 +57,10 @@ type Dict struct {
 }
 
 // NewDict creates a new dictionary
-func NewDict() Dict {
+func NewDict() *Dict {
 	dict := Dict{}
 	dict.encoded += "d"
-	return dict
+	return &dict
 }
 
 // Add x

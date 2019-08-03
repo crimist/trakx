@@ -26,7 +26,7 @@ Note: If you have other go program with expvar in netdata you'll have to edit go
 Some clients will ignore the port that you set on your HTTP tracker and will instead hit 80. To stop this you can add  
 `iptables -A INPUT -p tcp --dport 80 -m string ! --string "/announce?info_hash" --algo bm -j REJECT`
 
-If you're going to be serving a lot of clients take a lot at the sysctl tuning the resources section. The default parameters may not fair well.
+If you're going to be serving a lot of clients take a look at the sysctl tuning the resources section. Your sysctl will most likely need to be modified if you're using HTTP.
 
 ## pprof
 

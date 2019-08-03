@@ -13,8 +13,8 @@ var indexData []byte
 
 func initRoutes() {
 	var err error
-	if indexData, err = ioutil.ReadFile(shared.Config.Trakx.Index); err != nil {
-		shared.Logger.Panic("Failed to read index", zap.Error(err))
+	if indexData, err = ioutil.ReadFile(conf.Trakx.Index); err != nil {
+		logger.Panic("Failed to read index", zap.Error(err))
 	}
 }
 

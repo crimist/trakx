@@ -6,7 +6,6 @@ import (
 	"syscall"
 
 	"github.com/syc0x00/trakx/tracker/shared"
-	udptracker "github.com/syc0x00/trakx/tracker/udp"
 	"go.uber.org/zap"
 )
 
@@ -24,16 +23,16 @@ func handleSigs() {
 
 		switch sig {
 		case os.Interrupt, os.Kill, syscall.SIGTERM:
-			shared.Logger.Info("Exiting")
+			logger.Info("Exiting")
 
 			shared.PeerDB.WriteFull()
 			udptracker.WriteConns()
 			os.Exit(128 + int(sig.(syscall.Signal)))
 		case syscall.SIGUSR1:
-			shared.Logger.Info("Reloading config (not all setting will apply until restart)")
-			shared.LoadConfig()
+			logger.Info("Reloading config (not all setting will apply until restart)")
+			conf.Load(root)
 		default:
-			shared.Logger.Info("Got unknown sig", zap.Any("Signal", sig))
+			logger.Info("Got unknown sig", zap.Any("Signal", sig))
 		}
 	}
 }

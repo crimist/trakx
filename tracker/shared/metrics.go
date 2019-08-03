@@ -12,18 +12,25 @@ import (
 
 var StatsHTML string
 
+type metrics struct {
+	conf   *Config
+	logger *zap.Logger
+}
+
 func (db *PeerDatabase) generateMetrics() {
 	start := time.Now()
-	Logger.Info("Generating metrics...")
+	db.logger.Info("Generating metrics...")
+
+	m := metrics{conf: db.conf, logger: db.logger}
 	stats := make(map[string]int, 300)
 
 	db.mu.RLock()
 	for _, peermap := range db.db {
 		for peerid := range peermap {
 			if peerid[0] == '-' {
-				stats[getAzureus(string(peerid[1:7]))]++
+				stats[m.getAzureus(string(peerid[1:7]))]++
 			} else {
-				stats[getShadow(string(peerid[0:6]))]++
+				stats[m.getShadow(string(peerid[0:6]))]++
 			}
 		}
 	}
@@ -43,11 +50,11 @@ func (db *PeerDatabase) generateMetrics() {
 		}
 	}
 	StatsHTML += "</table>"
-	Logger.Info("Metric generated", zap.Duration("duration", time.Since(start)))
+	db.logger.Info("Metric generated", zap.Duration("duration", time.Since(start)))
 }
 
 // get the full name of the client w/ azureus method
-func getAzureus(azureus string) string {
+func (m *metrics) getAzureus(azureus string) string {
 	var client string
 
 	switch string(azureus[0:2]) {
@@ -258,8 +265,8 @@ func getAzureus(azureus string) string {
 		} else if int(c) > 64 && int(c) < 72 {
 			client += fmt.Sprintf("%d.", int(c)-55)
 		} else {
-			if !Config.Trakx.Prod {
-				Logger.Info("invalid version char", zap.Any("char", c))
+			if !m.conf.Trakx.Prod {
+				m.logger.Info("invalid version char", zap.Any("char", c))
 			}
 		}
 	}
@@ -268,7 +275,7 @@ func getAzureus(azureus string) string {
 }
 
 // get the full name of the client w/ shadow method
-func getShadow(shadow string) string {
+func (m *metrics) getShadow(shadow string) string {
 	var client string
 
 	switch string(shadow[0]) {
@@ -301,8 +308,8 @@ func getShadow(shadow string) string {
 		} else if int(c) > 64 && int(c) < 91 { // letter
 			client += fmt.Sprintf("%d.", int(c)-55)
 		} else {
-			if !Config.Trakx.Prod {
-				Logger.Info("invalid version char", zap.Any("char", c))
+			if !m.conf.Trakx.Prod {
+				m.logger.Info("invalid version char", zap.Any("char", c))
 			}
 		}
 	}

@@ -33,10 +33,10 @@ func (e *udperror) marshall() ([]byte, error) {
 
 type cerrFields map[string]interface{}
 
-func newClientError(msg string, TransactionID int32, fieldMap ...cerrFields) []byte {
-	atomic.AddInt64(&shared.ExpvarClienterrs, 1)
+func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ...cerrFields) []byte {
+	atomic.AddInt64(&shared.Expvar.Clienterrs, 1)
 
-	if !shared.Config.Trakx.Prod {
+	if !u.conf.Trakx.Prod {
 		fields := []zap.Field{zap.String("msg", msg)}
 		if len(fieldMap) == 1 {
 			for k, v := range fieldMap[0] {
@@ -44,7 +44,7 @@ func newClientError(msg string, TransactionID int32, fieldMap ...cerrFields) []b
 			}
 		}
 
-		shared.Logger.Info("Client Err", fields...)
+		u.logger.Info("Client Err", fields...)
 	}
 
 	e := udperror{
@@ -55,24 +55,24 @@ func newClientError(msg string, TransactionID int32, fieldMap ...cerrFields) []b
 
 	data, err := e.marshall()
 	if err != nil {
-		shared.Logger.Error("e.Marshall()", zap.Error(err))
+		u.logger.Error("e.Marshall()", zap.Error(err))
 	}
 	return data
 }
 
-func newServerError(msg string, err error, TransactionID int32) []byte {
-	atomic.AddInt64(&shared.ExpvarErrs, 1)
+func (u *UDPTracker) newServerError(msg string, err error, TransactionID int32) []byte {
+	atomic.AddInt64(&shared.Expvar.Errs, 1)
 
 	e := udperror{
 		Action:        3,
 		TransactionID: TransactionID,
 		ErrorString:   []byte("internal err"),
 	}
-	shared.Logger.Error(msg, zap.Error(err))
+	u.logger.Error(msg, zap.Error(err))
 
 	data, err := e.marshall()
 	if err != nil {
-		shared.Logger.Error("e.Marshall()", zap.Error(err))
+		u.logger.Error("e.Marshall()", zap.Error(err))
 	}
 	return data
 }

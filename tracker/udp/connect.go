@@ -32,10 +32,10 @@ func (cr *connectResp) marshall() ([]byte, error) {
 	return buff.Bytes(), err
 }
 
-func (u *udpTracker) connect(connect *connect, remote *net.UDPAddr, addr [4]byte) {
-	atomic.AddInt64(&shared.ExpvarConnects, 1)
+func (u *UDPTracker) connect(connect *connect, remote *net.UDPAddr, addr [4]byte) {
+	atomic.AddInt64(&shared.Expvar.Connects, 1)
 	id := rand.Int63()
-	connDB.add(id, addr)
+	u.conndb.add(id, addr)
 
 	resp := connectResp{
 		Action:        0,
@@ -45,11 +45,12 @@ func (u *udpTracker) connect(connect *connect, remote *net.UDPAddr, addr [4]byte
 
 	respBytes, err := resp.marshall()
 	if err != nil {
-		u.conn.WriteToUDP(newServerError("ConnectResp.Marshall()", err, connect.TransactionID), remote)
+		msg := u.newServerError("ConnectResp.Marshall()", err, connect.TransactionID)
+		u.sock.WriteToUDP(msg, remote)
 		return
 	}
 
-	atomic.AddInt64(&shared.ExpvarConnectsOK, 1)
-	u.conn.WriteToUDP(respBytes, remote)
+	atomic.AddInt64(&shared.Expvar.ConnectsOK, 1)
+	u.sock.WriteToUDP(respBytes, remote)
 	return
 }

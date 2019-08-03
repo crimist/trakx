@@ -72,12 +72,12 @@ func (ar *announceResp) marshall() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]byte) {
-	atomic.AddInt64(&shared.ExpvarAnnounces, 1)
+func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]byte) {
+	atomic.AddInt64(&shared.Expvar.Announces, 1)
 
 	if announce.Port == 0 {
-		msg := newClientError("bad port", announce.TransactionID, cerrFields{"addr": addr, "port": announce.Port})
-		u.conn.WriteToUDP(msg, remote)
+		msg := u.newClientError("bad port", announce.TransactionID, cerrFields{"addr": addr, "port": announce.Port})
+		u.sock.WriteToUDP(msg, remote)
 		return
 	}
 
@@ -90,16 +90,16 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	if announce.Event == completed || announce.Left == 0 {
 		peer.Complete = true
 	}
-	if announce.NumWant < 1 || announce.NumWant > shared.Config.Tracker.Numwant.Max {
-		announce.NumWant = shared.Config.Tracker.Numwant.Default
+	if announce.NumWant < 1 || announce.NumWant > u.conf.Tracker.Numwant.Max {
+		announce.NumWant = u.conf.Tracker.Numwant.Default
 	}
 
 	if announce.Event == stopped {
 		shared.PeerDB.Drop(&peer, &announce.InfoHash, &announce.PeerID)
 
-		atomic.AddInt64(&shared.ExpvarAnnouncesOK, 1)
-		if shared.Config.Tracker.StoppedMsg != "" {
-			u.conn.WriteToUDP([]byte(shared.Config.Tracker.StoppedMsg), remote)
+		atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
+		if u.conf.Tracker.StoppedMsg != "" {
+			u.sock.WriteToUDP([]byte(u.conf.Tracker.StoppedMsg), remote)
 		}
 		return
 	}
@@ -111,18 +111,19 @@ func (u *udpTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	resp := announceResp{
 		Action:        1,
 		TransactionID: announce.TransactionID,
-		Interval:      shared.Config.Tracker.AnnounceInterval,
+		Interval:      u.conf.Tracker.AnnounceInterval,
 		Leechers:      incomplete,
 		Seeders:       complete,
 		Peers:         shared.PeerDB.PeerListBytes(&announce.InfoHash, int(announce.NumWant)),
 	}
 	respBytes, err := resp.marshall()
 	if err != nil {
-		u.conn.WriteToUDP(newServerError("AnnounceResp.Marshall()", err, announce.TransactionID), remote)
+		msg := u.newServerError("AnnounceResp.Marshall()", err, announce.TransactionID)
+		u.sock.WriteToUDP(msg, remote)
 		return
 	}
 
-	atomic.AddInt64(&shared.ExpvarAnnouncesOK, 1)
-	u.conn.WriteToUDP(respBytes, remote)
+	atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
+	u.sock.WriteToUDP(respBytes, remote)
 	return
 }
