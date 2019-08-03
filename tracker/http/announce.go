@@ -148,12 +148,10 @@ func (t *HTTPTracker) AnnounceHandle(w http.ResponseWriter, r *http.Request) {
 	d.Add("incomplete", incomplete)
 
 	// Add peer list
-	if a.compact == true {
-		peerList := string(t.peerdb.PeerListBytes(&a.infohash, a.numwant))
-		d.Add("peers", peerList)
+	if a.compact {
+		d.Add("peers", t.peerdb.PeerListBytes(&a.infohash, a.numwant))
 	} else {
-		peerList := t.peerdb.PeerList(&a.infohash, a.numwant, a.noPeerID)
-		d.Add("peers", peerList)
+		d.Add("peers", t.peerdb.PeerList(&a.infohash, a.numwant, a.noPeerID))
 	}
 
 	atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)

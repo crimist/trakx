@@ -42,7 +42,9 @@ func NewController(root string, perms os.FileMode) (*Controller, error) {
 
 // Run runs trakx
 func (c *Controller) Run() {
+	fmt.Println("Running...")
 	tracker.Run()
+	fmt.Println("Ran!")
 }
 
 // Start starts trakx as a service
@@ -71,6 +73,8 @@ func (c *Controller) Start() error {
 
 // Stop stops the trakx service
 func (c *Controller) Stop() error {
+	fmt.Println("stopping...")
+
 	process, err := c.pID.Process()
 	if err != nil {
 		return err
@@ -99,6 +103,7 @@ func (c *Controller) Stop() error {
 		return err
 	}
 
+	fmt.Println("stopped!")
 	return c.pID.clear()
 }
 
@@ -109,6 +114,8 @@ func (c *Controller) Wipe() error {
 
 // Reload sends the reload config signal to trakx
 func (c *Controller) Reload() error {
+	fmt.Println("reloading...")
+
 	process, err := c.pID.Process()
 	if err != nil {
 		return err
@@ -117,6 +124,8 @@ func (c *Controller) Reload() error {
 	if err := process.Signal(tracker.SigReload); err != nil {
 		return err
 	}
+
+	fmt.Println("reloaded")
 	return process.Release()
 }
 

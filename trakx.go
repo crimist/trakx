@@ -61,24 +61,20 @@ func main() {
 					os.Exit(-1)
 				}
 			}
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(1 * time.Second)
 		}
 	case "run":
-		fmt.Println("Running...")
 		c.Run()
-		fmt.Println("Ran!")
 	case "start":
 		if err := c.Start(); err != nil {
 			fmt.Fprintf(os.Stderr, err.Error()+"\n")
 			os.Exit(-1)
 		}
 	case "stop":
-		fmt.Println("stopping...")
 		if err := c.Stop(); err != nil {
 			fmt.Fprintf(os.Stderr, err.Error()+"\n")
 			os.Exit(-1)
 		}
-		fmt.Println("stopped!")
 	case "restart", "reboot":
 		fmt.Println("rebooting...")
 		if err := c.Stop(); err != nil {
@@ -98,12 +94,10 @@ func main() {
 		}
 		fmt.Println("wiped...")
 	case "reload":
-		fmt.Println("reloading...")
 		if err := c.Reload(); err != nil {
 			fmt.Fprintf(os.Stderr, err.Error()+"\n")
 			os.Exit(-1)
 		}
-		fmt.Println("reloaded")
 	default:
 		printHelp(os.Args[1])
 	}
