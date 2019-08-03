@@ -44,7 +44,7 @@ func (t *HTTPTracker) Serve(index []byte) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			t.logger.Panic("net.Listen()", zap.Error(err))
+			t.logger.Error("net.Listen()", zap.Error(err))
 		}
 		go func() {
 			b := pool.Get().([]byte)
