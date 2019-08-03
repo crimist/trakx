@@ -44,6 +44,6 @@ func InitExpvar(peerdb *PeerDatabase) {
 		}
 	}
 	Expvar.IPs.Unlock()
-	
+
 	peerdb.generateMetrics()
 }

@@ -47,6 +47,7 @@ func (c *Controller) Run() {
 
 // Start starts trakx as a service
 func (c *Controller) Start() error {
+	fmt.Println("starting...")
 	if c.IsRunning() {
 		return errors.New("Trakx is already running")
 	}
@@ -64,6 +65,7 @@ func (c *Controller) Start() error {
 		return err
 	}
 
+	fmt.Println("started!")
 	return c.pID.write(cmd.Process.Pid)
 }
 

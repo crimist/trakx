@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/syc0x00/trakx/controller"
 )
@@ -18,6 +19,7 @@ func printHelp(arg string) {
 	}
 	help := "Trakx commands:\n"
 	help += fmt.Sprintf("  %-12s Checks if Trakx is running\n", "status")
+	help += fmt.Sprintf("  %-12s Runs Trakx if it closes\n", "watcher")
 	help += fmt.Sprintf("  %-12s Runs Trakx (doesn't return)\n", "run")
 	help += fmt.Sprintf("  %-12s Starts Trakx as a service\n", "start")
 	help += fmt.Sprintf("  %-12s Stops Trakx service\n", "stop")
@@ -51,17 +53,25 @@ func main() {
 		} else {
 			fmt.Println("Trakx is not running")
 		}
+	case "watcher":
+		for {
+			if !c.IsRunning() {
+				if err := c.Start(); err != nil {
+					fmt.Fprintf(os.Stderr, err.Error()+"\n")
+					os.Exit(-1)
+				}
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
 	case "run":
 		fmt.Println("Running...")
 		c.Run()
 		fmt.Println("Ran!")
 	case "start":
-		fmt.Println("starting...")
 		if err := c.Start(); err != nil {
 			fmt.Fprintf(os.Stderr, err.Error()+"\n")
 			os.Exit(-1)
 		}
-		fmt.Println("started!")
 	case "stop":
 		fmt.Println("stopping...")
 		if err := c.Stop(); err != nil {
