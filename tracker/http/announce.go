@@ -2,6 +2,7 @@ package http
 
 import (
 	"net"
+	"net/url"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -10,7 +11,7 @@ import (
 	"github.com/syc0x00/trakx/tracker/shared"
 )
 
-func (t *HTTPTracker) Announce(j *job) {
+func (t *HTTPTracker) announce(conn net.Conn, vals url.Values) {
 	atomic.AddInt64(&shared.Expvar.Announces, 1)
 
 	// get vars
@@ -18,21 +19,21 @@ func (t *HTTPTracker) Announce(j *job) {
 	hash := shared.Hash{}
 	peerid := shared.PeerID{}
 	numwant := int(t.conf.Tracker.Numwant.Default)
-	compact := j.vals.Get("compact") == "1"
-	nopeerid := j.vals.Get("no_peer_id") == "1"
+	compact := vals.Get("compact") == "1"
+	nopeerid := vals.Get("no_peer_id") == "1"
 
-	event := j.vals.Get("event")
-	port := j.vals.Get("port")
-	left := j.vals.Get("left")
-	hashStr := j.vals.Get("info_hash")
-	peeridStr := j.vals.Get("peer_id")
-	numwantStr := j.vals.Get("numwant")
+	event := vals.Get("event")
+	port := vals.Get("port")
+	left := vals.Get("left")
+	hashStr := vals.Get("info_hash")
+	peeridStr := vals.Get("peer_id")
+	numwantStr := vals.Get("numwant")
 
 	// IP
-	ipStr, _, _ := net.SplitHostPort(j.conn.RemoteAddr().String())
+	ipStr, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
 	parsedIP := net.ParseIP(ipStr).To4()
 	if parsedIP == nil {
-		t.clientError(j.conn, "ipv6 unsupported")
+		t.clientError(conn, "ipv6 unsupported")
 		return
 	}
 	copy(peer.IP[:], parsedIP)
@@ -40,7 +41,7 @@ func (t *HTTPTracker) Announce(j *job) {
 	// Port
 	portInt, err := strconv.Atoi(port)
 	if err != nil || (portInt > 65535 || portInt < 1) {
-		t.clientError(j.conn, "Invalid port")
+		t.clientError(conn, "Invalid port")
 		return
 	}
 	peer.Port = uint16(portInt)
@@ -52,14 +53,14 @@ func (t *HTTPTracker) Announce(j *job) {
 
 	// hash
 	if len(hashStr) != 20 {
-		t.clientError(j.conn, "Invalid infohash")
+		t.clientError(conn, "Invalid infohash")
 		return
 	}
 	copy(hash[:], hashStr)
 
 	// peerid
 	if len(peeridStr) != 20 {
-		t.clientError(j.conn, "Invalid peerid")
+		t.clientError(conn, "Invalid peerid")
 		return
 	}
 	copy(peerid[:], peeridStr)
@@ -68,7 +69,7 @@ func (t *HTTPTracker) Announce(j *job) {
 	if numwantStr != "" {
 		numwantInt, err := strconv.Atoi(numwantStr)
 		if err != nil {
-			t.clientError(j.conn, "Invalid numwant")
+			t.clientError(conn, "Invalid numwant")
 			return
 		}
 		if numwantInt < int(t.conf.Tracker.Numwant.Max) || numwantInt > 0 {
@@ -80,7 +81,7 @@ func (t *HTTPTracker) Announce(j *job) {
 	if event == "stopped" {
 		t.peerdb.Drop(&peer, &hash, &peerid)
 		atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
-		j.conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + t.conf.Tracker.StoppedMsg))
+		conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + t.conf.Tracker.StoppedMsg))
 		return
 	}
 
@@ -98,5 +99,5 @@ func (t *HTTPTracker) Announce(j *job) {
 	}
 
 	atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
-	j.conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + d.Get()))
+	conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + d.Get()))
 }

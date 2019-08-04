@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"runtime"
 	"sync/atomic"
 	"time"
 
@@ -25,6 +26,8 @@ func publishExpvar(conf *shared.Config, peerdb *shared.PeerDatabase) {
 	conns := expvar.NewInt("trakx.database.connections")
 
 	// Performance
+	goroutines := expvar.NewInt("trakx.performance.goroutines")
+
 	announcesSec := expvar.NewInt("tracker.performance.announces")
 	announcesSecOK := expvar.NewInt("tracker.performance.announcesok")
 	errors := expvar.NewInt("tracker.performance.errors")
@@ -52,6 +55,9 @@ func publishExpvar(conf *shared.Config, peerdb *shared.PeerDatabase) {
 
 		// database
 		conns.Set(int64(udptracker.GetConnCount()))
+
+		// performance
+		goroutines.Set(int64(runtime.NumGoroutine()))
 
 		announcesSec.Set(atomic.LoadInt64(&shared.Expvar.Announces))
 		atomic.StoreInt64(&shared.Expvar.Announces, 0)

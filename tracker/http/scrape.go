@@ -1,18 +1,20 @@
 package http
 
 import (
+	"net"
+	"net/url"
 	"sync/atomic"
 
 	"github.com/syc0x00/trakx/bencoding"
 	"github.com/syc0x00/trakx/tracker/shared"
 )
 
-func (t *HTTPTracker) Scrape(c *ctx) {
+func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
 	atomic.AddInt64(&shared.Expvar.Scrapes, 1)
 
-	infohashes := c.u.Query()["info_hash"]
+	infohashes := vals["info_hash"]
 	if len(infohashes) == 0 {
-		t.clientError(c.conn, "no infohashes")
+		t.clientError(conn, "no infohashes")
 		return
 	}
 
@@ -21,7 +23,7 @@ func (t *HTTPTracker) Scrape(c *ctx) {
 
 	for _, infohash := range infohashes {
 		if len(infohash) != 20 {
-			t.clientError(c.conn, "invalid infohash")
+			t.clientError(conn, "invalid infohash")
 			return
 		}
 
@@ -37,10 +39,10 @@ func (t *HTTPTracker) Scrape(c *ctx) {
 	}
 
 	if err := dict.Add("files", nestedDict); err != nil {
-		t.internalError(c.conn, "dict.Add()", err)
+		t.internalError(conn, "dict.Add()", err)
 		return
 	}
 
-	c.conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + dict.Get()))
+	conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + dict.Get()))
 	atomic.AddInt64(&shared.Expvar.ScrapesOK, 1)
 }
