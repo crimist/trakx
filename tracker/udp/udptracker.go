@@ -21,7 +21,7 @@ type UDPTracker struct {
 }
 
 // NewUDPTracker creates are runs the UDP tracker
-func NewUDPTracker(conf *shared.Config, logger *zap.Logger, peerdb *shared.PeerDatabase) *UDPTracker {
+func NewUDPTracker(conf *shared.Config, logger *zap.Logger, peerdb *shared.PeerDatabase, threads int) *UDPTracker {
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 
 	tracker := UDPTracker{
@@ -32,7 +32,7 @@ func NewUDPTracker(conf *shared.Config, logger *zap.Logger, peerdb *shared.PeerD
 	}
 
 	go shared.RunOn(time.Duration(conf.Database.Conn.Trim)*time.Second, tracker.conndb.trim)
-	go tracker.listen()
+	go tracker.listen(threads)
 
 	return &tracker
 }
@@ -53,7 +53,7 @@ func (u *UDPTracker) WriteConns() {
 	u.conndb.write()
 }
 
-func (u *UDPTracker) listen() {
+func (u *UDPTracker) listen(threads int) {
 	var err error
 
 	u.sock, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: u.conf.Tracker.UDP.Port, Zone: ""})
@@ -67,27 +67,30 @@ func (u *UDPTracker) listen() {
 		return make([]byte, 1496, 1496)
 	}
 
-	for {
-		b := pool.Get().([]byte)
-		len, remote, err := u.sock.ReadFromUDP(b)
-		if err != nil {
-			u.logger.Error("ReadFromUDP()", zap.Error(err))
-			pool.Put(b)
-			continue
-		}
-
+	for i := 0; i < threads; i++ {
 		go func() {
-			if len > 15 { // 16 = minimum connect
-				u.process(b[:len], remote)
+			for {
+				b := pool.Get().([]byte)
+				len, remote, err := u.sock.ReadFromUDP(b)
+				if err != nil {
+					u.logger.Error("ReadFromUDP()", zap.Error(err))
+					pool.Put(b)
+					continue
+				}
+
+				if len > 15 { // 16 = minimum connect
+					u.process(b[:len], remote)
+				}
+				// optimized zero
+				for i := range b {
+					b[i] = 0
+				}
+				pool.Put(b)
 			}
-			// optimized zero
-			b = b[:cap(b)]
-			for i := range b {
-				b[i] = 0
-			}
-			pool.Put(b)
 		}()
 	}
+
+	select {}
 }
 
 func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {

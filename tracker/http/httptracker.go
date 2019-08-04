@@ -28,7 +28,7 @@ func NewHTTPTracker(conf *shared.Config, logger *zap.Logger, peerdb *shared.Peer
 	return &tracker
 }
 
-func (t *HTTPTracker) Serve(index []byte) {
+func (t *HTTPTracker) Serve(index []byte, threads int) {
 	w := workers{
 		tracker:  t,
 		jobQueue: make(chan job, 5000),
@@ -36,7 +36,7 @@ func (t *HTTPTracker) Serve(index []byte) {
 	}
 	w.pool.New = func() interface{} { return make([]byte, 1000, 1000) } // TODO: HTTP req max size?
 
-	w.startWorkers(5)
+	w.startWorkers(threads)
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", t.conf.Tracker.HTTP.Port))
 	if err != nil {
