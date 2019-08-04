@@ -22,8 +22,8 @@ var (
 
 // TODO: Needs testing
 const (
-	udpThreads  = 5
-	httpThreads = 5
+	udpThreads  = 1024
+	httpThreads = 2048
 )
 
 // Run runs the tracker

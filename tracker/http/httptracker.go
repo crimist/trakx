@@ -12,6 +12,12 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	maxReadTimeOut  = 3 * time.Second
+	maxWriteTimeOut = 10 * time.Second
+	jobQueueSize = 100000
+)
+
 type HTTPTracker struct {
 	conf   *shared.Config
 	logger *zap.Logger
@@ -31,7 +37,7 @@ func NewHTTPTracker(conf *shared.Config, logger *zap.Logger, peerdb *shared.Peer
 func (t *HTTPTracker) Serve(index []byte, threads int) {
 	w := workers{
 		tracker:  t,
-		jobQueue: make(chan job, 5000),
+		jobQueue: make(chan job, jobQueueSize),
 		index:    string(index),
 	}
 	w.pool.New = func() interface{} { return make([]byte, 1000, 1000) } // TODO: HTTP req max size?
@@ -87,11 +93,6 @@ func (w *workers) startWorkers(num int) {
 	}
 }
 
-const (
-	maxReadTimeOut  = 3 * time.Second
-	maxWriteTimeOut = 10 * time.Second
-)
-
 func (w *workers) work() {
 	for {
 		select {
@@ -111,7 +112,9 @@ func (w *workers) work() {
 				job.conn.SetDeadline(now.Add(maxReadTimeOut))
 				job.conn.SetWriteDeadline(now.Add(maxWriteTimeOut))
 
-				job.conn.Read(data)
+				if _, err := job.conn.Read(data); err != nil {
+					return
+				}
 
 				urlEnd := bytes.Index(data, []byte(" HTTP/"))
 				if urlEnd < 5 {
@@ -122,6 +125,7 @@ func (w *workers) work() {
 				u, err := url.Parse(string(data[4:urlEnd]))
 				if err != nil {
 					job.conn.Write([]byte("HTTP/1.1 400\r\n\r\n"))
+					return
 				}
 
 				switch u.Path {
