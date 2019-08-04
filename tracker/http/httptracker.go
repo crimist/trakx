@@ -41,6 +41,15 @@ func (t *HTTPTracker) Serve(index []byte) {
 	var pool sync.Pool
 	pool.New = func() interface{} { return make([]byte, 1000, 1000) } // TODO: HTTP req max size?
 
+	w := workers{
+		tracker: t,
+		jobQueue: make(chan job, 5000),
+	}
+
+	for i := 0; i < 5; i++ {
+		go w.consumeAnnounce()
+	}
+
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -50,50 +59,75 @@ func (t *HTTPTracker) Serve(index []byte) {
 			continue
 		}
 		go func() {
-			b := pool.Get().([]byte)
+			data := pool.Get().([]byte)
 			defer func() {
-				conn.Close()
-				for i := range b {
-					b[i] = 0
+				for i := range data {
+					data[i] = 0
 				}
-				pool.Put(b)
+				pool.Put(data)
 			}()
 
-			conn.Read(b)
+			conn.Read(data)
 
 			// Do stuff
-			if !bytes.Equal(b[0:4], []byte("GET ")) {
+			if !bytes.Equal(data[0:4], []byte("GET ")) {
 				conn.Write([]byte("Trakx only supports GET"))
+				conn.Close()
 				return
 			}
 
-			i := bytes.Index(b, []byte(" HTTP/"))
+			i := bytes.Index(data, []byte(" HTTP/"))
 			if i < 0 {
 				conn.Write([]byte("HTTP/1.1 400\r\n\r\n"))
+				conn.Close()
 				return
 			}
-			u, _ := url.Parse(string(b[4:i]))
-
-			c := ctx{conn: conn, u: u}
+			u, err := url.Parse(string(data[4:i]))
+			if err != nil {
+				conn.Write([]byte("HTTP/1.1 400\r\n\r\n"))
+				conn.Close()
+			}
 
 			switch u.Path {
-			case "/":
-				c.WriteHTTP("200", string(index))
 			case "/announce":
-				t.Announce(&c)
+				w.jobQueue <- job{conn: conn, vals: u.Query()}
 			case "/scrape":
+				c := ctx{conn: conn, u: u}
 				t.Scrape(&c)
+				conn.Close()
+			case "/":
+				conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + string(index)))
+				conn.Close()
 			case "/dmca":
 				conn.Write([]byte("HTTP/1.1 303\r\nLocation: https://www.youtube.com/watch?v=BwSts2s4ba4\r\n\r\n"))
+				conn.Close()
 			case "/stats":
-				c.WriteHTTP("200", string(shared.StatsHTML))
+				conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + shared.StatsHTML))
+				conn.Close()
 			default:
-				c.WriteHTTP("404", "")
+				conn.Write([]byte("HTTP/1.1 404\r\n\r\n"))
+				conn.Close()
 			}
 		}()
 	}
 }
 
-func (c *ctx) WriteHTTP(status string, msg string) {
-	c.conn.Write([]byte("HTTP/1.1 " + status + "\r\n\r\n" + msg))
+type job struct {
+	conn net.Conn
+	vals url.Values
+}
+
+type workers struct {
+	tracker  *HTTPTracker
+	jobQueue chan job
+}
+
+func (w *workers) consumeAnnounce() {
+	for {
+		select {
+		case job := <-w.jobQueue:
+			w.tracker.Announce(&job)
+			job.conn.Close()
+		}
+	}
 }

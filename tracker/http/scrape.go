@@ -41,6 +41,6 @@ func (t *HTTPTracker) Scrape(c *ctx) {
 		return
 	}
 
-	c.WriteHTTP("200", dict.Get())
+	c.conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + dict.Get()))
 	atomic.AddInt64(&shared.Expvar.ScrapesOK, 1)
 }
