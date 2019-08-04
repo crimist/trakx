@@ -44,7 +44,9 @@ func (t *HTTPTracker) Serve(index []byte) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			t.logger.Info("net.Listen()", zap.Error(err))
+			if !t.conf.Trakx.Prod {
+				t.logger.Warn("net.Listen()", zap.Error(err))
+			}
 			continue
 		}
 		go func() {
