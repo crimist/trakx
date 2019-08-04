@@ -114,7 +114,7 @@ func (w *workers) work() {
 				job.conn.Read(data)
 
 				urlEnd := bytes.Index(data, []byte(" HTTP/"))
-				if urlEnd == 1 {
+				if urlEnd < 5 {
 					job.conn.Write([]byte("HTTP/1.1 400\r\n\r\n"))
 					return
 				}
