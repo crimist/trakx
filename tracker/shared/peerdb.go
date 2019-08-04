@@ -93,7 +93,7 @@ func (db *PeerDatabase) load(filename string) error {
 }
 
 func (db *PeerDatabase) make() {
-	db = &PeerDatabase{db: make(map[Hash]map[PeerID]Peer, 10000)}
+	db.db = make(map[Hash]map[PeerID]Peer, 10000)
 }
 
 // Load loads a database into memory
