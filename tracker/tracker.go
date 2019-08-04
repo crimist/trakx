@@ -54,10 +54,10 @@ func Run() {
 	// HTTP tracker / routes
 	initRoutes()
 
+	t := httptracker.NewHTTPTracker(conf, logger, peerdb)
 	if conf.Tracker.HTTP.Enabled {
 		logger.Info("http tracker enabled")
 
-		t := httptracker.NewHTTPTracker(conf, logger, peerdb)
 		go t.Serve(indexData, httpThreads)
 	} else {
 		d := bencoding.NewDict()
@@ -96,7 +96,7 @@ func Run() {
 	}
 
 	if conf.Trakx.Expvar.Enabled {
-		go publishExpvar(conf, peerdb)
+		go publishExpvar(conf, peerdb, t)
 	}
 
 	select {} // block forever
