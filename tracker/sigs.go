@@ -30,7 +30,9 @@ func handleSigs(peerdb *shared.PeerDatabase) {
 			os.Exit(128 + int(sig.(syscall.Signal)))
 		case syscall.SIGUSR1:
 			logger.Info("Reloading config (not all setting will apply until restart)")
-			conf.Load(root)
+			if err := conf.Load(root); err != nil {
+				logger.Error("conf.Load()", zap.Error(err))
+			}
 		default:
 			logger.Info("Got unknown sig", zap.Any("Signal", sig))
 		}

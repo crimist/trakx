@@ -29,12 +29,15 @@ func Run() {
 		panic("os.UserHomeDir() failed: " + err.Error())
 	}
 	root += "/.trakx/"
-	conf = shared.NewConfig(root)
 
 	cfg := zap.NewDevelopmentConfig()
 	logger, err = cfg.Build()
 	if err != nil {
 		panic(err)
+	}
+
+	if conf, err = shared.NewConfig(root); err != nil {
+		logger.Panic("NewConfig()", zap.Error(err))
 	}
 
 	peerdb := shared.NewPeerDatabase(conf, logger)

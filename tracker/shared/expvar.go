@@ -27,7 +27,7 @@ var (
 // InitExpvar sets the expvar vars to the contents of the peer database
 func InitExpvar(peerdb *PeerDatabase) {
 	if ok := peerdb.check(); !ok {
-		panic("peerDB not init before expvars")
+		panic("peerdb not init before expvars")
 	}
 
 	Expvar.IPs.M = make(map[PeerIP]int8, 30000)

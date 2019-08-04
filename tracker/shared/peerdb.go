@@ -176,7 +176,7 @@ func (db *PeerDatabase) write(temp bool) {
 	} else {
 		db.Trim()
 	}
-	
+
 	db.mu.RLock()
 	err := encoder.Encode(&db.db)
 	db.mu.RUnlock()

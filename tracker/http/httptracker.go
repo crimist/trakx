@@ -44,7 +44,7 @@ func (t *HTTPTracker) Serve(index []byte) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			t.logger.Warn("net.Listen()", zap.Error(err))
+			t.logger.Info("net.Listen()", zap.Error(err))
 			continue
 		}
 		go func() {
@@ -81,6 +81,10 @@ func (t *HTTPTracker) Serve(index []byte) {
 				t.Announce(&c)
 			case "/scrape":
 				t.Scrape(&c)
+			case "/dmca":
+				conn.Write([]byte("HTTP/1.1 303\r\nLocation: https://www.youtube.com/watch?v=BwSts2s4ba4\r\n\r\n"))
+			case "/stats":
+				c.WriteHTTP("200", string(shared.StatsHTML))
 			default:
 				c.WriteHTTP("404", "")
 			}

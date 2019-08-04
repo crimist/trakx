@@ -9,6 +9,7 @@ trakx:
     enabled: true
     every: 1
     port: 1338
+  ulimit: 2500 # nofile, 0 for default
 
 tracker:
   http:

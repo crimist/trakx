@@ -2,6 +2,7 @@ package shared
 
 import (
 	"io/ioutil"
+	"syscall"
 
 	"gopkg.in/yaml.v2"
 )
@@ -15,6 +16,7 @@ type Config struct {
 			Every   int  `yaml:"every"`
 			Port    int  `yaml:"port"`
 		} `yaml:"expvar"`
+		Ulimit uint64 `yaml:"ulimit"`
 	} `yaml:"trakx"`
 	Tracker struct {
 		HTTP struct {
@@ -50,14 +52,16 @@ type Config struct {
 }
 
 // NewConfig loads "config.yaml" at root
-func NewConfig(root string) *Config {
+func NewConfig(root string) (*Config, error) {
 	conf := Config{}
-	conf.Load(root)
+	if err := conf.Load(root); err != nil {
+		return nil, err
+	}
 
-	return &conf
+	return &conf, nil
 }
 
-func (conf *Config) Load(root string) {
+func (conf *Config) Load(root string) error {
 	if conf == nil {
 		panic("conf == nil")
 	}
@@ -73,4 +77,21 @@ func (conf *Config) Load(root string) {
 	conf.Trakx.Index = root + conf.Trakx.Index
 	conf.Database.Peer.Filename = root + conf.Database.Peer.Filename
 	conf.Database.Conn.Filename = root + conf.Database.Conn.Filename
+
+	// Set ulimit
+	if conf.Trakx.Ulimit == 0 {
+		return nil
+	}
+	var rLimit syscall.Rlimit
+	err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		return err
+	}
+	rLimit.Max = conf.Trakx.Ulimit
+	rLimit.Cur = conf.Trakx.Ulimit
+	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	if err != nil {
+		return err
+	}
+	return nil
 }
