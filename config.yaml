@@ -29,16 +29,16 @@ tracker:
 
   numwant:
     default: 75
-    max: 400
+    max: 300
 
   # message for stopping clients
   stoppedmsg: "See you space cowboy..."
 
   # time between metrics generation
-  metrics: 1800 # 30m
+  metrics: 3600 # 1h
   
   # Announce interval for clients
-  announce: 1200 # 20m
+  announce: 1800 # 30m
 
 # Databases are in ~/.trakx/
 database:
@@ -46,7 +46,7 @@ database:
     filename: "peers.db"
     trim: 600 # 10m
     write: 900 # 15m
-    timeout: 1800 # 30m
+    timeout: 2400 # 40m
   conn:
     filename: "conn.db"
     trim: 600 # 10m
