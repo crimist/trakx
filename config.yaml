@@ -15,11 +15,17 @@ tracker:
   http:
     enabled: true
     port: 1337 # also serves the index
+    readtimeout: 3
+    writetimeout: 10
+    qsize: 100000
+    accepters: 10
+    threads: 2048
 
   udp:
     enabled: true
     port: 1337
     checkconnid: true
+    threads: 1024
 
   numwant:
     default: 75

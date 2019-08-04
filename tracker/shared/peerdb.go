@@ -48,7 +48,9 @@ func (db *PeerDatabase) Trim() {
 	var peers, hashes int
 	now := time.Now().Unix()
 	start := time.Now()
-	defer db.logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
+	defer func() {
+		db.logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
+	}()
 	db.logger.Info("Trimming database")
 
 	// Unlock/Lock every 4th otherwise this blocks
@@ -57,7 +59,6 @@ func (db *PeerDatabase) Trim() {
 	db.mu.Lock()
 	hashcount := len(db.db)
 	if hashcount/4 < 1 {
-		db.logger.Info("Database empty")
 		return
 	}
 

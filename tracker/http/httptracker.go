@@ -12,12 +12,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	maxReadTimeOut  = 3 * time.Second
-	maxWriteTimeOut = 10 * time.Second
-	jobQueueSize    = 100000
-)
-
 type HTTPTracker struct {
 	conf   *shared.Config
 	logger *zap.Logger
@@ -39,7 +33,7 @@ func NewHTTPTracker(conf *shared.Config, logger *zap.Logger, peerdb *shared.Peer
 func (t *HTTPTracker) Serve(index []byte, threads int) {
 	t.workers = workers{
 		tracker:  t,
-		jobQueue: make(chan job, jobQueueSize),
+		jobQueue: make(chan job, t.conf.Tracker.HTTP.Qsize),
 		index:    string(index),
 	}
 	t.workers.pool.New = func() interface{} { return make([]byte, 1000, 1000) } // TODO: HTTP req max size?
@@ -50,16 +44,20 @@ func (t *HTTPTracker) Serve(index []byte, threads int) {
 		t.logger.Panic("net.Listen()", zap.Error(err))
 	}
 
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			if !t.conf.Trakx.Prod {
-				t.logger.Warn("net.Listen()", zap.Error(err))
-			}
-			continue
-		}
+	for i := 0; i < t.conf.Tracker.HTTP.Accepters; i++ {
 		go func() {
-			t.workers.jobQueue <- job{conn}
+			for {
+				conn, err := ln.Accept()
+				if err != nil {
+					if !t.conf.Trakx.Prod {
+						t.logger.Warn("net.Listen()", zap.Error(err))
+					}
+					continue
+				}
+				go func() {
+					t.workers.jobQueue <- job{conn}
+				}()
+			}
 		}()
 	}
 }
@@ -99,6 +97,8 @@ func (w *workers) startWorkers(num int) {
 }
 
 func (w *workers) work() {
+	maxread := time.Duration(w.tracker.conf.Tracker.HTTP.ReadTimeout) * time.Second
+	maxwrite := time.Duration(w.tracker.conf.Tracker.HTTP.WriteTimeout) * time.Second
 	for {
 		select {
 		case job := <-w.jobQueue:
@@ -114,8 +114,8 @@ func (w *workers) work() {
 
 				// Should recv and send data within timeouts or were overloaded
 				now := time.Now()
-				job.conn.SetDeadline(now.Add(maxReadTimeOut))
-				job.conn.SetWriteDeadline(now.Add(maxWriteTimeOut))
+				job.conn.SetDeadline(now.Add(maxread))
+				job.conn.SetWriteDeadline(now.Add(maxwrite))
 
 				if _, err := job.conn.Read(data); err != nil {
 					return

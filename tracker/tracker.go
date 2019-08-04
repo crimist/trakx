@@ -20,12 +20,6 @@ var (
 	root       string
 )
 
-// TODO: Needs testing
-const (
-	udpThreads  = 1024
-	httpThreads = 2048
-)
-
 // Run runs the tracker
 func Run() {
 	var err error
@@ -58,7 +52,7 @@ func Run() {
 	if conf.Tracker.HTTP.Enabled {
 		logger.Info("http tracker enabled")
 
-		go t.Serve(indexData, httpThreads)
+		go t.Serve(indexData, conf.Tracker.HTTP.Threads)
 	} else {
 		d := bencoding.NewDict()
 		d.Add("interval", 432000) // 5 days
@@ -92,7 +86,7 @@ func Run() {
 	// UDP tracker
 	if conf.Tracker.UDP.Enabled {
 		logger.Info("udp tracker enabled")
-		udptracker = udp.NewUDPTracker(conf, logger, peerdb, udpThreads)
+		udptracker = udp.NewUDPTracker(conf, logger, peerdb, conf.Tracker.UDP.Threads)
 	}
 
 	if conf.Trakx.Expvar.Enabled {

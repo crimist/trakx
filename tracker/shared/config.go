@@ -20,13 +20,19 @@ type Config struct {
 	} `yaml:"trakx"`
 	Tracker struct {
 		HTTP struct {
-			Enabled bool `yaml:"enabled"`
-			Port    int  `yaml:"port"`
+			Enabled      bool `yaml:"enabled"`
+			Port         int  `yaml:"port"`
+			ReadTimeout  int  `yaml:"readtimeout"`
+			WriteTimeout int  `yaml:"writetimeout"`
+			Qsize        int  `yaml:"qsize"`
+			Accepters    int  `yaml:"accepters"`
+			Threads      int  `yaml:"threads"`
 		} `yaml:"http"`
 		UDP struct {
 			Enabled     bool `yaml:"enabled"`
 			Port        int  `yaml:"port"`
 			CheckConnID bool `yaml:"checkconnid"`
+			Threads     int  `yaml:"threads"`
 		} `yaml:"udp"`
 		Numwant struct {
 			Default int32 `yaml:"default"`
