@@ -57,6 +57,7 @@ func (db *PeerDatabase) Trim() {
 	db.mu.Lock()
 	hashcount := len(db.db)
 	if hashcount/4 < 1 {
+		db.logger.Info("Database empty")
 		return
 	}
 
