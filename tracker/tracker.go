@@ -61,7 +61,6 @@ func Run() {
 		trackerMux := http.NewServeMux()
 		trackerMux.HandleFunc("/", index)
 		trackerMux.HandleFunc("/dmca", dmca)
-		trackerMux.HandleFunc("/stats", stats)
 		trackerMux.HandleFunc("/scrape", func(w http.ResponseWriter, r *http.Request) {})
 		trackerMux.HandleFunc("/announce", func(w http.ResponseWriter, r *http.Request) {
 			w.Write(errResp)

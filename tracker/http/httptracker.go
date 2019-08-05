@@ -61,7 +61,7 @@ func (t *HTTPTracker) Serve(index []byte, threads int) {
 		}()
 	}
 
-	select{}
+	select {}
 }
 
 func (t *HTTPTracker) QueueLen() int {
