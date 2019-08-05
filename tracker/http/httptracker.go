@@ -54,9 +54,9 @@ func (t *HTTPTracker) Serve(index []byte, threads int) {
 					}
 					continue
 				}
-				go func() {
-					t.workers.jobQueue <- job{conn}
-				}()
+
+				// If jobQueue ever locks we should stop accepting packets anyway
+				t.workers.jobQueue <- job{conn}
 			}
 		}()
 	}
