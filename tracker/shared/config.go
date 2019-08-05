@@ -39,7 +39,6 @@ type Config struct {
 			Max     int32 `yaml:"max"`
 		} `yaml:"numwant"`
 		StoppedMsg       string `yaml:"stoppedmsg"`
-		MetricsInterval  int    `yaml:"metrics"`
 		AnnounceInterval int32  `yaml:"announce"`
 	} `yaml:"tracker"`
 	Database struct {

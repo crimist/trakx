@@ -33,9 +33,6 @@ tracker:
 
   # message for stopping clients
   stoppedmsg: "See you space cowboy..."
-
-  # time between metrics generation
-  metrics: 3600 # 1h
   
   # Announce interval for clients
   announce: 1800 # 30m

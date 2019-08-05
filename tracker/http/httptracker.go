@@ -60,6 +60,8 @@ func (t *HTTPTracker) Serve(index []byte, threads int) {
 			}
 		}()
 	}
+
+	select{}
 }
 
 func (t *HTTPTracker) QueueLen() int {
@@ -142,8 +144,6 @@ func (w *workers) work() {
 					job.writeData(w.index)
 				case "/dmca":
 					job.redir("https://www.youtube.com/watch?v=BwSts2s4ba4")
-				case "/stats":
-					job.writeData(shared.StatsHTML)
 				default:
 					job.writeStatus("404")
 				}

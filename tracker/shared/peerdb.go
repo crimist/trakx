@@ -29,9 +29,6 @@ func NewPeerDatabase(conf *Config, logger *zap.Logger) *PeerDatabase {
 
 	go RunOn(time.Duration(conf.Database.Peer.Write)*time.Second, peerdb.WriteTmp)
 	go RunOn(time.Duration(conf.Database.Peer.Trim)*time.Second, peerdb.Trim)
-	if conf.Tracker.MetricsInterval > 0 {
-		go RunOn(time.Duration(conf.Tracker.MetricsInterval)*time.Second, peerdb.generateMetrics)
-	}
 
 	return &peerdb
 }
