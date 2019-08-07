@@ -2,7 +2,6 @@ package http
 
 import (
 	"net"
-	"sync/atomic"
 
 	"github.com/syc0x00/trakx/bencoding"
 	"github.com/syc0x00/trakx/tracker/shared"
@@ -16,12 +15,12 @@ func writeErr(conn net.Conn, msg string) {
 }
 
 func (t *HTTPTracker) clientError(conn net.Conn, msg string) {
-	atomic.AddInt64(&shared.Expvar.Clienterrs, 1)
+	shared.AddExpval(&shared.Expvar.Clienterrs, 1)
 	writeErr(conn, msg)
 }
 
 func (t *HTTPTracker) internalError(conn net.Conn, errmsg string, err error) {
-	atomic.AddInt64(&shared.Expvar.Errs, 1)
+	shared.AddExpval(&shared.Expvar.Errs, 1)
 	writeErr(conn, "internal server error")
 	t.logger.Error(errmsg, zap.Error(err))
 }

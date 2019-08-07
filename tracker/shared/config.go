@@ -13,9 +13,8 @@ type Config struct {
 		Prod   bool   `yaml:"prod"`
 		Index  string `yaml:"index"`
 		Expvar struct {
-			Enabled bool `yaml:"enabled"`
-			Every   int  `yaml:"every"`
-			Port    int  `yaml:"port"`
+			Every int `yaml:"every"`
+			Port  int `yaml:"port"`
 		} `yaml:"expvar"`
 		Ulimit uint64 `yaml:"ulimit"`
 	} `yaml:"trakx"`

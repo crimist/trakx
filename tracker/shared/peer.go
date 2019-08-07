@@ -1,8 +1,6 @@
 package shared
 
 import (
-	"sync/atomic"
-
 	"go.uber.org/zap"
 )
 
@@ -32,48 +30,53 @@ func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
 	db.db[*h][*id] = *p
 	db.mu.Unlock()
 
-	if ok { // Already in db
-		if dbPeer.Complete == false && p.Complete == true { // They completed
-			atomic.AddInt64(&Expvar.Leeches, -1)
-			atomic.AddInt64(&Expvar.Seeds, 1)
-		}
-		if dbPeer.Complete == true && p.Complete == false { // They uncompleted?
-			atomic.AddInt64(&Expvar.Seeds, -1)
-			atomic.AddInt64(&Expvar.Leeches, 1)
-		}
-		if dbPeer.IP != p.IP { // IP changed
+	if expvarOn {
+		if ok { // Already in db
+			if dbPeer.Complete == false && p.Complete == true { // They completed
+				AddExpval(&Expvar.Leeches, -1)
+				AddExpval(&Expvar.Seeds, 1)
+			}
+			if dbPeer.Complete == true && p.Complete == false { // They uncompleted?
+				AddExpval(&Expvar.Seeds, -1)
+				AddExpval(&Expvar.Leeches, 1)
+			}
+			if dbPeer.IP != p.IP { // IP changed
+				Expvar.IPs.Lock()
+				Expvar.IPs.delete(dbPeer.IP)
+				Expvar.IPs.inc(p.IP)
+				Expvar.IPs.Unlock()
+			}
+		} else { // New
 			Expvar.IPs.Lock()
-			delete(Expvar.IPs.M, dbPeer.IP)
-			Expvar.IPs.M[p.IP]++
+			Expvar.IPs.inc(p.IP)
 			Expvar.IPs.Unlock()
-		}
-	} else { // New
-		Expvar.IPs.Lock()
-		Expvar.IPs.M[p.IP]++
-		Expvar.IPs.Unlock()
-		if p.Complete {
-			atomic.AddInt64(&Expvar.Seeds, 1)
-		} else {
-			atomic.AddInt64(&Expvar.Leeches, 1)
+			if p.Complete {
+				AddExpval(&Expvar.Seeds, 1)
+			} else {
+				AddExpval(&Expvar.Leeches, 1)
+			}
 		}
 	}
 }
 
 func (db *PeerDatabase) deletePeer(p *Peer, h *Hash, id *PeerID) {
-	if peer, ok := db.db[*h][*id]; ok {
-		if peer.Complete {
-			atomic.AddInt64(&Expvar.Seeds, -1)
-		} else {
-			atomic.AddInt64(&Expvar.Leeches, -1)
+	if expvarOn {
+		if peer, ok := db.db[*h][*id]; ok {
+			if peer.Complete {
+				AddExpval(&Expvar.Seeds, -1)
+			} else {
+				AddExpval(&Expvar.Leeches, -1)
+			}
 		}
 	}
+
 	delete(db.db[*h], *id)
 }
 
 func (db *PeerDatabase) deleteIP(ip PeerIP) {
-	Expvar.IPs.M[ip]--
-	if Expvar.IPs.M[ip] < 1 {
-		delete(Expvar.IPs.M, ip)
+	Expvar.IPs.dec(ip)
+	if Expvar.IPs.dead(ip) {
+		Expvar.IPs.delete(ip)
 	}
 }
 
@@ -83,7 +86,9 @@ func (db *PeerDatabase) Drop(p *Peer, h *Hash, id *PeerID) {
 	db.deletePeer(p, h, id)
 	db.mu.Unlock()
 
-	Expvar.IPs.Lock()
-	db.deleteIP(p.IP)
-	Expvar.IPs.Unlock()
+	if expvarOn {
+		Expvar.IPs.Lock()
+		db.deleteIP(p.IP)
+		Expvar.IPs.Unlock()
+	}
 }

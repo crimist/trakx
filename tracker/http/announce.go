@@ -4,7 +4,6 @@ import (
 	"net"
 	"net/url"
 	"strconv"
-	"sync/atomic"
 	"time"
 
 	"github.com/syc0x00/trakx/bencoding"
@@ -12,7 +11,7 @@ import (
 )
 
 func (t *HTTPTracker) announce(conn net.Conn, vals url.Values) {
-	atomic.AddInt64(&shared.Expvar.Announces, 1)
+	shared.AddExpval(&shared.Expvar.Announces, 1)
 
 	// get vars
 	peer := shared.Peer{LastSeen: time.Now().Unix()}
@@ -80,7 +79,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals url.Values) {
 	// Processing
 	if event == "stopped" {
 		t.peerdb.Drop(&peer, &hash, &peerid)
-		atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
+		shared.AddExpval(&shared.Expvar.AnnouncesOK, 1)
 		conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + t.conf.Tracker.StoppedMsg))
 		return
 	}
@@ -98,6 +97,6 @@ func (t *HTTPTracker) announce(conn net.Conn, vals url.Values) {
 		d.Add("peers", t.peerdb.PeerList(&hash, numwant, nopeerid))
 	}
 
-	atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
+	shared.AddExpval(&shared.Expvar.AnnouncesOK, 1)
 	conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + d.Get()))
 }
