@@ -2,6 +2,7 @@ package shared
 
 import (
 	"io/ioutil"
+	"runtime"
 	"syscall"
 
 	"gopkg.in/yaml.v2"
@@ -92,8 +93,11 @@ func (conf *Config) Load(root string) error {
 	if err != nil {
 		return err
 	}
-	rLimit.Max = conf.Trakx.Ulimit
-	rLimit.Cur = conf.Trakx.Ulimit
+	// Bugged rn so OSX can't set above 24000ish
+	if runtime.GOOS != "darwin" {
+		rLimit.Max = conf.Trakx.Ulimit
+		rLimit.Cur = conf.Trakx.Ulimit
+	}
 	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
 		return err
