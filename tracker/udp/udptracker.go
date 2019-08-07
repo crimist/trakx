@@ -132,6 +132,11 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 
 	switch action {
 	case 1:
+		if len(data) < 98 {
+			msg := u.newClientError("bad announce size", txid, cerrFields{"size": len(data)})
+			u.sock.WriteToUDP(msg, remote)
+			return
+		}
 		announce := announce{}
 		if err := announce.unmarshall(data); err != nil {
 			msg := u.newServerError("announce.unmarshall()", err, txid)
