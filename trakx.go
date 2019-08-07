@@ -1,3 +1,7 @@
+// +build !heroku
+
+// Trakx controller
+// For use on a server
 package main
 
 import (
