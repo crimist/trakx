@@ -36,8 +36,11 @@ func Run() {
 		panic(err)
 	}
 
+	// Try load from root or working dir
 	if conf, err = shared.NewConfig(root); err != nil {
-		logger.Panic("NewConfig()", zap.Error(err))
+		if conf, err = shared.NewConfig("./"); err != nil {
+			logger.Panic("NewConfig()", zap.Error(err))
+		}
 	}
 
 	peerdb := shared.NewPeerDatabase(conf, logger)
