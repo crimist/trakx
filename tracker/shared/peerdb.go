@@ -11,6 +11,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	peerdbHashCap = 1000000
+)
+
 type PeerDatabase struct {
 	mu sync.RWMutex
 	db map[Hash]map[PeerID]Peer
@@ -91,7 +95,7 @@ func (db *PeerDatabase) load(filename string) error {
 }
 
 func (db *PeerDatabase) make() {
-	db.db = make(map[Hash]map[PeerID]Peer, 10000)
+	db.db = make(map[Hash]map[PeerID]Peer, peerdbHashCap)
 }
 
 // Load loads a database into memory

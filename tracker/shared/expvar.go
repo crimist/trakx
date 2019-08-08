@@ -7,7 +7,10 @@ import (
 	"sync/atomic"
 )
 
-const expvarOn = true
+const (
+	expvarOn = true
+	IPMapCap = 50000
+)
 
 var (
 	Expvar expvals
@@ -69,7 +72,7 @@ func InitExpvar(peerdb *PeerDatabase) {
 		panic("peerdb not init before expvars")
 	}
 
-	Expvar.IPs.M = make(map[PeerIP]int8, 30000)
+	Expvar.IPs.M = make(map[PeerIP]int8, IPMapCap)
 
 	Expvar.IPs.Lock()
 	for _, peermap := range peerdb.db {

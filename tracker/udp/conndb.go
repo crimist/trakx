@@ -12,6 +12,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	conndbCap = 50000
+)
+
 type connID struct {
 	ID int64
 	ts int64
@@ -131,5 +135,5 @@ func (db *connectionDatabase) load() bool {
 }
 
 func (db *connectionDatabase) make() {
-	db.db = make(map[shared.PeerIP]connID, 100000)
+	db.db = make(map[shared.PeerIP]connID, conndbCap)
 }

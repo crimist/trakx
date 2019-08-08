@@ -18,7 +18,7 @@ func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
 	}
 
 	dict := bencoding.NewDict()
-	nestedDict := make(map[string]map[string]int32)
+	nestedDict := make(map[string]map[string]int32, len(infohashes))
 
 	for _, infohash := range infohashes {
 		if len(infohash) != 20 {
@@ -26,7 +26,7 @@ func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
 			return
 		}
 
-		nestedDict[infohash] = make(map[string]int32)
+		nestedDict[infohash] = make(map[string]int32, 2)
 
 		var hash shared.Hash
 		copy(hash[:], infohash)

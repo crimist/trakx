@@ -20,6 +20,7 @@ func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
 	db.mu.Lock()
 
 	if _, ok := db.db[*h]; !ok {
+		// Allocing cap here would probably be harmful since lots of 1 peer torrents would eat mem
 		db.db[*h] = make(map[PeerID]Peer)
 		if !db.conf.Trakx.Prod {
 			db.logger.Info("Created hash map", zap.Any("hash", h[:]))
