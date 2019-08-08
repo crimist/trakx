@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"math/rand"
 	"net"
-	"sync/atomic"
 
 	"github.com/syc0x00/trakx/tracker/shared"
 )
@@ -33,7 +32,8 @@ func (cr *connectResp) marshall() ([]byte, error) {
 }
 
 func (u *UDPTracker) connect(connect *connect, remote *net.UDPAddr, addr [4]byte) {
-	atomic.AddInt64(&shared.Expvar.Connects, 1)
+	shared.AddExpval(&shared.Expvar.Connects, 1)
+
 	id := rand.Int63()
 	u.conndb.add(id, addr)
 
@@ -50,7 +50,7 @@ func (u *UDPTracker) connect(connect *connect, remote *net.UDPAddr, addr [4]byte
 		return
 	}
 
-	atomic.AddInt64(&shared.Expvar.ConnectsOK, 1)
+	shared.AddExpval(&shared.Expvar.ConnectsOK, 1)
 	u.sock.WriteToUDP(respBytes, remote)
 	return
 }

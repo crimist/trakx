@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"net"
-	"sync/atomic"
 	"time"
 
 	"github.com/syc0x00/trakx/tracker/shared"
@@ -73,7 +72,7 @@ func (ar *announceResp) marshall() ([]byte, error) {
 }
 
 func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]byte) {
-	atomic.AddInt64(&shared.Expvar.Announces, 1)
+	shared.AddExpval(&shared.Expvar.Announces, 1)
 
 	if announce.Port == 0 {
 		msg := u.newClientError("bad port", announce.TransactionID, cerrFields{"addr": addr, "port": announce.Port})
@@ -97,7 +96,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	if announce.Event == stopped {
 		u.peerdb.Drop(&peer, &announce.InfoHash, &announce.PeerID)
 
-		atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
+		shared.AddExpval(&shared.Expvar.AnnouncesOK, 1)
 		if u.conf.Tracker.StoppedMsg != "" {
 			u.sock.WriteToUDP([]byte(u.conf.Tracker.StoppedMsg), remote)
 		}
@@ -123,7 +122,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		return
 	}
 
-	atomic.AddInt64(&shared.Expvar.AnnouncesOK, 1)
+	shared.AddExpval(&shared.Expvar.AnnouncesOK, 1)
 	u.sock.WriteToUDP(respBytes, remote)
 	return
 }

@@ -3,14 +3,13 @@ package http
 import (
 	"net"
 	"net/url"
-	"sync/atomic"
 
 	"github.com/syc0x00/trakx/bencoding"
 	"github.com/syc0x00/trakx/tracker/shared"
 )
 
 func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
-	atomic.AddInt64(&shared.Expvar.Scrapes, 1)
+	shared.AddExpval(&shared.Expvar.Scrapes, 1)
 
 	infohashes := vals["info_hash"]
 	if len(infohashes) == 0 {
@@ -44,5 +43,5 @@ func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
 	}
 
 	conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + dict.Get()))
-	atomic.AddInt64(&shared.Expvar.ScrapesOK, 1)
+	shared.AddExpval(&shared.Expvar.ScrapesOK, 1)
 }

@@ -91,9 +91,7 @@ func Run() {
 		udptracker = udp.NewUDPTracker(conf, logger, peerdb, conf.Tracker.UDP.Threads)
 	}
 
-	if conf.Trakx.Expvar.Enabled {
-		go publishExpvar(conf, peerdb, t)
-	}
+	go publishExpvar(conf, peerdb, t)
 
 	select {} // block forever
 }

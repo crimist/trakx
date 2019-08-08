@@ -1,28 +1,67 @@
+// +build expvar
+
 package shared
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
-type expvarIPmap struct {
-	sync.Mutex
-	M map[PeerIP]int8
-}
+const expvarOn = true
 
 var (
-	// These should only be accessed with atomic
-	Expvar struct {
-		Connects    int64
-		ConnectsOK  int64
-		Announces   int64
-		AnnouncesOK int64
-		Scrapes     int64
-		ScrapesOK   int64
-		Errs        int64
-		Clienterrs  int64
-		Seeds       int64
-		Leeches     int64
-		IPs         expvarIPmap
-	}
+	Expvar expvals
 )
+
+type expvarIPmap struct {
+	mu sync.Mutex
+	M  map[PeerIP]int8
+}
+
+func (e *expvarIPmap) Lock() {
+	e.mu.Lock()
+}
+
+func (e *expvarIPmap) Unlock() {
+	e.mu.Unlock()
+}
+
+func (e *expvarIPmap) delete(ip PeerIP) {
+	delete(e.M, ip)
+}
+
+func (e *expvarIPmap) inc(ip PeerIP) {
+	e.M[ip]++
+}
+
+func (e *expvarIPmap) dec(ip PeerIP) {
+	e.M[ip]--
+}
+
+func (e *expvarIPmap) dead(ip PeerIP) (dead bool) {
+	if e.M[ip] < 1 {
+		dead = true
+	}
+	return
+}
+
+type expvals struct {
+	Connects    int64
+	ConnectsOK  int64
+	Announces   int64
+	AnnouncesOK int64
+	Scrapes     int64
+	ScrapesOK   int64
+	Errs        int64
+	Clienterrs  int64
+	Seeds       int64
+	Leeches     int64
+	IPs         expvarIPmap
+}
+
+func AddExpval(num *int64, inc int64) {
+	atomic.AddInt64(num, inc)
+}
 
 // InitExpvar sets the expvar vars to the contents of the peer database
 func InitExpvar(peerdb *PeerDatabase) {

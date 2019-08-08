@@ -1,3 +1,7 @@
+// +build !heroku
+
+// Trakx controller
+// For use on a server
 package main
 
 import (
@@ -60,8 +64,10 @@ func main() {
 					fmt.Fprintf(os.Stderr, err.Error()+"\n")
 					os.Exit(-1)
 				}
+				// Wait 20 seconds to let it set up
+				time.Sleep(20 * time.Second)
 			}
-			time.Sleep(1 * time.Second)
+			time.Sleep(3 * time.Second)
 		}
 	case "run":
 		c.Run()

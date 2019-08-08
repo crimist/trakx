@@ -3,7 +3,6 @@ package udp
 import (
 	"bytes"
 	"encoding/binary"
-	"sync/atomic"
 
 	"github.com/syc0x00/trakx/tracker/shared"
 	"go.uber.org/zap"
@@ -34,7 +33,7 @@ func (e *udperror) marshall() ([]byte, error) {
 type cerrFields map[string]interface{}
 
 func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ...cerrFields) []byte {
-	atomic.AddInt64(&shared.Expvar.Clienterrs, 1)
+	shared.AddExpval(&shared.Expvar.Clienterrs, 1)
 
 	if !u.conf.Trakx.Prod {
 		fields := []zap.Field{zap.String("msg", msg)}
@@ -61,7 +60,7 @@ func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ..
 }
 
 func (u *UDPTracker) newServerError(msg string, err error, TransactionID int32) []byte {
-	atomic.AddInt64(&shared.Expvar.Errs, 1)
+	shared.AddExpval(&shared.Expvar.Errs, 1)
 
 	e := udperror{
 		Action:        3,

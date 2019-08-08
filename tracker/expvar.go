@@ -1,3 +1,5 @@
+// +build expvar
+
 package tracker
 
 import (

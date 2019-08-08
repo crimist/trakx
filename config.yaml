@@ -5,11 +5,16 @@
 trakx:
   prod: true
   index: "index.html"
+
+  # Expvar can be toggled when building with tags
   expvar:
-    enabled: true
     every: 1
     port: 1338
-  ulimit: 99999 # nofile, 0 for default
+
+  # nofile limit 0 for default
+  # high value used here so that we can queue connections for processing
+  # trakx will automatically drop connections based on read/write timeout seen below
+  ulimit: 99999
 
 tracker:
   http:
