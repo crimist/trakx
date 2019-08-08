@@ -52,4 +52,4 @@ database:
   conn:
     filename: "conn.db"
     trim: 600 # 10m
-    timeout: 86400 # 24h
+    timeout: 1800 # 30m
