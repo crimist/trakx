@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"runtime"
 	"sync"
 	"time"
 
@@ -144,6 +145,10 @@ func (w *workers) work() {
 					job.writeData(w.index)
 				case "/dmca":
 					job.redir("https://www.youtube.com/watch?v=BwSts2s4ba4")
+				case "/stats":
+					// httptracker.QueueLen()
+					// udptracker.GetConnCount()
+					job.writeData(fmt.Sprintf("Hashes %d Ann: %d/%dOK Scr: %d/%dOK Con: %d/%dOK Err: %dServer/%dClient/s Goroutines: %d", w.tracker.peerdb.Hashes(), shared.Expvar.Announces, shared.Expvar.AnnouncesOK, shared.Expvar.Scrapes, shared.Expvar.ScrapesOK, shared.Expvar.Connects, shared.Expvar.ConnectsOK, shared.Expvar.Errs, shared.Expvar.Clienterrs, runtime.NumGoroutine()))
 				default:
 					job.writeStatus("404")
 				}

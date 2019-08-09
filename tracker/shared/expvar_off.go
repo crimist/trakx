@@ -2,6 +2,10 @@
 
 package shared
 
+import (
+	"sync/atomic"
+)
+
 const expvarOn = false
 
 var (
@@ -33,5 +37,7 @@ type expvals struct {
 	IPs         expvarIPmap
 }
 
-func AddExpval(num *int64, inc int64) {}
+func AddExpval(num *int64, inc int64) {
+	atomic.AddInt64(num, inc)
+}
 func InitExpvar(peerdb *PeerDatabase) {}

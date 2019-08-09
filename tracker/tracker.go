@@ -42,19 +42,16 @@ func Run() {
 			logger.Panic("NewConfig()", zap.Error(err))
 		}
 	}
-
 	peerdb := shared.NewPeerDatabase(conf, logger)
-	shared.InitExpvar(peerdb)
-
 	go handleSigs(peerdb)
+	shared.InitExpvar(peerdb)
 
 	// HTTP tracker / routes
 	initRoutes()
-
 	t := httptracker.NewHTTPTracker(conf, logger, peerdb)
+
 	if conf.Tracker.HTTP.Enabled {
 		logger.Info("http tracker enabled")
-
 		go t.Serve(indexData, conf.Tracker.HTTP.Threads)
 	} else {
 		d := bencoding.NewDict()
