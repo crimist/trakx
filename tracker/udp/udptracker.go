@@ -124,8 +124,8 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 	}
 
 	connid := int64(binary.BigEndian.Uint64(data[0:8]))
-	if dbID, ok := u.conndb.check(connid, addr); !ok && u.conf.Tracker.UDP.CheckConnID {
-		msg := u.newClientError("bad connid", txid, cerrFields{"dbID": dbID, "clientID": connid, "ip": ip})
+	if ok := u.conndb.check(connid, addr); !ok && u.conf.Tracker.UDP.CheckConnID {
+		msg := u.newClientError("bad connid", txid, cerrFields{"clientID": connid, "ip": ip})
 		u.sock.WriteToUDP(msg, remote)
 		return
 	}

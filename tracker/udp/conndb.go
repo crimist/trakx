@@ -59,12 +59,15 @@ func (db *connectionDatabase) add(id int64, addr shared.PeerIP) {
 	db.mu.Unlock()
 }
 
-func (db *connectionDatabase) check(id int64, addr shared.PeerIP) (dbID int64, ok bool) {
+func (db *connectionDatabase) check(id int64, addr shared.PeerIP) bool {
 	db.mu.RLock()
-	dbID = db.db[addr].ID
-	ok = id == dbID
+	cid, ok := db.db[addr]
 	db.mu.RUnlock()
-	return
+
+	if ok && cid.ID == id {
+		return true
+	}
+	return false
 }
 
 // spec says to only cache connIDs for 2min but realistically ips changing for ddos is unlikely so higher can be used

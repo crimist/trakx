@@ -47,15 +47,14 @@ func (db *PeerDatabase) check() (ok bool) {
 // Trim removes all peers that haven't checked in since timeout
 func (db *PeerDatabase) Trim() {
 	var peers, hashes int
-	now := time.Now().Unix()
 	start := time.Now()
+	now := start.Unix()
 	defer func() {
 		db.logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
 	}()
 	db.logger.Info("Trimming database")
 
-	// Unlock/Lock every 4th otherwise this blocks
-	// for 10-35sec on 2.6Ghz single core @ 1'000'000 peers
+	// Unlock/Lock every 4th as this can block for ~15-25s @ 500'000 peers 1vcore 2.6Ghz
 	i := 0
 	db.mu.Lock()
 	hashcount := len(db.db)
@@ -66,6 +65,8 @@ func (db *PeerDatabase) Trim() {
 	for hash, peermap := range db.db {
 		if i%(hashcount/4) == 0 {
 			db.mu.Unlock()
+			// Sleep so that the queue can consume a little
+			time.Sleep(time.Duration(hashcount/500) * time.Millisecond)
 			db.mu.Lock()
 		}
 		for id, peer := range peermap {
