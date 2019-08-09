@@ -14,8 +14,10 @@ type Config struct {
 		Index  string `yaml:"index"`
 		Expvar struct {
 			Every int `yaml:"every"`
-			Port  int `yaml:"port"`
 		} `yaml:"expvar"`
+		Pprof struct {
+			Port int `yaml:"port"`
+		} `yaml:"pprof"`
 		Ulimit uint64 `yaml:"ulimit"`
 	} `yaml:"trakx"`
 	Tracker struct {

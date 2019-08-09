@@ -1,4 +1,4 @@
-// +build expvar
+// +build !fast
 
 package shared
 
@@ -9,7 +9,7 @@ import (
 
 const (
 	expvarOn = true
-	IPMapCap = 50000
+	IPMapCap = 100000
 )
 
 var (

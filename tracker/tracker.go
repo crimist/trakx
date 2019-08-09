@@ -24,12 +24,14 @@ var (
 func Run() {
 	var err error
 
+	// find root
 	root, err = os.UserHomeDir()
 	if err != nil {
 		panic("os.UserHomeDir() failed: " + err.Error())
 	}
 	root += "/.trakx/"
 
+	// logger
 	cfg := zap.NewDevelopmentConfig()
 	logger, err = cfg.Build()
 	if err != nil {
@@ -42,9 +44,19 @@ func Run() {
 			logger.Panic("NewConfig()", zap.Error(err))
 		}
 	}
+
+	// db
 	peerdb := shared.NewPeerDatabase(conf, logger)
-	go handleSigs(peerdb)
+
+	// pprof, sigs, expvar
 	shared.InitExpvar(peerdb)
+	go handleSigs(peerdb)
+	if conf.Trakx.Pprof.Port != 0 {
+		logger.Info("pprof on", zap.Int("port", conf.Trakx.Pprof.Port))
+		initpprof()
+	} else {
+		logger.Info("pprof off")
+	}
 
 	// HTTP tracker / routes
 	initRoutes()

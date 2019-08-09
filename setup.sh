@@ -9,4 +9,4 @@ cp -n config.yaml ~/.trakx/config.yaml
 cp -n index.html ~/.trakx/index.html
 
 # install
-go install -gcflags='-l=4 -s' -tags expvar
+go install -gcflags='-l=4 -s' -tags pprof

@@ -8,36 +8,29 @@ Requires Go 1.12+
 
 * `go get -v github.com/syc0x00/trakx`
 
-## Setup
+* cd into trakx in the gopath
+* Run `sh setup.sh` to install trakx
 
-Note: If you have other go program with expvar in netdata you'll have to edit go_expvar.conf with `/etc/netdata/edit-config python.d/go_expvar.conf` and paste in the contents of `trakx_expvar.conf` while keeping your other programs config as well. The `install.sh` script will overwrite your other program otherwise.
+### Netdata install
 
-* cd into Trakx in the gopath
+Note: If you have other go program using expvar with netdata you'll have to manually add the trakx config, `install.sh` will overwrite `go_expvar.conf`.
+
 * Open netdata python conf with `/etc/netdata/edit-config python.d.conf` and change `go_expvar` to `yes`
+* Customize the url in `expvar.conf` if needed
 * Install netdata plugins with `sh netdata/install.sh`
-* Run `sh setup.sh` to setup root directory and copy the config
 
 ## Updating
 
-* Running `sh setup.sh` will update without overwriting config if it already exists
+* Running `sh setup.sh` will update without overwriting
+
+## Build tags
+
+* `-fast` will build without IP, seeds, and leeches metrics which will speed up trakx a bit
+* `-pprof` will build with pprof, this is on in `setup.sh`
 
 ## Recommendations
 
-Some clients will ignore the port that you set on your HTTP tracker and will instead hit 80. To stop this you can add  
-`iptables -A INPUT -p tcp --dport 80 -m string ! --string "/announce?info_hash" --algo bm -j REJECT`
-
-If you're going to be serving a lot of clients take a look at the sysctl tuning the resources section. Your sysctl will most likely need to be modified if you're using HTTP.
-
-## pprof
-
-To get a pprof profile and view it
-
-```bash
-go tool pprof -seconds=180 http://127.0.0.1:1338/debug/pprof/profile
-go tool pprof -http=0.0.0.0:7331 /root/pprof/... # filename
-```
-
-Go 1.11+ recommended for flamegraph support
+If you're going to be serving a lot of clients take a look at the sysctl tuning the resources section. This is especially true if you're using the TCP tracker
 
 ## Resources
 

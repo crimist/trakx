@@ -1,4 +1,4 @@
-// +build !expvar
+// +build fast
 
 package shared
 

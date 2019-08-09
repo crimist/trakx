@@ -1,12 +1,7 @@
-// +build expvar
-
 package tracker
 
 import (
 	"expvar"
-	"fmt"
-	"net/http"
-	_ "net/http/pprof"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -41,9 +36,6 @@ func publishExpvar(conf *shared.Config, peerdb *shared.PeerDatabase, ht *httptra
 	scrapesSecOK := expvar.NewInt("tracker.performance.scrapesok")
 	connects := expvar.NewInt("tracker.performance.connects")
 	connectsOK := expvar.NewInt("tracker.performance.connectsok")
-
-	// only listen on localhost
-	go http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", conf.Trakx.Expvar.Port), nil)
 
 	shared.RunOn(time.Duration(conf.Trakx.Expvar.Every)*time.Second, func() {
 		shared.Expvar.IPs.Lock()

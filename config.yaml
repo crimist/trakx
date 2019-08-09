@@ -6,10 +6,12 @@ trakx:
   prod: true
   index: "index.html"
 
-  # Expvar can be toggled when building with tags
+  # Expvar is served on /stats over http port
   expvar:
     every: 1
-    port: 1338
+
+  pprof:
+    port: 1338 # set to 0 to disable
 
   # nofile limit 0 for default
   # high value used here so that we can queue connections for processing
@@ -19,7 +21,7 @@ trakx:
 tracker:
   http:
     enabled: true
-    port: 1337 # also serves the index
+    port: 1337 # also serves expvar, index, ect.
     readtimeout: 3
     writetimeout: 10
     qsize: 100000 # 100K = ~1.5mb

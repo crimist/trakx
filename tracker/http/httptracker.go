@@ -2,14 +2,13 @@ package http
 
 import (
 	"bytes"
+	"expvar"
 	"fmt"
 	"net"
 	"net/url"
-	"runtime"
 	"sync"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/syc0x00/trakx/tracker/shared"
 	"go.uber.org/zap"
 )
@@ -103,6 +102,8 @@ func (w *workers) startWorkers(num int) {
 func (w *workers) work() {
 	maxread := time.Duration(w.tracker.conf.Tracker.HTTP.ReadTimeout) * time.Second
 	maxwrite := time.Duration(w.tracker.conf.Tracker.HTTP.WriteTimeout) * time.Second
+	expvarHandler := expvar.Handler()
+
 	for {
 		select {
 		case job := <-w.jobQueue:
@@ -147,11 +148,9 @@ func (w *workers) work() {
 				case "/dmca":
 					job.redir("https://www.youtube.com/watch?v=BwSts2s4ba4")
 				case "/stats":
-					// httptracker.QueueLen()
-					// udptracker.GetConnCount()
-					var m runtime.MemStats
-					runtime.ReadMemStats(&m)
-					job.writeData(fmt.Sprintf("Hashes %d Ann: %d/%dOK Scr: %d/%dOK Con: %d/%dOK Err: %dServer/%dClient/s Goroutines: %d MemStats %v", w.tracker.peerdb.Hashes(), shared.Expvar.Announces, shared.Expvar.AnnouncesOK, shared.Expvar.Scrapes, shared.Expvar.ScrapesOK, shared.Expvar.Connects, shared.Expvar.ConnectsOK, shared.Expvar.Errs, shared.Expvar.Clienterrs, runtime.NumGoroutine(), spew.Sdump(m)))
+					// Serves expvar handler but it's hacky af
+					job.conn.Write([]byte("HTTP/1.1 200\r\nContent-Type: application/json; charset=utf-8\r\n\r\n"))
+					expvarHandler.ServeHTTP(&fakeRespWriter{conn: job.conn}, nil)
 				default:
 					job.writeStatus("404")
 				}
