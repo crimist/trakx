@@ -14,16 +14,15 @@ func (t *HTTPTracker) announce(conn net.Conn, vals url.Values) {
 	shared.AddExpval(&shared.Expvar.Announces, 1)
 
 	// get vars
+	var hash shared.Hash
+	var peerid shared.PeerID
 	peer := shared.Peer{LastSeen: time.Now().Unix()}
-	hash := shared.Hash{}
-	peerid := shared.PeerID{}
 	numwant := int(t.conf.Tracker.Numwant.Default)
 	compact := vals.Get("compact") == "1"
 	nopeerid := vals.Get("no_peer_id") == "1"
-
+	noneleft := vals.Get("left") == "0"
 	event := vals.Get("event")
 	port := vals.Get("port")
-	left := vals.Get("left")
 	hashStr := vals.Get("info_hash")
 	peeridStr := vals.Get("peer_id")
 	numwantStr := vals.Get("numwant")
@@ -46,7 +45,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals url.Values) {
 	peer.Port = uint16(portInt)
 
 	// Complete
-	if event == "completed" || left == "0" {
+	if event == "completed" || noneleft {
 		peer.Complete = true
 	}
 

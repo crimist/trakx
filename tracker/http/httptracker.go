@@ -103,6 +103,7 @@ func (w *workers) work() {
 	maxread := time.Duration(w.tracker.conf.Tracker.HTTP.ReadTimeout) * time.Second
 	maxwrite := time.Duration(w.tracker.conf.Tracker.HTTP.WriteTimeout) * time.Second
 	expvarHandler := expvar.Handler()
+	setupFakes()
 
 	for {
 		select {

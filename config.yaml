@@ -25,7 +25,7 @@ tracker:
     readtimeout: 3
     writetimeout: 10
     qsize: 100000 # 100K = ~1.5mb
-    accepters: 10
+    accepters: 5
     threads: 2048
 
   udp:
