@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/syc0x00/trakx/tracker/shared"
 	"go.uber.org/zap"
 )
@@ -148,7 +149,9 @@ func (w *workers) work() {
 				case "/stats":
 					// httptracker.QueueLen()
 					// udptracker.GetConnCount()
-					job.writeData(fmt.Sprintf("Hashes %d Ann: %d/%dOK Scr: %d/%dOK Con: %d/%dOK Err: %dServer/%dClient/s Goroutines: %d", w.tracker.peerdb.Hashes(), shared.Expvar.Announces, shared.Expvar.AnnouncesOK, shared.Expvar.Scrapes, shared.Expvar.ScrapesOK, shared.Expvar.Connects, shared.Expvar.ConnectsOK, shared.Expvar.Errs, shared.Expvar.Clienterrs, runtime.NumGoroutine()))
+					var m runtime.MemStats
+					runtime.ReadMemStats(&m)
+					job.writeData(fmt.Sprintf("Hashes %d Ann: %d/%dOK Scr: %d/%dOK Con: %d/%dOK Err: %dServer/%dClient/s Goroutines: %d MemStats %v", w.tracker.peerdb.Hashes(), shared.Expvar.Announces, shared.Expvar.AnnouncesOK, shared.Expvar.Scrapes, shared.Expvar.ScrapesOK, shared.Expvar.Connects, shared.Expvar.ConnectsOK, shared.Expvar.Errs, shared.Expvar.Clienterrs, runtime.NumGoroutine(), spew.Sdump(m)))
 				default:
 					job.writeStatus("404")
 				}
