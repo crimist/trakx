@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net/http"
 
@@ -14,6 +15,8 @@ func initRoutes() {
 	if indexData, err = ioutil.ReadFile(conf.Trakx.Index); err != nil {
 		logger.Panic("Failed to read index", zap.Error(err))
 	}
+	indexData = bytes.ReplaceAll(indexData, []byte("\t"), nil)
+	indexData = bytes.ReplaceAll(indexData, []byte("\n"), nil)
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
