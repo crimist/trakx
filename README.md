@@ -25,8 +25,20 @@ Note: If you have other go program using expvar with netdata you'll have to manu
 
 ## Build tags
 
-* `-fast` will build without IP, seeds, and leeches metrics which will speed up trakx a bit
-* `-pprof` will build with pprof, this is on in `setup.sh`
+`-fast` will build without IP, seeds, and leeches metrics which will speed up trakx
+
+```
+8700K@5.0 DDR4-3000/16-18-18-38
+
+Normal:
+BenchmarkDrop-12                        30000000                57.9 ns/op
+BenchmarkSave-12                        20000000                91.9 ns/op
+BenchmarkSaveDrop-12                    10000000                210 ns/op
+Fast:
+BenchmarkDrop-12                        50000000                24.5 ns/op
+BenchmarkSave-12                        20000000                62.7 ns/op
+BenchmarkSaveDrop-12                    20000000                116 ns/op
+```
 
 ## Recommendations
 
