@@ -30,7 +30,7 @@ func (db *PeerDatabase) HashStats(h *Hash) (complete, incomplete int32) {
 	}
 	db.mu.RUnlock()
 
-	return complete, incomplete
+	return
 }
 
 // PeerList returns a peer list for the given hash capped at num

@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 )
 
-const expvarOn = false
+const fast = true
 
 var (
 	Expvar expvals

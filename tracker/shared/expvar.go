@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	expvarOn = true
+	fast     = false
 	IPMapCap = 100000
 )
 

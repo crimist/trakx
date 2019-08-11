@@ -1,9 +1,5 @@
 package shared
 
-import (
-	"go.uber.org/zap"
-)
-
 type PeerID [20]byte
 type PeerIP [4]byte
 
@@ -17,21 +13,21 @@ type Peer struct {
 
 // Save creates or updates peer
 func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
-	db.mu.Lock()
+	var dbPeer Peer
+	var ok bool
 
-	if _, ok := db.db[*h]; !ok {
+	db.mu.Lock()
+	if _, ok = db.db[*h]; !ok {
 		// Allocing cap here would probably be harmful since lots of 1 peer torrents would eat mem
 		db.db[*h] = make(map[PeerID]Peer)
-		if !db.conf.Trakx.Prod {
-			db.logger.Info("Created hash map", zap.Any("hash", h[:]))
-		}
 	}
-
-	dbPeer, ok := db.db[*h][*id]
+	if !fast {
+		dbPeer, ok = db.db[*h][*id]
+	}
 	db.db[*h][*id] = *p
 	db.mu.Unlock()
 
-	if expvarOn {
+	if !fast {
 		if ok { // Already in db
 			if dbPeer.Complete == false && p.Complete == true { // They completed
 				AddExpval(&Expvar.Leeches, -1)
@@ -61,7 +57,7 @@ func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
 }
 
 func (db *PeerDatabase) deletePeer(p *Peer, h *Hash, id *PeerID) {
-	if expvarOn {
+	if !fast {
 		if peer, ok := db.db[*h][*id]; ok {
 			if peer.Complete {
 				AddExpval(&Expvar.Seeds, -1)
@@ -87,7 +83,7 @@ func (db *PeerDatabase) Drop(p *Peer, h *Hash, id *PeerID) {
 	db.deletePeer(p, h, id)
 	db.mu.Unlock()
 
-	if expvarOn {
+	if !fast {
 		Expvar.IPs.Lock()
 		db.deleteIP(p.IP)
 		Expvar.IPs.Unlock()
