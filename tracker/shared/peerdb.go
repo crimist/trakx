@@ -49,9 +49,6 @@ func (db *PeerDatabase) Trim() {
 	var peers, hashes int
 	start := time.Now()
 	now := start.Unix()
-	defer func() {
-		db.logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
-	}()
 	db.logger.Info("Trimming database")
 
 	// Unlock/Lock every 4th as this can block for ~15-25s @ 500'000 peers 1vcore 2.6Ghz
@@ -60,6 +57,7 @@ func (db *PeerDatabase) Trim() {
 	hashcount := len(db.db)
 	if hashcount/4 < 1 {
 		db.mu.Unlock()
+		db.logger.Info("Database empty")
 		return
 	}
 
@@ -84,6 +82,8 @@ func (db *PeerDatabase) Trim() {
 		i++
 	}
 	db.mu.Unlock()
+
+	db.logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
 }
 
 func (db *PeerDatabase) load(filename string) error {

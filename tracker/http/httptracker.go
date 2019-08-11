@@ -100,62 +100,60 @@ func (w *workers) startWorkers(num int) {
 }
 
 func (w *workers) work() {
-	maxread := time.Duration(w.tracker.conf.Tracker.HTTP.ReadTimeout) * time.Second
-	maxwrite := time.Duration(w.tracker.conf.Tracker.HTTP.WriteTimeout) * time.Second
+	var j job
 	expvarHandler := expvar.Handler()
 	setupFakes()
+	maxread := time.Duration(w.tracker.conf.Tracker.HTTP.ReadTimeout) * time.Second
+	maxwrite := time.Duration(w.tracker.conf.Tracker.HTTP.WriteTimeout) * time.Second
 
 	for {
+		data := w.pool.Get().([]byte)
 		select {
-		case job := <-w.jobQueue:
-			func() {
-				data := w.pool.Get().([]byte)
-				defer func() {
-					job.conn.Close()
-					for i := range data {
-						data[i] = 0
-					}
-					w.pool.Put(data)
-				}()
+		case j = <-w.jobQueue:
+			// Should recv and send data within timeouts or were overloaded
+			now := time.Now()
+			j.conn.SetDeadline(now.Add(maxread))
+			j.conn.SetWriteDeadline(now.Add(maxwrite))
 
-				// Should recv and send data within timeouts or were overloaded
-				now := time.Now()
-				job.conn.SetDeadline(now.Add(maxread))
-				job.conn.SetWriteDeadline(now.Add(maxwrite))
+			if _, err := j.conn.Read(data); err != nil {
+				break
+			}
 
-				if _, err := job.conn.Read(data); err != nil {
-					return
-				}
+			urlEnd := bytes.Index(data, []byte(" HTTP/"))
+			if urlEnd < 5 {
+				j.conn.Write([]byte("HTTP/1.1 400\r\n\r\n"))
+				break
+			}
 
-				urlEnd := bytes.Index(data, []byte(" HTTP/"))
-				if urlEnd < 5 {
-					job.conn.Write([]byte("HTTP/1.1 400\r\n\r\n"))
-					return
-				}
+			u, err := url.Parse(string(data[4:urlEnd]))
+			if err != nil {
+				j.conn.Write([]byte("HTTP/1.1 400\r\n\r\n"))
+				break
+			}
 
-				u, err := url.Parse(string(data[4:urlEnd]))
-				if err != nil {
-					job.conn.Write([]byte("HTTP/1.1 400\r\n\r\n"))
-					return
-				}
-
-				switch u.Path {
-				case "/announce":
-					w.tracker.announce(job.conn, u.Query())
-				case "/scrape":
-					w.tracker.scrape(job.conn, u.Query())
-				case "/":
-					job.writeData(w.index)
-				case "/dmca":
-					job.redir("https://www.youtube.com/watch?v=BwSts2s4ba4")
-				case "/stats":
-					// Serves expvar handler but it's hacky af
-					job.conn.Write([]byte("HTTP/1.1 200\r\nContent-Type: application/json; charset=utf-8\r\n\r\n"))
-					expvarHandler.ServeHTTP(&fakeRespWriter{conn: job.conn}, nil)
-				default:
-					job.writeStatus("404")
-				}
-			}()
+			switch u.Path {
+			case "/announce":
+				w.tracker.announce(j.conn, u.Query())
+			case "/scrape":
+				w.tracker.scrape(j.conn, u.Query())
+			case "/":
+				j.writeData(w.index)
+			case "/dmca":
+				j.redir("https://www.youtube.com/watch?v=BwSts2s4ba4")
+			case "/stats":
+				// Serves expvar handler but it's hacky af
+				j.conn.Write([]byte("HTTP/1.1 200\r\nContent-Type: application/json; charset=utf-8\r\n\r\n"))
+				expvarHandler.ServeHTTP(&fakeRespWriter{conn: j.conn}, nil)
+			default:
+				j.writeStatus("404")
+			}
 		}
+
+		j.conn.Close()
+		// optimized memclr
+		for i := range data {
+			data[i] = 0
+		}
+		w.pool.Put(data)
 	}
 }

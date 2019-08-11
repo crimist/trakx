@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"bytes"
 	"io/ioutil"
 	"runtime"
 	"syscall"
@@ -94,8 +95,18 @@ func (conf *Config) Load(root string) error {
 	if err != nil {
 		return err
 	}
-	// Bugged rn so OSX can't set above 24000ish
-	if runtime.GOOS != "darwin" {
+
+	// Bugged on OSX & WSL so above ~24000 with throw err
+	var uname syscall.Utsname
+	syscall.Uname(&uname)
+	release := make([]byte, len(uname.Release))
+	for i := range uname.Release {
+		release[i] = byte(uname.Release[i])
+	}
+	if (runtime.GOOS == "darwin" || bytes.Contains(release, []byte("Microsoft"))) && conf.Trakx.Ulimit > 24000 {
+		rLimit.Max = 24000
+		rLimit.Cur = 24000
+	} else {
 		rLimit.Max = conf.Trakx.Ulimit
 		rLimit.Cur = conf.Trakx.Ulimit
 	}

@@ -44,10 +44,11 @@ func newConnectionDatabase(timeout int64, filename string, logger *zap.Logger) *
 	return &db
 }
 
-func (db *connectionDatabase) conns() int {
+func (db *connectionDatabase) conns() (count int) {
 	db.mu.RLock()
-	defer db.mu.RUnlock()
-	return len(db.db)
+	count = len(db.db)
+	db.mu.RUnlock()
+	return
 }
 
 func (db *connectionDatabase) add(id int64, addr shared.PeerIP) {

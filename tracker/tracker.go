@@ -40,8 +40,9 @@ func Run() {
 
 	// Try load from root or working dir
 	if conf, err = shared.NewConfig(root); err != nil {
+		logger.Error("NewConfig(root)", zap.Error(err))
 		if conf, err = shared.NewConfig("./"); err != nil {
-			logger.Panic("NewConfig()", zap.Error(err))
+			logger.Panic("NewConfig(.)", zap.Error(err))
 		}
 	}
 
