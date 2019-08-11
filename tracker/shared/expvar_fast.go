@@ -12,9 +12,7 @@ var (
 	Expvar expvals
 )
 
-type expvarIPmap struct {
-	// M map[PeerIP]int8
-}
+type expvarIPmap struct {}
 
 func (e *expvarIPmap) Lock()               {}
 func (e *expvarIPmap) Unlock()             {}
