@@ -143,30 +143,10 @@ func benchmarkSaveDropGoroutines(b *testing.B, routines int) {
 	wg.Wait()
 }
 
-func BenchmarkSaveDropGoroutines64(b *testing.B) {
-	benchmarkSaveDropGoroutines(b, 64)
-}
-
-func BenchmarkSaveDropGoroutines128(b *testing.B) {
-	benchmarkSaveDropGoroutines(b, 128)
-}
-
-func BenchmarkSaveDropGoroutines256(b *testing.B) {
-	benchmarkSaveDropGoroutines(b, 256)
-}
-
-func BenchmarkSaveDropGoroutines512(b *testing.B) {
-	benchmarkSaveDropGoroutines(b, 512)
-}
-
-func BenchmarkSaveDropGoroutines1024(b *testing.B) {
-	benchmarkSaveDropGoroutines(b, 1024)
-}
-
-func BenchmarkSaveDropGoroutines2048(b *testing.B) {
-	benchmarkSaveDropGoroutines(b, 2048)
-}
-
-func BenchmarkSaveDropGoroutines4096(b *testing.B) {
-	benchmarkSaveDropGoroutines(b, 4096)
-}
+func BenchmarkSaveDropGoroutines64(b *testing.B)   { benchmarkSaveDropGoroutines(b, 64) }
+func BenchmarkSaveDropGoroutines128(b *testing.B)  { benchmarkSaveDropGoroutines(b, 128) }
+func BenchmarkSaveDropGoroutines256(b *testing.B)  { benchmarkSaveDropGoroutines(b, 256) }
+func BenchmarkSaveDropGoroutines512(b *testing.B)  { benchmarkSaveDropGoroutines(b, 512) }
+func BenchmarkSaveDropGoroutines1024(b *testing.B) { benchmarkSaveDropGoroutines(b, 1024) }
+func BenchmarkSaveDropGoroutines2048(b *testing.B) { benchmarkSaveDropGoroutines(b, 2048) }
+func BenchmarkSaveDropGoroutines4096(b *testing.B) { benchmarkSaveDropGoroutines(b, 4096) }

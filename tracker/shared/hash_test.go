@@ -124,5 +124,5 @@ func benchmarkHashStats(b *testing.B, peers int) {
 	}
 }
 
-func BenchmarkHashStats100(b *testing.B) { benchmarkHashStats(b, 100) }
+func BenchmarkHashStats100(b *testing.B)  { benchmarkHashStats(b, 100) }
 func BenchmarkHashStats1000(b *testing.B) { benchmarkHashStats(b, 1000) }
