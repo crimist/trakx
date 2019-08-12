@@ -12,6 +12,7 @@ import (
 
 func publishExpvar(conf *shared.Config, peerdb *shared.PeerDatabase, ht *httptracker.HTTPTracker) {
 	var errsOld int64
+	start := time.Now()
 
 	// Stats
 	uniqueIP := expvar.NewInt("tracker.stats.ips")
@@ -22,6 +23,7 @@ func publishExpvar(conf *shared.Config, peerdb *shared.PeerDatabase, ht *httptra
 
 	// database
 	conns := expvar.NewInt("trakx.database.connections")
+	uptime := expvar.NewInt("trakx.database.uptime")
 
 	// Performance
 	goroutines := expvar.NewInt("trakx.performance.goroutines")
@@ -51,6 +53,7 @@ func publishExpvar(conf *shared.Config, peerdb *shared.PeerDatabase, ht *httptra
 
 		// database
 		conns.Set(int64(udptracker.GetConnCount()))
+		uptime.Set(int64(time.Since(start) / time.Second))
 
 		// performance
 		goroutines.Set(int64(runtime.NumGoroutine()))

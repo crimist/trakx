@@ -17,7 +17,7 @@ const (
 
 type PeerDatabase struct {
 	mu sync.RWMutex
-	db map[Hash]map[PeerID]Peer
+	db map[Hash]map[PeerID]*Peer
 
 	conf   *Config
 	logger *zap.Logger
@@ -70,7 +70,7 @@ func (db *PeerDatabase) Trim() {
 		}
 		for id, peer := range peermap {
 			if now-peer.LastSeen > db.conf.Database.Peer.Timeout {
-				db.deletePeer(&peer, &hash, &id)
+				db.deletePeer(&hash, &id)
 				db.deleteIP(peer.IP)
 				peers++
 			}
@@ -97,7 +97,7 @@ func (db *PeerDatabase) load(filename string) error {
 }
 
 func (db *PeerDatabase) make() {
-	db.db = make(map[Hash]map[PeerID]Peer, peerdbHashCap)
+	db.db = make(map[Hash]map[PeerID]*Peer, peerdbHashCap)
 }
 
 // Load loads a database into memory

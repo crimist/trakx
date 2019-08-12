@@ -1,7 +1,6 @@
-// +build heroku
+// +build appengine
 
-// Trakx runner
-// For use on an app engine
+// Whenever I get a free account I'll use this
 package main
 
 import (

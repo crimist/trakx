@@ -13,18 +13,18 @@ type Peer struct {
 
 // Save creates or updates peer
 func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
-	var dbPeer Peer
+	var dbPeer *Peer
 	var ok bool
 
 	db.mu.Lock()
 	if _, ok = db.db[*h]; !ok {
 		// Allocing cap here would probably be harmful since lots of 1 peer torrents would eat mem
-		db.db[*h] = make(map[PeerID]Peer)
+		db.db[*h] = make(map[PeerID]*Peer)
 	}
 	if !fast {
 		dbPeer, ok = db.db[*h][*id]
 	}
-	db.db[*h][*id] = *p
+	db.db[*h][*id] = p
 	db.mu.Unlock()
 
 	if !fast {
@@ -56,7 +56,7 @@ func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
 	}
 }
 
-func (db *PeerDatabase) deletePeer(p *Peer, h *Hash, id *PeerID) {
+func (db *PeerDatabase) deletePeer(h *Hash, id *PeerID) {
 	if !fast {
 		if peer, ok := db.db[*h][*id]; ok {
 			if peer.Complete {
@@ -80,7 +80,7 @@ func (db *PeerDatabase) deleteIP(ip PeerIP) {
 // Drop deletes peer
 func (db *PeerDatabase) Drop(p *Peer, h *Hash, id *PeerID) {
 	db.mu.Lock()
-	db.deletePeer(p, h, id)
+	db.deletePeer(h, id)
 	db.mu.Unlock()
 
 	if !fast {
