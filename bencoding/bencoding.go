@@ -63,8 +63,15 @@ func NewDict() *Dict {
 	return &dict
 }
 
-// Add x
-func (d *Dict) Add(key string, v interface{}) error {
+func (d *Dict) String(key string, v string) {
+	d.encoded += strconv.FormatInt(int64(len(key)), 10) + ":" + key + strconv.FormatInt(int64(len(v)), 10) + ":" + v
+}
+
+func (d *Dict) Int64(key string, v int64) {
+	d.encoded += strconv.FormatInt(int64(len(key)), 10) + ":" + key + "i" + strconv.FormatInt(v, 10) + "e"
+}
+
+func (d *Dict) Any(key string, v interface{}) error {
 	if d.finished {
 		return errors.New("Add after Get")
 	}
@@ -87,19 +94,19 @@ func (d *Dict) Add(key string, v interface{}) error {
 	case map[string]interface{}:
 		dict := NewDict()
 		for k, v := range v {
-			dict.Add(k, v)
+			dict.Any(k, v)
 		}
 		d.encoded += dict.Get()
 	case map[string]map[string]int32:
 		dict := NewDict()
 		for k, v := range v {
-			dict.Add(k, v)
+			dict.Any(k, v)
 		}
 		d.encoded += dict.Get()
 	case map[string]int32:
 		dict := NewDict()
 		for k, v := range v {
-			dict.Add(k, v)
+			dict.Any(k, v)
 		}
 		d.encoded += dict.Get()
 	case int, int8, int16, int32, int64:

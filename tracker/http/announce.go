@@ -87,13 +87,13 @@ func (t *HTTPTracker) announce(conn net.Conn, vals url.Values) {
 	complete, incomplete := t.peerdb.HashStats(&hash)
 
 	d := bencoding.NewDict()
-	d.Add("interval", t.conf.Tracker.AnnounceInterval)
-	d.Add("complete", complete)
-	d.Add("incomplete", incomplete)
+	d.Int64("interval", int64(t.conf.Tracker.AnnounceInterval))
+	d.Int64("complete", int64(complete))
+	d.Int64("incomplete", int64(incomplete))
 	if compact {
-		d.Add("peers", t.peerdb.PeerListBytes(&hash, numwant))
+		d.Any("peers", t.peerdb.PeerListBytes(&hash, numwant))
 	} else {
-		d.Add("peers", t.peerdb.PeerList(&hash, numwant, nopeerid))
+		d.Any("peers", t.peerdb.PeerList(&hash, numwant, nopeerid))
 	}
 
 	shared.AddExpval(&shared.Expvar.AnnouncesOK, 1)

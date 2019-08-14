@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/gob"
 	"io/ioutil"
@@ -13,14 +14,17 @@ import (
 
 const (
 	peerdbHashCap = 1000000
+	splitString   = "trakx\x11\x11"
 )
+
+type PeerMap struct {
+	sync.RWMutex
+	peers map[PeerID]*Peer
+}
 
 type PeerDatabase struct {
 	mu      sync.RWMutex
-	hashmap map[Hash]*struct {
-		sync.RWMutex
-		peers map[PeerID]*Peer
-	}
+	hashmap map[Hash]*PeerMap
 
 	conf   *Config
 	logger *zap.Logger
@@ -45,6 +49,10 @@ func (db *PeerDatabase) check() (ok bool) {
 		ok = true
 	}
 	return
+}
+
+func (db *PeerDatabase) make() {
+	db.hashmap = make(map[Hash]*PeerMap, peerdbHashCap)
 }
 
 // Trim removes all peers that haven't checked in since timeout
@@ -87,23 +95,6 @@ func (db *PeerDatabase) Trim() {
 	}
 
 	db.logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
-}
-
-func (db *PeerDatabase) load(filename string) error {
-	file, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-
-	decoder := gob.NewDecoder(file)
-	return decoder.Decode(&db.hashmap)
-}
-
-func (db *PeerDatabase) make() {
-	db.hashmap = make(map[Hash]*struct {
-		sync.RWMutex
-		peers map[PeerID]*Peer
-	}, peerdbHashCap)
 }
 
 // Load loads a database into memory
@@ -175,12 +166,37 @@ func (db *PeerDatabase) Load() {
 	db.logger.Info("Loaded database", zap.String("type", loaded), zap.Int("hashes", db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 }
 
-func (db *PeerDatabase) write(temp bool) {
-	db.logger.Info("Writing database")
+func (db *PeerDatabase) load(filename string) error {
+	var hash Hash
+	db.make()
 
-	start := time.Now()
+	archive, err := zip.OpenReader(filename)
+	if err != nil {
+		return err
+	}
+	defer archive.Close()
+
+	for _, file := range archive.File {
+		copy(hash[:], []byte(file.Name))
+		peermap := db.makePeermap(&hash)
+
+		reader, err := file.Open()
+		if err != nil {
+			return err
+		}
+		err = gob.NewDecoder(reader).Decode(&peermap.peers)
+		if err != nil {
+			return err
+		}
+		reader.Close()
+	}
+
+	return nil
+}
+
+func (db *PeerDatabase) write(temp bool) {
 	buff := new(bytes.Buffer)
-	encoder := gob.NewEncoder(buff)
+	archive := zip.NewWriter(buff)
 	filename := db.conf.Database.Peer.Filename
 	if temp {
 		filename += ".tmp"
@@ -189,27 +205,42 @@ func (db *PeerDatabase) write(temp bool) {
 	}
 
 	db.mu.RLock()
-	err := encoder.Encode(&db.hashmap)
-	db.mu.RUnlock()
-	if err != nil {
-		db.logger.Error("peerdb gob encoder", zap.Error(err))
+	defer db.mu.RUnlock()
+	for hash, submap := range db.hashmap {
+		writer, err := archive.Create(string(hash[:]))
+		if err != nil {
+			db.logger.Error("Failed to create in archive", zap.Error(err), zap.Any("hash", hash[:]))
+			return
+		}
+		if err := gob.NewEncoder(writer).Encode(submap.peers); err != nil {
+			db.logger.Error("Failed to encode peermap", zap.Error(err))
+			return
+		}
+	}
+
+	if err := archive.Close(); err != nil {
+		db.logger.Error("Failed to close archive", zap.Error(err))
 		return
 	}
 
 	if err := ioutil.WriteFile(filename, buff.Bytes(), 0644); err != nil {
-		db.logger.Error("peerdb writefile", zap.Error(err))
+		db.logger.Error("Database writefile failed", zap.Error(err))
 		return
 	}
-
-	db.logger.Info("Wrote database", zap.String("filename", filename), zap.Int("hashes", db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 }
 
 // WriteTmp writes the database to tmp file
 func (db *PeerDatabase) WriteTmp() {
+	db.logger.Info("Writing temp database")
+	start := time.Now()
 	db.write(true)
+	db.logger.Info("Wrote temp database", zap.Int("hashes", db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 }
 
 // WriteFull writes the database to file
 func (db *PeerDatabase) WriteFull() {
+	db.logger.Info("Writing full database")
+	start := time.Now()
 	db.write(false)
+	db.logger.Info("Wrote fuill database", zap.Int("hashes", db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 }

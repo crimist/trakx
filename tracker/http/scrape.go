@@ -37,7 +37,7 @@ func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
 		nestedDict[infohash]["incomplete"] = incomplete
 	}
 
-	if err := dict.Add("files", nestedDict); err != nil {
+	if err := dict.Any("files", nestedDict); err != nil {
 		t.internalError(conn, "dict.Add()", err)
 		return
 	}

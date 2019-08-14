@@ -1,7 +1,5 @@
 package shared
 
-import "sync"
-
 type PeerID [20]byte
 type PeerIP [4]byte
 
@@ -13,6 +11,14 @@ type Peer struct {
 	LastSeen int64
 }
 
+func (db *PeerDatabase) makePeermap(h *Hash) (peermap *PeerMap) {
+	// build struct and assign
+	peermap = new(PeerMap)
+	db.hashmap[*h] = peermap
+	peermap.peers = make(map[PeerID]*Peer, 1)
+	return
+}
+
 // Save writes a peer
 func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
 	var dbPeer *Peer
@@ -22,13 +28,7 @@ func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
 	db.mu.RUnlock()
 	if !ok {
 		db.mu.Lock()
-		// build struct and assign
-		peermap = new(struct {
-			sync.RWMutex
-			peers map[PeerID]*Peer
-		})
-		db.hashmap[*h] = peermap
-		peermap.peers = make(map[PeerID]*Peer, 1)
+		peermap = db.makePeermap(h)
 		db.mu.Unlock()
 	}
 

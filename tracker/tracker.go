@@ -68,7 +68,7 @@ func Run() {
 		go t.Serve(indexData, conf.Tracker.HTTP.Threads)
 	} else {
 		d := bencoding.NewDict()
-		d.Add("interval", 432000) // 5 days
+		d.Int64("interval", 432000) // 5 days
 		errResp := []byte(d.Get())
 
 		trackerMux := http.NewServeMux()

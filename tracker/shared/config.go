@@ -94,10 +94,10 @@ func (conf *Config) Load(root string) error {
 		return err
 	}
 
-	// Bugged on OSX & WSL so above ~24000 with throw err
-	if ulimitBugged() && conf.Trakx.Ulimit > 24000 {
-		rLimit.Max = 24000
-		rLimit.Cur = 24000
+	// Bugged on OSX & WSL
+	if ulimitBugged() && conf.Trakx.Ulimit > 10000 {
+		rLimit.Max = 10000
+		rLimit.Cur = 10000
 	} else {
 		rLimit.Max = conf.Trakx.Ulimit
 		rLimit.Cur = conf.Trakx.Ulimit

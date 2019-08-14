@@ -62,10 +62,10 @@ func (db *PeerDatabase) PeerList(h *Hash, num int, noPeerID bool) []string {
 		}
 		dict := bencoding.NewDict()
 		if noPeerID == false {
-			dict.Add("peer id", string(id[:]))
+			dict.Any("peer id", string(id[:]))
 		}
-		dict.Add("ip", net.IP(peer.IP[:]).String())
-		dict.Add("port", peer.Port)
+		dict.Any("ip", net.IP(peer.IP[:]).String())
+		dict.Any("port", peer.Port)
 
 		peerList[i] = dict.Get()
 		i++

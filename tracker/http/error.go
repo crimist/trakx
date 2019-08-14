@@ -10,7 +10,7 @@ import (
 
 func writeErr(conn net.Conn, msg string) {
 	d := bencoding.NewDict()
-	d.Add("failure reason", msg)
+	d.String("failure reason", msg)
 	conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + d.Get()))
 }
 
