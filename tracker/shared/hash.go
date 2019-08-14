@@ -20,8 +20,11 @@ func (db *PeerDatabase) Hashes() int {
 // HashStats returns number of complete and incomplete peers associated with the hash
 func (db *PeerDatabase) HashStats(h *Hash) (complete, incomplete int32) {
 	db.mu.RLock()
-	peermap, _ := db.hashmap[*h]
+	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
+	if !ok {
+		return
+	}
 
 	peermap.RLock()
 	for _, peer := range peermap.peers {
@@ -40,8 +43,11 @@ func (db *PeerDatabase) PeerList(h *Hash, num int, noPeerID bool) []string {
 	var i int
 
 	db.mu.RLock()
-	peermap, _ := db.hashmap[*h]
+	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
+	if !ok {
+		return []string{}
+	}
 
 	peermap.RLock()
 	maplen := len(peermap.peers)
@@ -74,8 +80,11 @@ func (db *PeerDatabase) PeerListBytes(h *Hash, num int) []byte {
 	var peerList bytes.Buffer
 
 	db.mu.RLock()
-	peermap, _ := db.hashmap[*h]
+	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
+	if !ok {
+		peerList.Bytes()
+	}
 
 	peermap.RLock()
 	maplen := len(peermap.peers)
