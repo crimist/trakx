@@ -194,7 +194,7 @@ func (db *PeerDatabase) load(filename string) error {
 	return nil
 }
 
-func (db *PeerDatabase) write(temp bool) {
+func (db *PeerDatabase) write(temp bool) bool {
 	buff := new(bytes.Buffer)
 	archive := zip.NewWriter(buff)
 	filename := db.conf.Database.Peer.Filename
@@ -210,30 +210,34 @@ func (db *PeerDatabase) write(temp bool) {
 		writer, err := archive.Create(string(hash[:]))
 		if err != nil {
 			db.logger.Error("Failed to create in archive", zap.Error(err), zap.Any("hash", hash[:]))
-			return
+			return false
 		}
 		if err := gob.NewEncoder(writer).Encode(submap.peers); err != nil {
 			db.logger.Error("Failed to encode peermap", zap.Error(err))
-			return
+			return false
 		}
 	}
 
 	if err := archive.Close(); err != nil {
 		db.logger.Error("Failed to close archive", zap.Error(err))
-		return
+		return false
 	}
 
 	if err := ioutil.WriteFile(filename, buff.Bytes(), 0644); err != nil {
 		db.logger.Error("Database writefile failed", zap.Error(err))
-		return
+		return false
 	}
+	return true
 }
 
 // WriteTmp writes the database to tmp file
 func (db *PeerDatabase) WriteTmp() {
 	db.logger.Info("Writing temp database")
 	start := time.Now()
-	db.write(true)
+	if !db.write(true) {
+		db.logger.Info("Failed to write temp database", zap.Duration("duration", time.Now().Sub(start)))
+		return
+	}
 	db.logger.Info("Wrote temp database", zap.Int("hashes", db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 }
 
@@ -241,6 +245,9 @@ func (db *PeerDatabase) WriteTmp() {
 func (db *PeerDatabase) WriteFull() {
 	db.logger.Info("Writing full database")
 	start := time.Now()
-	db.write(false)
+	if !db.write(false) {
+		db.logger.Info("Failed to write full database", zap.Duration("duration", time.Now().Sub(start)))
+		return
+	}
 	db.logger.Info("Wrote fuill database", zap.Int("hashes", db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 }
