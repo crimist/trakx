@@ -213,8 +213,7 @@ func (db *PeerDatabase) write(temp bool) bool {
 			return false
 		}
 		if err := gob.NewEncoder(writer).Encode(submap.peers); err != nil {
-			db.logger.Error("Failed to encode peermap", zap.Error(err))
-			return false
+			db.logger.Warn("Failed to encode a peermap", zap.Error(err), zap.Any("hash", hash[:]))
 		}
 	}
 
