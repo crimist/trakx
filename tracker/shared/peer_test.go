@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestSave(t *testing.T) {
+func TestSaveDrop(t *testing.T) {
 	var db PeerDatabase
 	db.make()
 	InitExpvar(&db)
@@ -39,6 +39,8 @@ func TestSave(t *testing.T) {
 	if getPeer.LastSeen != savePeer.LastSeen {
 		t.Error("LastSeen not equal")
 	}
+
+	db.Drop(&savePeer, &hash, &peerid)
 }
 
 func benchmarkSave(b *testing.B, db *PeerDatabase, peer Peer, hash Hash, peerid PeerID) {

@@ -71,23 +71,23 @@ func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
 // Drop deletes peer
 func (db *PeerDatabase) Drop(p *Peer, h *Hash, id *PeerID) {
 	db.mu.RLock()
-	peermap := db.hashmap[*h]
+	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
+	if !ok {
+		return
+	}
 
 	peermap.Lock()
-	if !fast {
-		if peer, ok := peermap.peers[*id]; ok {
-			if peer.Complete {
-				AddExpval(&Expvar.Seeds, -1)
-			} else {
-				AddExpval(&Expvar.Leeches, -1)
-			}
-		}
-	}
 	delete(peermap.peers, *id)
 	peermap.Unlock()
 
 	if !fast {
+		if p.Complete {
+			AddExpval(&Expvar.Seeds, -1)
+		} else {
+			AddExpval(&Expvar.Leeches, -1)
+		}
+
 		Expvar.IPs.Lock()
 		Expvar.IPs.dec(p.IP)
 		if Expvar.IPs.dead(p.IP) {
