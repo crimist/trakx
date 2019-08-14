@@ -14,36 +14,43 @@ type Hash [20]byte
 
 // Hashes gets the number of hashes
 func (db *PeerDatabase) Hashes() int {
-	return len(db.db)
+	return len(db.hashmap)
 }
 
 // HashStats returns number of complete and incomplete peers associated with the hash
 func (db *PeerDatabase) HashStats(h *Hash) (complete, incomplete int32) {
 	db.mu.RLock()
-	peerMap, _ := db.db[*h]
-	for _, peer := range peerMap {
-		if peer.Complete == true {
+	peermap, _ := db.hashmap[*h]
+	db.mu.RUnlock()
+
+	peermap.RLock()
+	for _, peer := range peermap.peers {
+		if peer.Complete {
 			complete++
-		} else {
-			incomplete++
 		}
 	}
-	db.mu.RUnlock()
+	peermap.RUnlock()
+	incomplete = int32(len(peermap.peers)) - complete
 
 	return
 }
 
 // PeerList returns a peer list for the given hash capped at num
 func (db *PeerDatabase) PeerList(h *Hash, num int, noPeerID bool) []string {
-	db.mu.RLock()
-	peerMap, _ := db.db[*h]
-	if num > len(peerMap) {
-		num = len(peerMap)
-	}
-	peerList := make([]string, num)
+	var i int
 
-	i := 0
-	for id, peer := range peerMap {
+	db.mu.RLock()
+	peermap, _ := db.hashmap[*h]
+	db.mu.RUnlock()
+
+	peermap.RLock()
+	maplen := len(peermap.peers)
+	if num > maplen {
+		num = maplen
+	}
+
+	peerList := make([]string, num)
+	for id, peer := range peermap.peers {
 		if i == num {
 			break
 		}
@@ -57,7 +64,7 @@ func (db *PeerDatabase) PeerList(h *Hash, num int, noPeerID bool) []string {
 		peerList[i] = dict.Get()
 		i++
 	}
-	db.mu.RUnlock()
+	peermap.RUnlock()
 
 	return peerList
 }
@@ -67,14 +74,20 @@ func (db *PeerDatabase) PeerListBytes(h *Hash, num int) []byte {
 	var peerList bytes.Buffer
 
 	db.mu.RLock()
-	peerMap, _ := db.db[*h]
-	if num > len(peerMap) {
-		num = len(peerMap)
-	}
-	peerList.Grow(6 * num)
-	writer := bufio.NewWriterSize(&peerList, 6*num)
+	peermap, _ := db.hashmap[*h]
+	db.mu.RUnlock()
 
-	for _, peer := range peerMap {
+	peermap.RLock()
+	maplen := len(peermap.peers)
+	if num > maplen {
+		num = maplen
+	}
+
+	size := 6 * num
+	peerList.Grow(size)
+	writer := bufio.NewWriterSize(&peerList, size)
+
+	for _, peer := range peermap.peers {
 		if num == 0 {
 			break
 		}
@@ -82,7 +95,7 @@ func (db *PeerDatabase) PeerListBytes(h *Hash, num int) []byte {
 		binary.Write(writer, binary.BigEndian, peer.Port)
 		num--
 	}
-	db.mu.RUnlock()
+	peermap.RUnlock()
 
 	writer.Flush()
 	return peerList.Bytes()

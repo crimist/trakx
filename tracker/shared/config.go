@@ -1,9 +1,7 @@
 package shared
 
 import (
-	"bytes"
 	"io/ioutil"
-	"runtime"
 	"syscall"
 
 	"gopkg.in/yaml.v2"
@@ -97,13 +95,7 @@ func (conf *Config) Load(root string) error {
 	}
 
 	// Bugged on OSX & WSL so above ~24000 with throw err
-	var uname syscall.Utsname
-	syscall.Uname(&uname)
-	release := make([]byte, len(uname.Release))
-	for i := range uname.Release {
-		release[i] = byte(uname.Release[i])
-	}
-	if (runtime.GOOS == "darwin" || bytes.Contains(release, []byte("Microsoft"))) && conf.Trakx.Ulimit > 24000 {
+	if ulimitBugged() && conf.Trakx.Ulimit > 24000 {
 		rLimit.Max = 24000
 		rLimit.Cur = 24000
 	} else {

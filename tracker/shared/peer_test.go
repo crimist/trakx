@@ -1,7 +1,7 @@
 package shared
 
 import (
-	"reflect"
+	"bytes"
 	"sync"
 	"testing"
 )
@@ -11,9 +11,9 @@ func TestSave(t *testing.T) {
 	db.make()
 	InitExpvar(&db)
 
-	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := Hash(bytes)
-	peerid := PeerID(bytes)
+	exbytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	hash := Hash(exbytes)
+	peerid := PeerID(exbytes)
 
 	savePeer := Peer{
 		Complete: true,
@@ -23,12 +23,21 @@ func TestSave(t *testing.T) {
 	}
 	db.Save(&savePeer, &hash, &peerid)
 
-	getPeer, ok := db.db[hash][peerid]
+	getPeer, ok := db.hashmap[hash].peers[peerid]
 	if !ok {
 		t.Error("Getting peer not ok")
 	}
-	if !reflect.DeepEqual(getPeer, savePeer) {
-		t.Error("Saved and got peer not equal")
+	if getPeer.Complete != savePeer.Complete {
+		t.Error("Complete not equal")
+	}
+	if !bytes.Equal(getPeer.IP[:], savePeer.IP[:]) {
+		t.Error("IP not equal")
+	}
+	if getPeer.Port != savePeer.Port {
+		t.Error("Port not equal")
+	}
+	if getPeer.LastSeen != savePeer.LastSeen {
+		t.Error("LastSeen not equal")
 	}
 }
 

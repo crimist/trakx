@@ -16,8 +16,11 @@ const (
 )
 
 type PeerDatabase struct {
-	mu sync.RWMutex
-	db map[Hash]map[PeerID]*Peer
+	mu      sync.RWMutex
+	hashmap map[Hash]*struct {
+		sync.RWMutex
+		peers map[PeerID]*Peer
+	}
 
 	conf   *Config
 	logger *zap.Logger
@@ -38,7 +41,7 @@ func NewPeerDatabase(conf *Config, logger *zap.Logger) *PeerDatabase {
 }
 
 func (db *PeerDatabase) check() (ok bool) {
-	if db.db != nil {
+	if db.hashmap != nil {
 		ok = true
 	}
 	return
@@ -54,34 +57,34 @@ func (db *PeerDatabase) Trim() {
 	// Unlock/Lock every 4th as this can block for ~15-25s @ 500'000 peers 1vcore 2.6Ghz
 	i := 0
 	db.mu.Lock()
-	hashcount := len(db.db)
+	defer db.mu.Unlock()
+	hashcount := len(db.hashmap)
 	if hashcount/4 < 1 {
-		db.mu.Unlock()
 		db.logger.Info("Database empty")
 		return
 	}
 
-	for hash, peermap := range db.db {
+	for hash, peermap := range db.hashmap {
 		if i%(hashcount/4) == 0 {
 			db.mu.Unlock()
 			// Sleep so that the queue can consume a little
 			time.Sleep(time.Duration(hashcount/500) * time.Millisecond)
 			db.mu.Lock()
 		}
-		for id, peer := range peermap {
+
+		// Don't need to lock peermap since the whole db is write locked
+		for id, peer := range peermap.peers {
 			if now-peer.LastSeen > db.conf.Database.Peer.Timeout {
-				db.deletePeer(&hash, &id)
-				db.deleteIP(peer.IP)
+				db.Drop(peer, &hash, &id)
 				peers++
 			}
 		}
-		if len(peermap) == 0 {
-			delete(db.db, hash)
+		if len(peermap.peers) == 0 {
+			delete(db.hashmap, hash)
 			hashes++
 		}
 		i++
 	}
-	db.mu.Unlock()
 
 	db.logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
 }
@@ -93,11 +96,14 @@ func (db *PeerDatabase) load(filename string) error {
 	}
 
 	decoder := gob.NewDecoder(file)
-	return decoder.Decode(&db.db)
+	return decoder.Decode(&db.hashmap)
 }
 
 func (db *PeerDatabase) make() {
-	db.db = make(map[Hash]map[PeerID]*Peer, peerdbHashCap)
+	db.hashmap = make(map[Hash]*struct {
+		sync.RWMutex
+		peers map[PeerID]*Peer
+	}, peerdbHashCap)
 }
 
 // Load loads a database into memory
@@ -183,7 +189,7 @@ func (db *PeerDatabase) write(temp bool) {
 	}
 
 	db.mu.RLock()
-	err := encoder.Encode(&db.db)
+	err := encoder.Encode(&db.hashmap)
 	db.mu.RUnlock()
 	if err != nil {
 		db.logger.Error("peerdb gob encoder", zap.Error(err))

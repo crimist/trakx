@@ -18,7 +18,7 @@ var (
 
 type expvarIPmap struct {
 	mu sync.Mutex
-	M  map[PeerIP]int8
+	M  map[PeerIP]int16
 }
 
 func (e *expvarIPmap) Lock() {
@@ -72,11 +72,11 @@ func InitExpvar(peerdb *PeerDatabase) {
 		panic("peerdb not init before expvars")
 	}
 
-	Expvar.IPs.M = make(map[PeerIP]int8, IPMapCap)
+	Expvar.IPs.M = make(map[PeerIP]int16, IPMapCap)
 
-	Expvar.IPs.Lock()
-	for _, peermap := range peerdb.db {
-		for _, peer := range peermap {
+	// Called on main thread no locking needed
+	for _, peermap := range peerdb.hashmap {
+		for _, peer := range peermap.peers {
 			Expvar.IPs.M[peer.IP]++
 			if peer.Complete == true {
 				Expvar.Seeds++
@@ -85,5 +85,4 @@ func InitExpvar(peerdb *PeerDatabase) {
 			}
 		}
 	}
-	Expvar.IPs.Unlock()
 }

@@ -1,5 +1,7 @@
 package shared
 
+import "sync"
+
 type PeerID [20]byte
 type PeerIP [4]byte
 
@@ -11,21 +13,31 @@ type Peer struct {
 	LastSeen int64
 }
 
-// Save creates or updates peer
+// Save writes a peer
 func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
 	var dbPeer *Peer
-	var ok bool
 
-	db.mu.Lock()
-	if _, ok = db.db[*h]; !ok {
-		// Allocing cap here would probably be harmful since lots of 1 peer torrents would eat mem
-		db.db[*h] = make(map[PeerID]*Peer)
+	db.mu.RLock()
+	peermap, ok := db.hashmap[*h]
+	db.mu.RUnlock()
+	if !ok {
+		db.mu.Lock()
+		// build struct and assign
+		peermap = new(struct {
+			sync.RWMutex
+			peers map[PeerID]*Peer
+		})
+		db.hashmap[*h] = peermap
+		peermap.peers = make(map[PeerID]*Peer, 1)
+		db.mu.Unlock()
 	}
+
+	peermap.Lock()
 	if !fast {
-		dbPeer, ok = db.db[*h][*id]
+		dbPeer, ok = peermap.peers[*id]
 	}
-	db.db[*h][*id] = p
-	db.mu.Unlock()
+	peermap.peers[*id] = p
+	peermap.Unlock()
 
 	if !fast {
 		if ok { // Already in db
@@ -56,9 +68,15 @@ func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
 	}
 }
 
-func (db *PeerDatabase) deletePeer(h *Hash, id *PeerID) {
+// Drop deletes peer
+func (db *PeerDatabase) Drop(p *Peer, h *Hash, id *PeerID) {
+	db.mu.RLock()
+	peermap := db.hashmap[*h]
+	db.mu.RUnlock()
+
+	peermap.Lock()
 	if !fast {
-		if peer, ok := db.db[*h][*id]; ok {
+		if peer, ok := peermap.peers[*id]; ok {
 			if peer.Complete {
 				AddExpval(&Expvar.Seeds, -1)
 			} else {
@@ -66,26 +84,15 @@ func (db *PeerDatabase) deletePeer(h *Hash, id *PeerID) {
 			}
 		}
 	}
-
-	delete(db.db[*h], *id)
-}
-
-func (db *PeerDatabase) deleteIP(ip PeerIP) {
-	Expvar.IPs.dec(ip)
-	if Expvar.IPs.dead(ip) {
-		Expvar.IPs.delete(ip)
-	}
-}
-
-// Drop deletes peer
-func (db *PeerDatabase) Drop(p *Peer, h *Hash, id *PeerID) {
-	db.mu.Lock()
-	db.deletePeer(h, id)
-	db.mu.Unlock()
+	delete(peermap.peers, *id)
+	peermap.Unlock()
 
 	if !fast {
 		Expvar.IPs.Lock()
-		db.deleteIP(p.IP)
+		Expvar.IPs.dec(p.IP)
+		if Expvar.IPs.dead(p.IP) {
+			Expvar.IPs.delete(p.IP)
+		}
 		Expvar.IPs.Unlock()
 	}
 }
