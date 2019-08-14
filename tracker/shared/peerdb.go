@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/gob"
+	"encoding/hex"
 	"io/ioutil"
 	"os"
 	"sync"
@@ -177,7 +178,11 @@ func (db *PeerDatabase) load(filename string) error {
 	defer archive.Close()
 
 	for _, file := range archive.File {
-		copy(hash[:], []byte(file.Name))
+		hashbytes, err := hex.DecodeString(file.Name)
+		if err != nil {
+			return err
+		}
+		copy(hash[:], hashbytes)
 		peermap := db.makePeermap(&hash)
 
 		reader, err := file.Open()
@@ -207,7 +212,7 @@ func (db *PeerDatabase) write(temp bool) bool {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 	for hash, submap := range db.hashmap {
-		writer, err := archive.Create(string(hash[:]))
+		writer, err := archive.Create(hex.EncodeToString(hash[:]))
 		if err != nil {
 			db.logger.Error("Failed to create in archive", zap.Error(err), zap.Any("hash", hash[:]))
 			return false
