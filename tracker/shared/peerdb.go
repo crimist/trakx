@@ -210,17 +210,17 @@ func (db *PeerDatabase) write(temp bool) bool {
 	}
 
 	db.mu.RLock()
-	defer db.mu.RUnlock()
 	for hash, submap := range db.hashmap {
 		writer, err := archive.Create(hex.EncodeToString(hash[:]))
 		if err != nil {
 			db.logger.Error("Failed to create in archive", zap.Error(err), zap.Any("hash", hash[:]))
-			return false
+			continue
 		}
 		if err := gob.NewEncoder(writer).Encode(submap.peers); err != nil {
 			db.logger.Warn("Failed to encode a peermap", zap.Error(err), zap.Any("hash", hash[:]))
 		}
 	}
+	db.mu.RUnlock()
 
 	if err := archive.Close(); err != nil {
 		db.logger.Error("Failed to close archive", zap.Error(err))
