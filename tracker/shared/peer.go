@@ -68,6 +68,30 @@ func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
 	}
 }
 
+// delete is like drop but doesn't lock
+func (db *PeerDatabase) delete(p *Peer, h *Hash, id *PeerID) {
+	peermap, ok := db.hashmap[*h]
+	if !ok {
+		return
+	}
+	delete(peermap.peers, *id)
+
+	if !fast {
+		if p.Complete {
+			AddExpval(&Expvar.Seeds, -1)
+		} else {
+			AddExpval(&Expvar.Leeches, -1)
+		}
+
+		Expvar.IPs.Lock()
+		Expvar.IPs.dec(p.IP)
+		if Expvar.IPs.dead(p.IP) {
+			Expvar.IPs.delete(p.IP)
+		}
+		Expvar.IPs.Unlock()
+	}
+}
+
 // Drop deletes peer
 func (db *PeerDatabase) Drop(p *Peer, h *Hash, id *PeerID) {
 	db.mu.RLock()

@@ -56,46 +56,42 @@ func (db *PeerDatabase) make() {
 	db.hashmap = make(map[Hash]*PeerMap, peerdbHashCap)
 }
 
-// Trim removes all peers that haven't checked in since timeout
 func (db *PeerDatabase) Trim() {
-	var peers, hashes int
 	start := time.Now()
-	now := start.Unix()
 	db.logger.Info("Trimming database")
-
-	// Unlock/Lock every 4th as this can block for ~15-25s @ 500'000 peers 1vcore 2.6Ghz
-	i := 0
-	db.mu.Lock()
-	defer db.mu.Unlock()
-	hashcount := len(db.hashmap)
-	if hashcount/4 < 1 {
+	peers, hashes := db.trim()
+	if peers < 1 && hashes < 1 {
 		db.logger.Info("Database empty")
-		return
+	} else {
+		db.logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
 	}
+}
 
+// Trim removes all peers that haven't checked in since timeout
+func (db *PeerDatabase) trim() (peers, hashes int) {
+	now := time.Now().Unix()
+
+	db.mu.Lock()
 	for hash, peermap := range db.hashmap {
-		if i%(hashcount/4) == 0 {
-			db.mu.Unlock()
-			// Sleep so that the queue can consume a little
-			time.Sleep(time.Duration(hashcount/500) * time.Millisecond)
-			db.mu.Lock()
-		}
+		db.mu.Unlock()
 
-		// Don't need to lock peermap since the whole db is write locked
+		peermap.Lock()
 		for id, peer := range peermap.peers {
 			if now-peer.LastSeen > db.conf.Database.Peer.Timeout {
-				db.Drop(peer, &hash, &id)
+				db.delete(peer, &hash, &id)
 				peers++
 			}
 		}
+		peermap.Unlock()
+
+		db.mu.Lock()
 		if len(peermap.peers) == 0 {
 			delete(db.hashmap, hash)
 			hashes++
 		}
-		i++
 	}
 
-	db.logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
+	return
 }
 
 // Load loads a database into memory

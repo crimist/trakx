@@ -83,7 +83,7 @@ func (db *PeerDatabase) PeerListBytes(h *Hash, num int) []byte {
 	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
 	if !ok {
-		peerList.Bytes()
+		return []byte{}
 	}
 
 	peermap.RLock()
