@@ -14,8 +14,8 @@ type Peer struct {
 func (db *PeerDatabase) makePeermap(h *Hash) (peermap *PeerMap) {
 	// build struct and assign
 	peermap = new(PeerMap)
-	db.hashmap[*h] = peermap
 	peermap.peers = make(map[PeerID]*Peer, 1)
+	db.hashmap[*h] = peermap
 	return
 }
 

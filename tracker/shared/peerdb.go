@@ -1,7 +1,7 @@
 package shared
 
 import (
-	"archive/zip"
+	"archive/zip" // TODO use gzip
 	"bytes"
 	"encoding/gob"
 	"encoding/hex"
@@ -15,7 +15,6 @@ import (
 
 const (
 	peerdbHashCap = 1000000
-	splitString   = "trakx\x11\x11"
 )
 
 type PeerMap struct {
