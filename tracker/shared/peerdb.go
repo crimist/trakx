@@ -61,7 +61,7 @@ func (db *PeerDatabase) Trim() {
 	db.logger.Info("Trimming database")
 	peers, hashes := db.trim()
 	if peers < 1 && hashes < 1 {
-		db.logger.Info("Database empty")
+		db.logger.Info("Can't trim database: database empty")
 	} else {
 		db.logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
 	}
