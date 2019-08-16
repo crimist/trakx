@@ -55,6 +55,7 @@ func (db *PeerDatabase) make() {
 	db.hashmap = make(map[Hash]*PeerMap, peerdbHashCap)
 }
 
+// Trim removes all peers that haven't checked in since timeout
 func (db *PeerDatabase) Trim() {
 	start := time.Now()
 	db.logger.Info("Trimming database")
@@ -66,7 +67,8 @@ func (db *PeerDatabase) Trim() {
 	}
 }
 
-// Trim removes all peers that haven't checked in since timeout
+// the spam lock and unlock is expensive but it stops the program from blocks for seconds
+// this is especially important on a single core slow system
 func (db *PeerDatabase) trim() (peers, hashes int) {
 	now := time.Now().Unix()
 
@@ -195,6 +197,7 @@ func (db *PeerDatabase) load(filename string) error {
 	return nil
 }
 
+// like trim() this uses costly locking but it's worth it to prevent blocking
 func (db *PeerDatabase) write(temp bool) bool {
 	buff := new(bytes.Buffer)
 	archive := zip.NewWriter(buff)
@@ -207,14 +210,21 @@ func (db *PeerDatabase) write(temp bool) bool {
 
 	db.mu.RLock()
 	for hash, submap := range db.hashmap {
+		db.mu.RUnlock()
+
+		submap.RLock()
 		writer, err := archive.Create(hex.EncodeToString(hash[:]))
 		if err != nil {
 			db.logger.Error("Failed to create in archive", zap.Error(err), zap.Any("hash", hash[:]))
+			submap.RUnlock()
 			continue
 		}
 		if err := gob.NewEncoder(writer).Encode(submap.peers); err != nil {
 			db.logger.Warn("Failed to encode a peermap", zap.Error(err), zap.Any("hash", hash[:]))
 		}
+		submap.RUnlock()
+
+		db.mu.RLock()
 	}
 	db.mu.RUnlock()
 
