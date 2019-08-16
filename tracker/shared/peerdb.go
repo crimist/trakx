@@ -89,6 +89,7 @@ func (db *PeerDatabase) trim() (peers, hashes int) {
 			hashes++
 		}
 	}
+	db.mu.Unlock()
 
 	return
 }
