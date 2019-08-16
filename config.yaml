@@ -13,7 +13,7 @@ trakx:
   pprof:
     port: 1338 # set to 0 to disable
 
-  # nofile limit 0 for default
+  # nofile limit: 0 for default
   # high value used here so that we can queue connections for processing
   # trakx will automatically drop connections based on read/write timeout seen below
   ulimit: 99999
@@ -49,9 +49,11 @@ database:
   peer:
     filename: "peers.db"
     trim: 600 # 10m
-    write: 900 # 15m
+    write: 960 # 16m
     timeout: 2400 # 40m
   conn:
     filename: "conn.db"
+
+    # A connection that has expired could still be used if it hasn't been purged yet
     trim: 600 # 10m
     timeout: 1800 # 30m
