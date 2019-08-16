@@ -2,7 +2,6 @@ package shared
 
 import (
 	"bytes"
-	"sync"
 	"testing"
 )
 
@@ -119,7 +118,7 @@ func BenchmarkSaveDrop(b *testing.B) {
 	benchmarkSaveDrop(b, &db, peer, hash, peerid)
 }
 
-func benchmarkSaveDropGoroutines(b *testing.B, routines int) {
+func benchmarkSaveDropParallel(b *testing.B, routines int) {
 	var db PeerDatabase
 	db.make()
 	InitExpvar(&db)
@@ -134,30 +133,19 @@ func benchmarkSaveDropGoroutines(b *testing.B, routines int) {
 		LastSeen: 1234567890,
 	}
 
-	var start, wg sync.WaitGroup
-	start.Add(1)
-	wg.Add(routines)
-
-	for i := 0; i < routines; i++ {
-		go func() {
-			start.Wait()
-			for n := 0; n < (b.N / routines); n++ {
-				db.Save(&peer, &hash, &peerid)
-				db.Drop(&peer, &hash, &peerid)
-			}
-			wg.Done()
-		}()
-	}
-
+	b.SetParallelism(routines)
 	b.ResetTimer()
-	start.Done()
-	wg.Wait()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			db.Save(&peer, &hash, &peerid)
+			db.Drop(&peer, &hash, &peerid)
+		}
+	})
 }
 
-func BenchmarkSaveDropGoroutines64(b *testing.B)   { benchmarkSaveDropGoroutines(b, 64) }
-func BenchmarkSaveDropGoroutines128(b *testing.B)  { benchmarkSaveDropGoroutines(b, 128) }
-func BenchmarkSaveDropGoroutines256(b *testing.B)  { benchmarkSaveDropGoroutines(b, 256) }
-func BenchmarkSaveDropGoroutines512(b *testing.B)  { benchmarkSaveDropGoroutines(b, 512) }
-func BenchmarkSaveDropGoroutines1024(b *testing.B) { benchmarkSaveDropGoroutines(b, 1024) }
-func BenchmarkSaveDropGoroutines2048(b *testing.B) { benchmarkSaveDropGoroutines(b, 2048) }
-func BenchmarkSaveDropGoroutines4096(b *testing.B) { benchmarkSaveDropGoroutines(b, 4096) }
+func BenchmarkSaveDropParallel16(b *testing.B)  { benchmarkSaveDropParallel(b, 16) }
+func BenchmarkSaveDropParallel32(b *testing.B)  { benchmarkSaveDropParallel(b, 32) }
+func BenchmarkSaveDropParallel64(b *testing.B)  { benchmarkSaveDropParallel(b, 64) }
+func BenchmarkSaveDropParallel128(b *testing.B) { benchmarkSaveDropParallel(b, 128) }
+func BenchmarkSaveDropParallel256(b *testing.B) { benchmarkSaveDropParallel(b, 256) }
+func BenchmarkSaveDropParallel512(b *testing.B) { benchmarkSaveDropParallel(b, 512) }
