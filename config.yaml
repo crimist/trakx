@@ -18,7 +18,6 @@ trakx:
   # trakx will automatically drop connections based on read/write timeout seen below
   ulimit: 99999
 
-# Thread wise 64 goroutines per core is the ideal number for accessing the database
 tracker:
   http:
     enabled: true
