@@ -7,12 +7,12 @@ import (
 
 var fakeHdr http.Header
 
-type fakeRespWriter struct {
-	conn net.Conn
+func init() {
+	fakeHdr = make(http.Header)
 }
 
-func setupFakes() {
-	fakeHdr = make(http.Header)
+type fakeRespWriter struct {
+	conn net.Conn
 }
 
 func (w *fakeRespWriter) Header() http.Header {

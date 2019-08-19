@@ -1,8 +1,6 @@
 package shared
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/binary"
 	"net"
 
@@ -46,7 +44,7 @@ func (db *PeerDatabase) PeerList(h *Hash, num int, noPeerID bool) []string {
 	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
 	if !ok {
-		return []string{}
+		return nil
 	}
 
 	peermap.RLock()
@@ -77,13 +75,11 @@ func (db *PeerDatabase) PeerList(h *Hash, num int, noPeerID bool) []string {
 
 // PeerListBytes returns a byte encoded peer list for the given hash capped at num
 func (db *PeerDatabase) PeerListBytes(h *Hash, num int) []byte {
-	var peerList bytes.Buffer
-
 	db.mu.RLock()
 	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
 	if !ok {
-		return []byte{}
+		return nil
 	}
 
 	peermap.RLock()
@@ -91,21 +87,19 @@ func (db *PeerDatabase) PeerListBytes(h *Hash, num int) []byte {
 	if num > maplen {
 		num = maplen
 	}
-
-	size := 6 * num
-	peerList.Grow(size)
-	writer := bufio.NewWriterSize(&peerList, size)
+	peerlist := make([]byte, 6*num)
+	var pos int
 
 	for _, peer := range peermap.peers {
-		if num == 0 {
+		if pos/6 == num {
 			break
 		}
-		binary.Write(writer, binary.BigEndian, peer.IP)
-		binary.Write(writer, binary.BigEndian, peer.Port)
-		num--
+
+		copy(peerlist[pos:pos+4], peer.IP[:])
+		binary.BigEndian.PutUint16(peerlist[pos+4:pos+6], peer.Port)
+		pos += 6
 	}
 	peermap.RUnlock()
 
-	writer.Flush()
-	return peerList.Bytes()
+	return peerlist
 }
