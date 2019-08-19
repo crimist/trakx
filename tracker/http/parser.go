@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"errors"
+	"net/url"
 	"strings"
 )
 
@@ -37,6 +38,14 @@ func parse(data []byte) (parsed, error) {
 
 	if p.pathend != -1 && p.pathend < p.URLend { // if the ? is part of a query then parse it
 		p.Params = strings.Split(string(data[p.pathend+1:p.URLend]), "&")
+
+		var err error
+		for i := 0; i < len(p.Params); i++ {
+			p.Params[i], err = url.QueryUnescape(p.Params[i])
+			if err != nil {
+				return p, errors.New(errorInvalid + ": " + err.Error())
+			}
+		}
 		p.Path = string(data[p.pathstart:p.pathend])
 	} else {
 		p.Path = string(data[p.pathstart:p.URLend])

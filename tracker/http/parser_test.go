@@ -1,9 +1,13 @@
 package http
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/davecgh/go-spew/spew"
+)
 
 func TestParse(t *testing.T) {
-	req := []byte("GET /test?param=1 HTTP/1.1 bla bla")
+	req := []byte("GET /test?param=1&test=test%3Ftest HTTP/1.1 bla bla")
 	p, err := parse(req)
 
 	if err != nil {
@@ -12,8 +16,13 @@ func TestParse(t *testing.T) {
 	if len(p.Params[0]) == 0 {
 		t.Fatal("Params not found")
 	}
-	if p.Params[0] != "param=1" {
-		t.Fatal("Params incorrectly parsed")
+	for _, param := range p.Params {
+		switch param {
+		case "param=1":
+		case "test=test?test":
+		default:
+			t.Fatalf("Incorrect params: %v", spew.Sdump(p.Params))
+		}
 	}
 	if p.Path != "/test" {
 		t.Fatal("Incorrect path")
