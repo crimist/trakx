@@ -127,8 +127,8 @@ func (w *workers) work() {
 			if err != nil {
 				w.tracker.logger.Error("parse()", zap.Error(err), zap.Any("data", data))
 				j.writeStatus("400")
-			}
-			if p.URLend < 5 || p.Method != "GET" { // less than "GET / HTTP..."
+				break
+			} else if p.URLend < 5 || p.Method != "GET" { // less than "GET / HTTP..."
 				j.writeStatus("400")
 				break
 			}
