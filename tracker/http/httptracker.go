@@ -123,8 +123,12 @@ func (w *workers) work() {
 				break
 			}
 
-			p := parse(data[:l])
-			if p.URLend < 5 { // less than "GET / HTTP..."
+			p, err := parse(data[:l])
+			if err != nil {
+				w.tracker.logger.Error("parse()", zap.Error(err), zap.Any("data", data))
+				j.writeStatus("400")
+			}
+			if p.URLend < 5 || p.Method != "GET" { // less than "GET / HTTP..."
 				j.writeStatus("400")
 				break
 			}
