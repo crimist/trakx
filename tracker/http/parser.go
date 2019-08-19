@@ -24,8 +24,9 @@ func parse(data []byte) (parsed, error) {
 	// uTorrent sometimes encodes the request in b64
 	if bytes.HasSuffix(data, []byte("==")) {
 		b := make([]byte, base64.StdEncoding.DecodedLen(len(data)))
-		base64.StdEncoding.Decode(b, data)
-		return parse(b)
+		if _, err := base64.StdEncoding.Decode(b, data); err == nil {
+			return parse(b)
+		}
 	}
 
 	p := parsed{
