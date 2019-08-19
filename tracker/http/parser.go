@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"net/url"
 	"strings"
@@ -20,6 +21,13 @@ type parsed struct {
 }
 
 func parse(data []byte) (parsed, error) {
+	// uTorrent sometimes encodes the request in b64
+	if bytes.HasSuffix(data, []byte("==")) {
+		b := make([]byte, base64.StdEncoding.DecodedLen(len(data)))
+		base64.StdEncoding.Decode(b, data)
+		return parse(b)
+	}
+
 	p := parsed{
 		URLend:    bytes.Index(data, []byte(" HTTP/")),
 		pathstart: bytes.Index(data, []byte("GET /")) + 4, // includes leading slash
