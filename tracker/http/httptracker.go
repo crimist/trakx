@@ -123,7 +123,7 @@ func (w *workers) work() {
 				break
 			}
 
-			p := parse(&data, l)
+			p := parse(data[:l])
 			if p.URLend < 5 { // less than "GET / HTTP..."
 				j.writeStatus("400")
 				break

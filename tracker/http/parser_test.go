@@ -4,7 +4,7 @@ import "testing"
 
 func TestParse(t *testing.T) {
 	req := []byte("GET /test?param=1 HTTP/1.1 bla bla")
-	p := parse(&req, len(req))
+	p := parse(req)
 
 	if len(p.Params[0]) == 0 {
 		t.Fatalf("Params not found")
@@ -22,7 +22,7 @@ func BenchmarkParse(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = parse(&req, len(req))
+		_ = parse(req)
 	}
 }
 
@@ -31,6 +31,6 @@ func BenchmarkParseParams(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = parse(&req, len(req))
+		_ = parse(req)
 	}
 }
