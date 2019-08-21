@@ -6,10 +6,11 @@ Efficient bittorrent tracker written in go.
 
 Requires Go 1.12+
 
-* `go get -v github.com/syc0x00/trakx`
-
-* cd into trakx in the gopath
-* Run `sh setup.sh` to install trakx
+```sh
+git clone github.com/syc0x00/trakx
+cd trakx
+./setup.sh
+```
 
 ### Netdata install
 
@@ -21,7 +22,7 @@ Note: If you have other go program using expvar with netdata you'll have to manu
 
 ## Updating
 
-* Running `sh setup.sh` will update without overwriting
+* Running `./setup.sh` will update without overwriting config
 
 ## Build tags
 
@@ -40,7 +41,7 @@ BenchmarkSave-12                        20000000                62.7 ns/op
 BenchmarkSaveDrop-12                    20000000                116 ns/op
 ```
 
-## Recommendations
+## Notes
 
 If you're going to be serving a lot of clients take a look at the sysctl tuning the resources section. This is especially true if you're using the TCP tracker
 
