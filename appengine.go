@@ -1,4 +1,4 @@
-// +build appengine
+// +build heroku
 
 // Whenever I get a free account I'll use this
 package main
