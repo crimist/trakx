@@ -2,8 +2,6 @@ package http
 
 import (
 	"testing"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 func TestParse(t *testing.T) {
@@ -21,7 +19,7 @@ func TestParse(t *testing.T) {
 		case "param=1":
 		case "test=test?test":
 		default:
-			t.Fatalf("Incorrect params: %v", spew.Sdump(p.Params))
+			t.Fatalf("Incorrect params: %v", p.Params)
 		}
 	}
 	if p.Path != "/test" {

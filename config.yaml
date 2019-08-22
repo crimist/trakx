@@ -4,7 +4,7 @@
 
 trakx:
   prod: true
-  index: "index.html"
+  index: "~/.trakx/index.html"
 
   # Expvar is served on /stats over http port
   expvar:
@@ -44,15 +44,14 @@ tracker:
   # Announce interval for clients
   announce: 1800 # 30m
 
-# Databases are in ~/.trakx/
 database:
   peer:
-    filename: "peers.db"
+    filename: "~/.trakx/peers.db"
     trim: 600 # 10m
     write: 960 # 16m
     timeout: 2400 # 40m
   conn:
-    filename: "conn.db"
+    filename: "~/.trakx/conn.db"
 
     # A connection that has expired could still be used if it hasn't been purged yet
     trim: 600 # 10m

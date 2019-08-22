@@ -10,8 +10,7 @@ import (
 )
 
 var (
-	SigStop   = os.Interrupt
-	SigReload = syscall.SIGUSR1
+	SigStop = os.Interrupt
 )
 
 func handleSigs(peerdb *shared.PeerDatabase) {
@@ -28,11 +27,6 @@ func handleSigs(peerdb *shared.PeerDatabase) {
 			peerdb.WriteFull()
 			udptracker.WriteConns()
 			os.Exit(128 + int(sig.(syscall.Signal)))
-		case syscall.SIGUSR1:
-			logger.Info("Reloading config (not all setting will apply until restart)")
-			if err := conf.Load(root); err != nil {
-				logger.Error("conf.Load()", zap.Error(err))
-			}
 		default:
 			logger.Info("Got unknown sig", zap.Any("Signal", sig))
 		}

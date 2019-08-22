@@ -38,13 +38,7 @@ func Run() {
 		panic(err)
 	}
 
-	// Try load from root or working dir
-	if conf, err = shared.NewConfig(root); err != nil {
-		logger.Error("NewConfig(root)", zap.Error(err))
-		if conf, err = shared.NewConfig("./"); err != nil {
-			logger.Panic("NewConfig(.)", zap.Error(err))
-		}
-	}
+	conf = shared.ViperConf(logger)
 
 	// db
 	peerdb := shared.NewPeerDatabase(conf, logger)

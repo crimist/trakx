@@ -29,7 +29,6 @@ func printHelp(arg string) {
 	help += fmt.Sprintf("  %-12s Stops Trakx service\n", "stop")
 	help += fmt.Sprintf("  %-12s Restarts Trakx service\n", "restart")
 	help += fmt.Sprintf("  %-12s Wipes trakx pid file\n", "wipe")
-	help += fmt.Sprintf("  %-12s Reloads the Trakx config\n", "reload")
 	help += "Usage:\n"
 	help += fmt.Sprintf("  %s <command>\n", os.Args[0])
 	help += "Example:\n"
@@ -99,11 +98,6 @@ func main() {
 			os.Exit(-1)
 		}
 		fmt.Println("wiped...")
-	case "reload":
-		if err := c.Reload(); err != nil {
-			fmt.Fprintf(os.Stderr, err.Error()+"\n")
-			os.Exit(-1)
-		}
 	default:
 		printHelp(os.Args[1])
 	}
