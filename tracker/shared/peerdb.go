@@ -3,10 +3,8 @@ package shared
 import (
 	"archive/zip" // TODO use gzip
 	"bytes"
-	"compress/flate"
 	"encoding/gob"
 	"encoding/hex"
-	"io"
 	"io/ioutil"
 	"os"
 	"sync"
@@ -172,9 +170,6 @@ func (db *PeerDatabase) load(filename string) error {
 	db.make()
 
 	archive, err := zip.OpenReader(filename)
-	archive.RegisterDecompressor(zip.Deflate, func(in io.Reader) io.ReadCloser {
-		return flate.NewReader(in)
-	})
 	if err != nil {
 		return err
 	}
@@ -206,9 +201,6 @@ func (db *PeerDatabase) load(filename string) error {
 func (db *PeerDatabase) write(temp bool) bool {
 	var buff bytes.Buffer
 	archive := zip.NewWriter(&buff)
-	archive.RegisterCompressor(zip.Deflate, func(out io.Writer) (io.WriteCloser, error) {
-		return flate.NewWriter(out, flate.NoCompression) // flate nocomp is fastest
-	})
 	filename := db.conf.Database.Peer.Filename
 	if temp {
 		filename += ".tmp"
