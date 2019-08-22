@@ -71,12 +71,19 @@ func ViperConf(logger *zap.Logger) *Config {
 	viper.AddConfigPath("/app/")
 	viper.AddConfigPath(".")
 
+	viper.BindEnv("app_port", "PORT")
+
 	err := viper.ReadInConfig()
 	if err != nil {
 		logger.Panic("Failed to read config", zap.Error(err))
 	}
 	if err := viper.Unmarshal(conf); err != nil {
 		logger.Panic("Invalid config", zap.Error(err))
+	}
+
+	// If $PORT var set override
+	if appenginePort := viper.GetInt("app_port"); appenginePort != 0 {
+		conf.Tracker.HTTP.Port = appenginePort
 	}
 
 	conf.setLimits()

@@ -21,7 +21,7 @@ trakx:
 tracker:
   http:
     enabled: true
-    port: 1337 # also serves expvar, index, ect.
+    port: 80 # also serves expvar, index, ect.
     readtimeout: 3
     writetimeout: 10
     qsize: 100000 # 100K = ~1.5mb
@@ -29,7 +29,7 @@ tracker:
     threads: 2048
 
   udp:
-    enabled: true
+    enabled: false
     port: 1337
     checkconnid: true
     threads: 1024

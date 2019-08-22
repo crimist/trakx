@@ -58,7 +58,7 @@ func Run() {
 	t := httptracker.NewHTTPTracker(conf, logger, peerdb)
 
 	if conf.Tracker.HTTP.Enabled {
-		logger.Info("http tracker enabled")
+		logger.Info("http tracker enabled", zap.Int("port", conf.Tracker.HTTP.Port))
 		go t.Serve(indexData, conf.Tracker.HTTP.Threads)
 	} else {
 		d := bencoding.NewDict()
@@ -91,7 +91,7 @@ func Run() {
 
 	// UDP tracker
 	if conf.Tracker.UDP.Enabled {
-		logger.Info("udp tracker enabled")
+		logger.Info("udp tracker enabled", zap.Int("port", conf.Tracker.UDP.Port))
 		udptracker = udp.NewUDPTracker(conf, logger, peerdb, conf.Tracker.UDP.Threads)
 	}
 
