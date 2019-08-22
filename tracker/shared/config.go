@@ -64,31 +64,36 @@ type Config struct {
 func ViperConf(logger *zap.Logger) *Config {
 	conf := new(Config)
 
+	// Load from file
 	viper.SetConfigType("yaml")
 	viper.SetConfigName("config")
-
 	viper.AddConfigPath("$HOME/.trakx/")
 	viper.AddConfigPath("/app/")
 	viper.AddConfigPath(".")
-
-	viper.BindEnv("app_port", "PORT")
-
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Panic("Failed to read config", zap.Error(err))
+		logger.Warn("Failed to read config", zap.Error(err))
 	}
 	if err := viper.Unmarshal(conf); err != nil {
-		logger.Panic("Invalid config", zap.Error(err))
+		logger.Warn("Invalid config", zap.Error(err))
 	}
 
-	// If $PORT var set override
+	// Env vars override file
+	// Thanks https://github.com/spf13/viper/issues/188#issuecomment-413368673
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("trakx")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	if err := viper.Unmarshal(conf); err != nil {
+		logger.Warn("Invalid config", zap.Error(err))
+	}
+
+	// If $PORT var set override everything for appengines
+	viper.BindEnv("app_port", "PORT")
 	if appenginePort := viper.GetInt("app_port"); appenginePort != 0 {
 		conf.Tracker.HTTP.Port = appenginePort
 	}
 
-	conf.setLimits()
-	conf.fixFilenames()
-
+	// Add watcher
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		logger.Info("Config changed", zap.String("name", e.Name), zap.Any("op", e.Op))
@@ -98,6 +103,9 @@ func ViperConf(logger *zap.Logger) *Config {
 		conf.setLimits()
 		conf.fixFilenames()
 	})
+
+	conf.setLimits()
+	conf.fixFilenames()
 
 	return conf
 }
