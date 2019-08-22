@@ -25,7 +25,10 @@ func handleSigs(peerdb *shared.PeerDatabase) {
 			logger.Info("Exiting")
 
 			peerdb.WriteFull()
-			udptracker.WriteConns()
+			if udptracker != nil {
+				udptracker.WriteConns()
+			}
+
 			os.Exit(128 + int(sig.(syscall.Signal)))
 		default:
 			logger.Info("Got unknown sig", zap.Any("Signal", sig))
