@@ -24,7 +24,7 @@ tracker:
   http:
     # HTTP will still bind and listen if this is false but
     # /announce and /scrape will return emprt responses
-    enabled: false
+    enabled: true
     # Port here also serves expvar, index, ect.
     port: 1337
     # Timeout in seconds for TCP connections
