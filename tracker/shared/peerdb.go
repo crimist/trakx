@@ -38,8 +38,12 @@ func NewPeerDatabase(conf *Config, logger *zap.Logger) *PeerDatabase {
 
 	peerdb.Load()
 
-	go RunOn(time.Duration(conf.Database.Peer.Write)*time.Second, peerdb.WriteTmp)
-	go RunOn(time.Duration(conf.Database.Peer.Trim)*time.Second, peerdb.Trim)
+	if conf.Database.Peer.Write > 0 {
+		go RunOn(time.Duration(conf.Database.Peer.Write)*time.Second, peerdb.WriteTmp)
+	}
+	if conf.Database.Peer.Trim > 0 {
+		go RunOn(time.Duration(conf.Database.Peer.Trim)*time.Second, peerdb.Trim)
+	}
 
 	return &peerdb
 }
