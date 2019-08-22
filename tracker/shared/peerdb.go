@@ -3,8 +3,10 @@ package shared
 import (
 	"archive/zip" // TODO use gzip
 	"bytes"
+	"compress/flate"
 	"encoding/gob"
 	"encoding/hex"
+	"io"
 	"io/ioutil"
 	"os"
 	"sync"
@@ -199,8 +201,11 @@ func (db *PeerDatabase) load(filename string) error {
 
 // like trim() this uses costly locking but it's worth it to prevent blocking
 func (db *PeerDatabase) write(temp bool) bool {
-	buff := new(bytes.Buffer)
-	archive := zip.NewWriter(buff)
+	var buff bytes.Buffer
+	archive := zip.NewWriter(&buff)
+	archive.RegisterCompressor(zip.Deflate, func(out io.Writer) (io.WriteCloser, error) {
+		return flate.NewWriter(out, flate.NoCompression) // flate nocomp is fastest
+	})
 	filename := db.conf.Database.Peer.Filename
 	if temp {
 		filename += ".tmp"
