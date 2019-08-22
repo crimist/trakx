@@ -172,6 +172,9 @@ func (db *PeerDatabase) load(filename string) error {
 	db.make()
 
 	archive, err := zip.OpenReader(filename)
+	archive.RegisterDecompressor(zip.Deflate, func(in io.Reader) io.ReadCloser {
+		return flate.NewReader(in)
+	})
 	if err != nil {
 		return err
 	}
@@ -238,6 +241,7 @@ func (db *PeerDatabase) write(temp bool) bool {
 		return false
 	}
 
+	db.logger.Info("Writing zip to file", zap.Int("mb", buff.Len()/1024/1024))
 	if err := ioutil.WriteFile(filename, buff.Bytes(), 0644); err != nil {
 		db.logger.Error("Database writefile failed", zap.Error(err))
 		return false
