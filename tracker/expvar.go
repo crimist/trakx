@@ -52,7 +52,9 @@ func publishExpvar(conf *shared.Config, peerdb *shared.PeerDatabase, ht *httptra
 		leeches.Set(l)
 
 		// database
-		conns.Set(int64(udptracker.GetConnCount()))
+		if udptracker != nil {
+			conns.Set(int64(udptracker.GetConnCount()))
+		}
 		uptime.Set(int64(time.Since(start) / time.Second))
 
 		// performance
