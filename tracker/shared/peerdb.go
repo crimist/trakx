@@ -233,7 +233,7 @@ func (db *PeerDatabase) write(temp bool) bool {
 		return false
 	}
 
-	db.logger.Info("Writing zip to file", zap.Int("mb", buff.Len()/1024/1024))
+	db.logger.Info("Writing zip to file", zap.Float32("mb", float32(buff.Len())/1024.0/1024.0))
 	if err := ioutil.WriteFile(filename, buff.Bytes(), 0644); err != nil {
 		db.logger.Error("Database writefile failed", zap.Error(err))
 		return false
