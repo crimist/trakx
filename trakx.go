@@ -1,4 +1,4 @@
-// +build !heroku
+// +build !appengine
 
 // Trakx controller
 // For use on a server
