@@ -1,7 +1,8 @@
 // +build !heroku
 
 // Trakx controller
-// For use on a server
+// For VPS use ect.
+
 package main
 
 import (
@@ -23,7 +24,7 @@ func printHelp(arg string) {
 	}
 	help := "Trakx commands:\n"
 	help += fmt.Sprintf("  %-12s Checks if Trakx is running\n", "status")
-	help += fmt.Sprintf("  %-12s Runs Trakx if it closes\n", "watcher")
+	help += fmt.Sprintf("  %-12s Runs Trakx if it exits\n", "watcher")
 	help += fmt.Sprintf("  %-12s Runs Trakx (doesn't return)\n", "run")
 	help += fmt.Sprintf("  %-12s Starts Trakx as a service\n", "start")
 	help += fmt.Sprintf("  %-12s Stops Trakx service\n", "stop")

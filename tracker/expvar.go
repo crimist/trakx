@@ -6,11 +6,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	httptracker "github.com/syc0x00/trakx/tracker/http"
+	"github.com/syc0x00/trakx/tracker/http"
 	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/udp"
 )
 
-func publishExpvar(conf *shared.Config, peerdb *shared.PeerDatabase, ht *httptracker.HTTPTracker) {
+func publishExpvar(conf *shared.Config, peerdb *shared.PeerDatabase, httptracker *http.HTTPTracker, udptracker *udp.UDPTracker) {
 	var errsOld int64
 	start := time.Now()
 
@@ -59,7 +60,7 @@ func publishExpvar(conf *shared.Config, peerdb *shared.PeerDatabase, ht *httptra
 
 		// performance
 		goroutines.Set(int64(runtime.NumGoroutine()))
-		qlen.Set(int64(ht.QueueLen()))
+		qlen.Set(int64(httptracker.QueueLen()))
 
 		announcesSec.Set(atomic.LoadInt64(&shared.Expvar.Announces))
 		atomic.StoreInt64(&shared.Expvar.Announces, 0)

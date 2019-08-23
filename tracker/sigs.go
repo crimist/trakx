@@ -5,6 +5,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/syc0x00/trakx/tracker/udp"
+
 	"github.com/syc0x00/trakx/tracker/shared"
 	"go.uber.org/zap"
 )
@@ -13,7 +15,7 @@ var (
 	SigStop = os.Interrupt
 )
 
-func handleSigs(peerdb *shared.PeerDatabase) {
+func handleSigs(peerdb *shared.PeerDatabase, udptracker *udp.UDPTracker) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGUSR1)
 
