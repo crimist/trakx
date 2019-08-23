@@ -20,6 +20,8 @@ type parsed struct {
 	pathend   int
 }
 
+// I wrote a shitty custom parser because the normal url.Parse().Values()
+// creates a map of params which is very expensive with memory
 func parse(data []byte) (parsed, error) {
 	// uTorrent sometimes encodes the request in b64
 	if bytes.HasSuffix(data, []byte("==")) {

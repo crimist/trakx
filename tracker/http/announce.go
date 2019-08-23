@@ -20,23 +20,14 @@ type announceParams struct {
 	numwant  string
 }
 
-func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams) {
+func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip shared.PeerIP) {
 	shared.AddExpval(&shared.Expvar.Announces, 1)
 
 	// get vars
 	var hash shared.Hash
 	var peerid shared.PeerID
-	peer := shared.Peer{LastSeen: time.Now().Unix()}
+	peer := shared.Peer{LastSeen: time.Now().Unix(), IP: ip}
 	numwant := int(t.conf.Tracker.Numwant.Default)
-
-	// IP
-	ipStr, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-	parsedIP := net.ParseIP(ipStr).To4()
-	if parsedIP == nil {
-		t.clientError(conn, "ipv6 unsupported")
-		return
-	}
-	copy(peer.IP[:], parsedIP)
 
 	// Port
 	portInt, err := strconv.Atoi(vals.port)

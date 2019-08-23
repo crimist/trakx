@@ -172,7 +172,30 @@ func (w *workers) work() {
 						v.numwant = val
 					}
 				}
-				w.tracker.announce(j.conn, &v)
+
+				var ip shared.PeerIP
+				var ipStr string
+
+				forwarded, forwardedIP := getForwarded(data)
+				if forwarded {
+					// Appeng (heroku)
+					if forwardedIP == nil {
+						w.tracker.clientError(j.conn, "Bad IP - might be heroku issue")
+						break
+					}
+					ipStr = string(forwardedIP)
+				} else {
+					// Not appeng
+					ipStr, _, _ = net.SplitHostPort(j.conn.RemoteAddr().String())
+				}
+				parsedIP := net.ParseIP(ipStr).To4()
+				if parsedIP == nil {
+					w.tracker.clientError(j.conn, "ipv6 unsupported")
+					break
+				}
+				copy(ip[:], parsedIP)
+
+				w.tracker.announce(j.conn, &v, ip)
 			case "/scrape":
 				// TODO: custom parsing
 				u, err := url.Parse(string(data[4:p.URLend]))
