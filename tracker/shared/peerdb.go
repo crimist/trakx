@@ -264,5 +264,5 @@ func (db *PeerDatabase) WriteFull() {
 		db.logger.Info("Failed to write full database", zap.Duration("duration", time.Now().Sub(start)))
 		return
 	}
-	db.logger.Info("Wrote fuill database", zap.Int("hashes", db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
+	db.logger.Info("Wrote full database", zap.Int("hashes", db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 }
