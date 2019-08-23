@@ -43,8 +43,8 @@ type Config struct {
 			Default int32 `yaml:"default"`
 			Max     int32 `yaml:"max"`
 		} `yaml:"numwant"`
-		StoppedMsg       string `yaml:"stoppedmsg"`
-		AnnounceInterval int32  `yaml:"announce"`
+		StoppedMsg string `yaml:"stoppedmsg"`
+		Announce   int32  `yaml:"announce"`
 	} `yaml:"tracker"`
 	Database struct {
 		Peer struct {

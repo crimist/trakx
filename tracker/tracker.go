@@ -3,7 +3,6 @@ package tracker
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/syc0x00/trakx/bencoding"
@@ -17,19 +16,11 @@ var (
 	udptracker *udp.UDPTracker
 	logger     *zap.Logger
 	conf       *shared.Config
-	root       string
 )
 
 // Run runs the tracker
 func Run() {
 	var err error
-
-	// find root
-	root, err = os.UserHomeDir()
-	if err != nil {
-		panic("os.UserHomeDir() failed: " + err.Error())
-	}
-	root += "/.trakx/"
 
 	// logger
 	cfg := zap.NewDevelopmentConfig()
@@ -39,6 +30,7 @@ func Run() {
 	}
 
 	conf = shared.ViperConf(logger)
+	logger.Info("Loaded conf")
 
 	// db
 	peerdb := shared.NewPeerDatabase(conf, logger)
