@@ -3,7 +3,6 @@ module github.com/syc0x00/trakx
 go 1.12
 
 require (
-	github.com/davecgh/go-spew v1.1.1
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-torrent/bencode v0.0.0-20150403200907-4318e12a955c
 	github.com/magiconair/properties v1.8.1 // indirect
