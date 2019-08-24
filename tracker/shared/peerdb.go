@@ -1,15 +1,19 @@
 package shared
 
 import (
-	"archive/zip" // TODO use gzip
+	"archive/zip"
 	"bytes"
+	"database/sql"
 	"encoding/gob"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"sync"
 	"time"
 
+	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )
 
@@ -36,7 +40,7 @@ func NewPeerDatabase(conf *Config, logger *zap.Logger) *PeerDatabase {
 		logger: logger,
 	}
 
-	peerdb.Load()
+	peerdb.LoadFromFile()
 
 	if conf.Database.Peer.Write > 0 {
 		go RunOn(time.Duration(conf.Database.Peer.Write)*time.Second, peerdb.WriteTmp)
@@ -100,8 +104,7 @@ func (db *PeerDatabase) trim() (peers, hashes int) {
 	return
 }
 
-// Load loads a database into memory
-func (db *PeerDatabase) Load() {
+func (db *PeerDatabase) LoadFromFile() {
 	db.logger.Info("Loading database")
 	start := time.Now()
 	loadtemp := false
@@ -137,10 +140,10 @@ func (db *PeerDatabase) Load() {
 
 	loaded := ""
 	if loadtemp == true {
-		if err := db.load(db.conf.Database.Peer.Filename + ".tmp"); err != nil {
+		if err := db.loadFile(db.conf.Database.Peer.Filename + ".tmp"); err != nil {
 			db.logger.Info("Loading temp peerdb failed", zap.Error(err))
 
-			if err := db.load(db.conf.Database.Peer.Filename); err != nil {
+			if err := db.loadFile(db.conf.Database.Peer.Filename); err != nil {
 				db.logger.Info("Loading full peerdb failed", zap.Error(err))
 				db.make()
 				return
@@ -151,10 +154,10 @@ func (db *PeerDatabase) Load() {
 			loaded = "temp"
 		}
 	} else {
-		if err := db.load(db.conf.Database.Peer.Filename); err != nil {
+		if err := db.loadFile(db.conf.Database.Peer.Filename); err != nil {
 			db.logger.Info("Loading full peerdb failed", zap.Error(err))
 
-			if err := db.load(db.conf.Database.Peer.Filename + ".tmp"); err != nil {
+			if err := db.loadFile(db.conf.Database.Peer.Filename + ".tmp"); err != nil {
 				db.logger.Info("Loading temp peerdb failed", zap.Error(err))
 				db.make()
 				return
@@ -169,7 +172,7 @@ func (db *PeerDatabase) Load() {
 	db.logger.Info("Loaded database", zap.String("type", loaded), zap.Int("hashes", db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 }
 
-func (db *PeerDatabase) load(filename string) error {
+func (db *PeerDatabase) loadFile(filename string) error {
 	var hash Hash
 	db.make()
 
@@ -201,16 +204,9 @@ func (db *PeerDatabase) load(filename string) error {
 	return nil
 }
 
-// like trim() this uses costly locking but it's worth it to prevent blocking
-func (db *PeerDatabase) write(temp bool) bool {
+func (db *PeerDatabase) encode() []byte {
 	var buff bytes.Buffer
 	archive := zip.NewWriter(&buff)
-	filename := db.conf.Database.Peer.Filename
-	if temp {
-		filename += ".tmp"
-	} else {
-		db.Trim()
-	}
 
 	db.mu.RLock()
 	for hash, submap := range db.hashmap {
@@ -234,22 +230,39 @@ func (db *PeerDatabase) write(temp bool) bool {
 
 	if err := archive.Close(); err != nil {
 		db.logger.Error("Failed to close archive", zap.Error(err))
-		return false
+		return nil
 	}
 
-	db.logger.Info("Writing zip to file", zap.Float32("mb", float32(buff.Len())/1024.0/1024.0))
-	if err := ioutil.WriteFile(filename, buff.Bytes(), 0644); err != nil {
-		db.logger.Error("Database writefile failed", zap.Error(err))
-		return false
+	return buff.Bytes()
+}
+
+// like trim() this uses costly locking but it's worth it to prevent blocking
+func (db *PeerDatabase) writeToFile(temp bool) int {
+	filename := db.conf.Database.Peer.Filename
+	if temp {
+		filename += ".tmp"
+	} else {
+		db.Trim()
 	}
-	return true
+
+	encoded := db.encode()
+	if encoded == nil {
+		return -1
+	}
+
+	db.logger.Info("Writing zip to file", zap.Float32("mb", float32(len(encoded)/1024.0/1024.0)))
+	if err := ioutil.WriteFile(filename, encoded, 0644); err != nil {
+		db.logger.Error("Database writefile failed", zap.Error(err))
+		return -1
+	}
+	return len(encoded)
 }
 
 // WriteTmp writes the database to tmp file
 func (db *PeerDatabase) WriteTmp() {
 	db.logger.Info("Writing temp database")
 	start := time.Now()
-	if !db.write(true) {
+	if db.writeToFile(true) == -1 {
 		db.logger.Info("Failed to write temp database", zap.Duration("duration", time.Now().Sub(start)))
 		return
 	}
@@ -260,9 +273,84 @@ func (db *PeerDatabase) WriteTmp() {
 func (db *PeerDatabase) WriteFull() {
 	db.logger.Info("Writing full database")
 	start := time.Now()
-	if !db.write(false) {
+	if db.writeToFile(false) == -1 {
 		db.logger.Info("Failed to write full database", zap.Duration("duration", time.Now().Sub(start)))
 		return
 	}
 	db.logger.Info("Wrote full database", zap.Int("hashes", db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
+}
+
+func (db *PeerDatabase) LoadFromDB() {
+	pgdb, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pgdb.Close()
+	err = pgdb.Ping()
+	if err != nil {
+		db.logger.Error("postgres ping() failed", zap.Error(err))
+		return
+	}
+
+	var data []byte
+	err = pgdb.QueryRow("SELECT bytes FROM peerdb ORDER BY ts DESC LIMIT 1").Scan(&data)
+	if err != nil {
+		db.logger.Error("postgres select failed", zap.Error(err))
+		return
+	}
+	fmt.Printf("%s\n", data)
+}
+
+func (db *PeerDatabase) WriteToDB() int {
+	pgdb, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer pgdb.Close()
+	err = pgdb.Ping()
+	if err != nil {
+		db.logger.Error("postgres ping() failed", zap.Error(err))
+		return -1
+	}
+
+	_, err = pgdb.Exec("CREATE TABLE IF NOT EXISTS peerdb (ts TIMESTAMP DEFAULT now(), bytes TEXT)")
+	if err != nil {
+		db.logger.Error("postgres table create failed", zap.Error(err))
+		return -1
+	}
+
+	data := db.encode()
+	if data == nil {
+		db.logger.Error("Failed to encode db")
+		return -1
+	}
+
+	_, err = pgdb.Query("INSERT INTO peerdb(bytes) VALUES($1)", data)
+	if err != nil {
+		db.logger.Error("postgres insert failed", zap.Error(err))
+		return -1
+	}
+
+	rm, err := trimBackups(pgdb)
+	if err != nil {
+		db.logger.Error("failed to trim backups", zap.Error(err))
+		return -1
+	}
+	db.logger.Info("Deleted expired postgres records", zap.Int64("deleted", rm))
+
+	return len(data)
+}
+
+func trimBackups(db *sql.DB) (int64, error) {
+	// delete records older than 7 days
+	result, err := db.Exec("DELETE FROM peerdb WHERE ts < NOW() - INTERVAL '7 days'")
+	if err != nil {
+		return -1, err
+	}
+	rm, err := result.RowsAffected()
+	if err != nil {
+		return -1, err
+	}
+
+	return rm, nil
 }
