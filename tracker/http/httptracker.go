@@ -1,11 +1,11 @@
 package http
 
 import (
-	"bytes"
 	"expvar"
 	"fmt"
 	"net"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -37,7 +37,11 @@ func (t *HTTPTracker) Serve(index []byte, threads int) {
 		jobQueue: make(chan job, t.conf.Tracker.HTTP.Qsize),
 		index:    string(index),
 	}
-	t.workers.pool.New = func() interface{} { return make([]byte, 1000, 1000) } // TODO: HTTP req max size?
+
+	// TODO: Find HTTP req max size
+	// Note: go 1.13 will finally allow pools to survive past GC cycle so
+	// this will be far more efficient as our load is quite consistant
+	t.workers.pool.New = func() interface{} { return make([]byte, 1000, 1000) }
 	t.workers.startWorkers(threads)
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", t.conf.Tracker.HTTP.Port))
@@ -102,7 +106,6 @@ func (w *workers) startWorkers(num int) {
 func (w *workers) work() {
 	var j job
 	expvarHandler := expvar.Handler()
-	setupFakes()
 	maxread := time.Duration(w.tracker.conf.Tracker.HTTP.ReadTimeout) * time.Second
 	maxwrite := time.Duration(w.tracker.conf.Tracker.HTTP.WriteTimeout) * time.Second
 
@@ -115,26 +118,91 @@ func (w *workers) work() {
 			j.conn.SetDeadline(now.Add(maxread))
 			j.conn.SetWriteDeadline(now.Add(maxwrite))
 
-			if _, err := j.conn.Read(data); err != nil {
-				break
-			}
-
-			urlEnd := bytes.Index(data, []byte(" HTTP/"))
-			if urlEnd < 5 {
-				j.conn.Write([]byte("HTTP/1.1 400\r\n\r\n"))
-				break
-			}
-
-			u, err := url.Parse(string(data[4:urlEnd]))
+			l, err := j.conn.Read(data)
 			if err != nil {
-				j.conn.Write([]byte("HTTP/1.1 400\r\n\r\n"))
 				break
 			}
 
-			switch u.Path {
+			p, err := parse(data[:l])
+			if err != nil {
+				w.tracker.logger.Error("parse()", zap.Error(err), zap.Any("data", data))
+				j.writeStatus("400")
+				break
+			} else if p.URLend < 5 || p.Method != "GET" { // less than "GET / HTTP..."
+				j.writeStatus("400")
+				break
+			}
+
+			switch p.Path {
 			case "/announce":
-				w.tracker.announce(j.conn, u.Query())
+				var v announceParams
+				for _, param := range p.Params {
+					var key, val string
+
+					if equal := strings.Index(param, "="); equal == -1 {
+						key = param
+						val = "1"
+					} else {
+						key = param[:equal]
+						val = param[equal+1:]
+					}
+
+					switch key {
+					case "compact":
+						if val == "1" {
+							v.compact = true
+						}
+					case "no_peer_id":
+						if val == "1" {
+							v.nopeerid = true
+						}
+					case "left":
+						if val == "0" {
+							v.noneleft = true
+						}
+					case "event":
+						v.event = val
+					case "port":
+						v.port = val
+					case "info_hash":
+						v.hash = val
+					case "peer_id":
+						v.peerid = val
+					case "numwant":
+						v.numwant = val
+					}
+				}
+
+				var ip shared.PeerIP
+				var ipStr string
+
+				forwarded, forwardedIP := getForwarded(data)
+				if forwarded {
+					// Appeng (heroku)
+					if forwardedIP == nil {
+						w.tracker.clientError(j.conn, "Bad IP - might be heroku issue")
+						break
+					}
+					ipStr = string(forwardedIP)
+				} else {
+					// Not appeng
+					ipStr, _, _ = net.SplitHostPort(j.conn.RemoteAddr().String())
+				}
+				parsedIP := net.ParseIP(ipStr).To4()
+				if parsedIP == nil {
+					w.tracker.clientError(j.conn, "ipv6 unsupported")
+					break
+				}
+				copy(ip[:], parsedIP)
+
+				w.tracker.announce(j.conn, &v, ip)
 			case "/scrape":
+				// TODO: custom parsing
+				u, err := url.Parse(string(data[4:p.URLend]))
+				if err != nil {
+					j.writeStatus("400")
+					break
+				}
 				w.tracker.scrape(j.conn, u.Query())
 			case "/":
 				j.writeData(w.index)
@@ -149,11 +217,7 @@ func (w *workers) work() {
 			}
 		}
 
-		j.conn.Close()
-		// optimized memclr
-		for i := range data {
-			data[i] = 0
-		}
 		w.pool.Put(data)
+		j.conn.Close()
 	}
 }

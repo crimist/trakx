@@ -62,30 +62,26 @@ func (u *UDPTracker) listen(threads int) {
 	}
 	defer u.sock.Close()
 
-	var pool sync.Pool
-	pool.New = func() interface{} {
-		return make([]byte, 1496, 1496)
+	pool := sync.Pool{
+		New: func() interface{} { return make([]byte, 1496, 1496) }, // 1496 is max size of a scrape with 20 hashes
 	}
 
 	for i := 0; i < threads; i++ {
 		go func() {
 			for {
-				b := pool.Get().([]byte)
-				len, remote, err := u.sock.ReadFromUDP(b)
+				data := pool.Get().([]byte)
+				l, remote, err := u.sock.ReadFromUDP(data)
 				if err != nil {
 					u.logger.Error("ReadFromUDP()", zap.Error(err))
-					pool.Put(b)
+					pool.Put(data)
 					continue
 				}
 
-				if len > 15 { // 16 = minimum connect
-					u.process(b[:len], remote)
+				if l > 15 { // 16 = minimum connect
+					u.process(data[:l], remote)
 				}
-				// optimized zero
-				for i := range b {
-					b[i] = 0
-				}
-				pool.Put(b)
+
+				pool.Put(data)
 			}
 		}()
 	}

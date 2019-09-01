@@ -1,10 +1,14 @@
 package shared
 
 import (
-	"io/ioutil"
+	"os"
+	"strings"
 	"syscall"
 
-	"gopkg.in/yaml.v2"
+	"go.uber.org/zap"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -39,8 +43,8 @@ type Config struct {
 			Default int32 `yaml:"default"`
 			Max     int32 `yaml:"max"`
 		} `yaml:"numwant"`
-		StoppedMsg       string `yaml:"stoppedmsg"`
-		AnnounceInterval int32  `yaml:"announce"`
+		StoppedMsg string `yaml:"stoppedmsg"`
+		Announce   int32  `yaml:"announce"`
 	} `yaml:"tracker"`
 	Database struct {
 		Peer struct {
@@ -57,39 +61,74 @@ type Config struct {
 	} `yaml:"database"`
 }
 
-// NewConfig loads "config.yaml" at root
-func NewConfig(root string) (*Config, error) {
-	conf := Config{}
-	if err := conf.Load(root); err != nil {
-		return nil, err
+func ViperConf(logger *zap.Logger) *Config {
+	conf := new(Config)
+
+	// Load from file
+	viper.SetConfigType("yaml")
+	viper.SetConfigName("config")
+	viper.AddConfigPath("$HOME/.trakx/")
+	viper.AddConfigPath("/app/")
+	viper.AddConfigPath(".")
+	err := viper.ReadInConfig()
+	if err != nil {
+		logger.Warn("Failed to read config", zap.Error(err))
+	}
+	if err := viper.Unmarshal(conf); err != nil {
+		logger.Warn("Invalid config", zap.Error(err))
 	}
 
-	return &conf, nil
+	// Env vars override file
+	// Thanks https://github.com/spf13/viper/issues/188#issuecomment-413368673
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("trakx")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	if err := viper.Unmarshal(conf); err != nil {
+		logger.Warn("Invalid config", zap.Error(err))
+	}
+
+	// If $PORT var set override everything for appengines
+	viper.BindEnv("app_port", "PORT")
+	if appenginePort := viper.GetInt("app_port"); appenginePort != 0 {
+		conf.Tracker.HTTP.Port = appenginePort
+	}
+
+	// Add watcher
+	viper.WatchConfig()
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		logger.Info("Config changed", zap.String("name", e.Name), zap.Any("op", e.Op))
+		if err := viper.Unmarshal(conf); err != nil {
+			logger.Info("New config invalid", zap.Error(err))
+		}
+		conf.setLimits()
+		conf.fixFilenames()
+	})
+
+	conf.setLimits()
+	conf.fixFilenames()
+
+	return conf
 }
 
-func (conf *Config) Load(root string) error {
-	if conf == nil {
-		panic("conf == nil")
-	}
-
-	data, err := ioutil.ReadFile(root + "config.yaml")
+func (conf *Config) fixFilenames() error {
+	home, err := os.UserHomeDir()
 	if err != nil {
-		panic("Failed to read config: " + err.Error())
-	}
-	if err = yaml.Unmarshal(data, conf); err != nil {
-		panic("Failed to parse config: " + err.Error())
+		return err
 	}
 
-	conf.Trakx.Index = root + conf.Trakx.Index
-	conf.Database.Peer.Filename = root + conf.Database.Peer.Filename
-	conf.Database.Conn.Filename = root + conf.Database.Conn.Filename
+	conf.Database.Conn.Filename = strings.ReplaceAll(conf.Database.Conn.Filename, "~", home)
+	conf.Database.Peer.Filename = strings.ReplaceAll(conf.Database.Peer.Filename, "~", home)
+	conf.Trakx.Index = strings.ReplaceAll(conf.Trakx.Index, "~", home)
 
-	// Set ulimit
+	return nil
+}
+
+func (conf *Config) setLimits() error {
 	if conf.Trakx.Ulimit == 0 {
 		return nil
 	}
 	var rLimit syscall.Rlimit
-	err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
 		return err
 	}

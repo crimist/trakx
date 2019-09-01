@@ -5,6 +5,34 @@ import (
 	"testing"
 )
 
+func dbWithHashesAndPeers(hashes, peers int) *PeerDatabase {
+	var db PeerDatabase
+	db.make()
+	InitExpvar(&db)
+
+	peerid := PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	peer := Peer{
+		Complete: true,
+		IP:       PeerIP{1, 2, 3, 4},
+		Port:     4321,
+		LastSeen: 1234567890,
+	}
+
+	var h Hash
+	for i := 0; i < hashes; i++ {
+		hash := make([]byte, 20)
+		rand.Read(hash[:])
+		// copy(h[:], hash)
+
+		for i := 0; i < peers; i++ {
+			rand.Read(peerid[:])
+			db.Save(&peer, &h, &peerid)
+		}
+	}
+
+	return &db
+}
+
 func dbWithHashes(count int) *PeerDatabase {
 	var db PeerDatabase
 	db.make()

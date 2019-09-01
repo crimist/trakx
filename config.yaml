@@ -1,18 +1,20 @@
+#########################################################
 # Trakx YAML config
-# All times are measured in seconds
-# Set timers to 0 for off
+#   All time is measured in seconds
+#   Time can be set to 0 to not execute
+# All values in this can be overridden with env vars
+#   Ex: export TRAKX_TRAKX_PROD=false
 
 trakx:
   prod: true
-  index: "index.html"
-
-  # Expvar is served on /stats over http port
+  index: "~/.trakx/index.html"
+  # Expvar is served on /stats over the set http port
   expvar:
+    # How often to update expvar vals
     every: 1
-
   pprof:
-    port: 1338 # set to 0 to disable
-
+    # Set port to 0 to disable expvar
+    port: 1338
   # nofile limit: 0 for default
   # high value used here so that we can queue connections for processing
   # trakx will automatically drop connections based on read/write timeout seen below
@@ -20,40 +22,51 @@ trakx:
 
 tracker:
   http:
+    # HTTP will still bind and listen if this is false but
+    # /announce and /scrape will return emprt responses
     enabled: true
-    port: 1337 # also serves expvar, index, ect.
+    # Port here also serves expvar, index, ect.
+    port: 1337
+    # Timeout in seconds for TCP connections
     readtimeout: 3
     writetimeout: 10
-    qsize: 100000 # 100K = ~1.5mb
+    # Max size of connection queue
+    qsize: 100000
+    # Number of goroutines accept()ing tcp conns
     accepters: 5
+    # Number of worker goroutines that process conns
     threads: 2048
-
   udp:
     enabled: true
     port: 1337
+    # Check if valid connection ID. Disabling this
+    # turns trakx into a DDoS udp amp so be careful
     checkconnid: true
     threads: 1024
-
   numwant:
+    # Default numwant if none specified
     default: 75
+    # If max exceeded numwant set to default
     max: 300
-
   # message for stopping clients
   stoppedmsg: "See you space cowboy..."
-  
   # Announce interval for clients
   announce: 1800 # 30m
 
-# Databases are in ~/.trakx/
 database:
   peer:
-    filename: "peers.db"
+    filename: "~/.trakx/peers.db"
+    # How often to check for expired peers
     trim: 600 # 10m
+    # How often to write temp db in case of crash
+    # On graceful exit database is written
     write: 960 # 16m
+    # Peer max TTL
     timeout: 2400 # 40m
   conn:
-    filename: "conn.db"
-
+    filename: "~/.trakx/conn.db"
     # A connection that has expired could still be used if it hasn't been purged yet
+    # How often to check for expired conns
     trim: 600 # 10m
+    # Conn max TTL
     timeout: 1800 # 30m

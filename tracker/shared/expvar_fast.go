@@ -12,7 +12,7 @@ var (
 	Expvar expvals
 )
 
-type expvarIPmap struct {}
+type expvarIPmap struct{}
 
 func (e *expvarIPmap) Lock()               {}
 func (e *expvarIPmap) Unlock()             {}

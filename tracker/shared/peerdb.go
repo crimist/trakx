@@ -38,8 +38,12 @@ func NewPeerDatabase(conf *Config, logger *zap.Logger) *PeerDatabase {
 
 	peerdb.Load()
 
-	go RunOn(time.Duration(conf.Database.Peer.Write)*time.Second, peerdb.WriteTmp)
-	go RunOn(time.Duration(conf.Database.Peer.Trim)*time.Second, peerdb.Trim)
+	if conf.Database.Peer.Write > 0 {
+		go RunOn(time.Duration(conf.Database.Peer.Write)*time.Second, peerdb.WriteTmp)
+	}
+	if conf.Database.Peer.Trim > 0 {
+		go RunOn(time.Duration(conf.Database.Peer.Trim)*time.Second, peerdb.Trim)
+	}
 
 	return &peerdb
 }
@@ -199,8 +203,8 @@ func (db *PeerDatabase) load(filename string) error {
 
 // like trim() this uses costly locking but it's worth it to prevent blocking
 func (db *PeerDatabase) write(temp bool) bool {
-	buff := new(bytes.Buffer)
-	archive := zip.NewWriter(buff)
+	var buff bytes.Buffer
+	archive := zip.NewWriter(&buff)
 	filename := db.conf.Database.Peer.Filename
 	if temp {
 		filename += ".tmp"
@@ -233,6 +237,7 @@ func (db *PeerDatabase) write(temp bool) bool {
 		return false
 	}
 
+	db.logger.Info("Writing zip to file", zap.Float32("mb", float32(buff.Len())/1024.0/1024.0))
 	if err := ioutil.WriteFile(filename, buff.Bytes(), 0644); err != nil {
 		db.logger.Error("Database writefile failed", zap.Error(err))
 		return false
@@ -259,5 +264,5 @@ func (db *PeerDatabase) WriteFull() {
 		db.logger.Info("Failed to write full database", zap.Duration("duration", time.Now().Sub(start)))
 		return
 	}
-	db.logger.Info("Wrote fuill database", zap.Int("hashes", db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
+	db.logger.Info("Wrote full database", zap.Int("hashes", db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 }

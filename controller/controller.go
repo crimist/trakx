@@ -112,23 +112,6 @@ func (c *Controller) Wipe() error {
 	return c.pID.clear()
 }
 
-// Reload sends the reload config signal to trakx
-func (c *Controller) Reload() error {
-	fmt.Println("reloading...")
-
-	process, err := c.pID.Process()
-	if err != nil {
-		return err
-	}
-
-	if err := process.Signal(tracker.SigReload); err != nil {
-		return err
-	}
-
-	fmt.Println("reloaded")
-	return process.Release()
-}
-
 // IsRunning checks if trakx is running using bind
 func (c *Controller) IsRunning() (running bool) {
 	if conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: 1337, Zone: ""}); err != nil {

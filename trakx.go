@@ -1,7 +1,8 @@
 // +build !heroku
 
 // Trakx controller
-// For use on a server
+// For VPS use ect.
+
 package main
 
 import (
@@ -23,13 +24,12 @@ func printHelp(arg string) {
 	}
 	help := "Trakx commands:\n"
 	help += fmt.Sprintf("  %-12s Checks if Trakx is running\n", "status")
-	help += fmt.Sprintf("  %-12s Runs Trakx if it closes\n", "watcher")
+	help += fmt.Sprintf("  %-12s Runs Trakx if it exits\n", "watcher")
 	help += fmt.Sprintf("  %-12s Runs Trakx (doesn't return)\n", "run")
 	help += fmt.Sprintf("  %-12s Starts Trakx as a service\n", "start")
 	help += fmt.Sprintf("  %-12s Stops Trakx service\n", "stop")
 	help += fmt.Sprintf("  %-12s Restarts Trakx service\n", "restart")
 	help += fmt.Sprintf("  %-12s Wipes trakx pid file\n", "wipe")
-	help += fmt.Sprintf("  %-12s Reloads the Trakx config\n", "reload")
 	help += "Usage:\n"
 	help += fmt.Sprintf("  %s <command>\n", os.Args[0])
 	help += "Example:\n"
@@ -99,11 +99,6 @@ func main() {
 			os.Exit(-1)
 		}
 		fmt.Println("wiped...")
-	case "reload":
-		if err := c.Reload(); err != nil {
-			fmt.Fprintf(os.Stderr, err.Error()+"\n")
-			os.Exit(-1)
-		}
 	default:
 		printHelp(os.Args[1])
 	}

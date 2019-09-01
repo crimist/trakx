@@ -3,33 +3,24 @@ package tracker
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/syc0x00/trakx/bencoding"
-	httptracker "github.com/syc0x00/trakx/tracker/http"
+	trakxhttp "github.com/syc0x00/trakx/tracker/http"
 	"github.com/syc0x00/trakx/tracker/shared"
 	"github.com/syc0x00/trakx/tracker/udp"
 	"go.uber.org/zap"
 )
 
 var (
-	udptracker *udp.UDPTracker
-	logger     *zap.Logger
-	conf       *shared.Config
-	root       string
+	logger *zap.Logger
+	conf   *shared.Config
 )
 
 // Run runs the tracker
 func Run() {
+	var udptracker *udp.UDPTracker
 	var err error
-
-	// find root
-	root, err = os.UserHomeDir()
-	if err != nil {
-		panic("os.UserHomeDir() failed: " + err.Error())
-	}
-	root += "/.trakx/"
 
 	// logger
 	cfg := zap.NewDevelopmentConfig()
@@ -38,20 +29,15 @@ func Run() {
 		panic(err)
 	}
 
-	// Try load from root or working dir
-	if conf, err = shared.NewConfig(root); err != nil {
-		logger.Error("NewConfig(root)", zap.Error(err))
-		if conf, err = shared.NewConfig("./"); err != nil {
-			logger.Panic("NewConfig(.)", zap.Error(err))
-		}
-	}
+	conf = shared.ViperConf(logger)
+	logger.Info("Loaded conf")
 
 	// db
 	peerdb := shared.NewPeerDatabase(conf, logger)
 
 	// pprof, sigs, expvar
 	shared.InitExpvar(peerdb)
-	go handleSigs(peerdb)
+	go handleSigs(peerdb, udptracker)
 	if conf.Trakx.Pprof.Port != 0 {
 		logger.Info("pprof on", zap.Int("port", conf.Trakx.Pprof.Port))
 		initpprof()
@@ -61,11 +47,11 @@ func Run() {
 
 	// HTTP tracker / routes
 	initRoutes()
-	t := httptracker.NewHTTPTracker(conf, logger, peerdb)
+	httptracker := trakxhttp.NewHTTPTracker(conf, logger, peerdb)
 
 	if conf.Tracker.HTTP.Enabled {
-		logger.Info("http tracker enabled")
-		go t.Serve(indexData, conf.Tracker.HTTP.Threads)
+		logger.Info("http tracker enabled", zap.Int("port", conf.Tracker.HTTP.Port))
+		go httptracker.Serve(indexData, conf.Tracker.HTTP.Threads)
 	} else {
 		d := bencoding.NewDict()
 		d.Int64("interval", 432000) // 5 days
@@ -97,11 +83,9 @@ func Run() {
 
 	// UDP tracker
 	if conf.Tracker.UDP.Enabled {
-		logger.Info("udp tracker enabled")
+		logger.Info("udp tracker enabled", zap.Int("port", conf.Tracker.UDP.Port))
 		udptracker = udp.NewUDPTracker(conf, logger, peerdb, conf.Tracker.UDP.Threads)
 	}
 
-	go publishExpvar(conf, peerdb, t)
-
-	select {} // block forever
+	publishExpvar(conf, peerdb, httptracker, udptracker)
 }

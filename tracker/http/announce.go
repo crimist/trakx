@@ -2,7 +2,6 @@ package http
 
 import (
 	"net"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -10,34 +9,28 @@ import (
 	"github.com/syc0x00/trakx/tracker/shared"
 )
 
-func (t *HTTPTracker) announce(conn net.Conn, vals url.Values) {
+type announceParams struct {
+	compact  bool
+	nopeerid bool
+	noneleft bool
+	event    string
+	port     string
+	hash     string
+	peerid   string
+	numwant  string
+}
+
+func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip shared.PeerIP) {
 	shared.AddExpval(&shared.Expvar.Announces, 1)
 
 	// get vars
 	var hash shared.Hash
 	var peerid shared.PeerID
-	peer := shared.Peer{LastSeen: time.Now().Unix()}
+	peer := shared.Peer{LastSeen: time.Now().Unix(), IP: ip}
 	numwant := int(t.conf.Tracker.Numwant.Default)
-	compact := vals.Get("compact") == "1"
-	nopeerid := vals.Get("no_peer_id") == "1"
-	noneleft := vals.Get("left") == "0"
-	event := vals.Get("event")
-	port := vals.Get("port")
-	hashStr := vals.Get("info_hash")
-	peeridStr := vals.Get("peer_id")
-	numwantStr := vals.Get("numwant")
-
-	// IP
-	ipStr, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-	parsedIP := net.ParseIP(ipStr).To4()
-	if parsedIP == nil {
-		t.clientError(conn, "ipv6 unsupported")
-		return
-	}
-	copy(peer.IP[:], parsedIP)
 
 	// Port
-	portInt, err := strconv.Atoi(port)
+	portInt, err := strconv.Atoi(vals.port)
 	if err != nil || (portInt > 65535 || portInt < 1) {
 		t.clientError(conn, "Invalid port")
 		return
@@ -45,27 +38,27 @@ func (t *HTTPTracker) announce(conn net.Conn, vals url.Values) {
 	peer.Port = uint16(portInt)
 
 	// Complete
-	if event == "completed" || noneleft {
+	if vals.event == "completed" || vals.noneleft {
 		peer.Complete = true
 	}
 
 	// hash
-	if len(hashStr) != 20 {
+	if len(vals.hash) != 20 {
 		t.clientError(conn, "Invalid infohash")
 		return
 	}
-	copy(hash[:], hashStr)
+	copy(hash[:], vals.hash)
 
 	// peerid
-	if len(peeridStr) != 20 {
+	if len(vals.peerid) != 20 {
 		t.clientError(conn, "Invalid peerid")
 		return
 	}
-	copy(peerid[:], peeridStr)
+	copy(peerid[:], vals.peerid)
 
 	// numwant
-	if numwantStr != "" {
-		numwantInt, err := strconv.Atoi(numwantStr)
+	if vals.numwant != "" {
+		numwantInt, err := strconv.Atoi(vals.numwant)
 		if err != nil {
 			t.clientError(conn, "Invalid numwant")
 			return
@@ -76,7 +69,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals url.Values) {
 	}
 
 	// Processing
-	if event == "stopped" {
+	if vals.event == "stopped" {
 		t.peerdb.Drop(&peer, &hash, &peerid)
 		shared.AddExpval(&shared.Expvar.AnnouncesOK, 1)
 		conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + t.conf.Tracker.StoppedMsg))
@@ -87,13 +80,14 @@ func (t *HTTPTracker) announce(conn net.Conn, vals url.Values) {
 	complete, incomplete := t.peerdb.HashStats(&hash)
 
 	d := bencoding.NewDict()
-	d.Int64("interval", int64(t.conf.Tracker.AnnounceInterval))
+	d.Int64("interval", int64(t.conf.Tracker.Announce))
 	d.Int64("complete", int64(complete))
 	d.Int64("incomplete", int64(incomplete))
-	if compact {
+	if vals.compact {
+		d.String("peers", string(t.peerdb.PeerListBytes(&hash, numwant)))
 		d.Any("peers", t.peerdb.PeerListBytes(&hash, numwant))
 	} else {
-		d.Any("peers", t.peerdb.PeerList(&hash, numwant, nopeerid))
+		d.Any("peers", t.peerdb.PeerList(&hash, numwant, vals.nopeerid))
 	}
 
 	shared.AddExpval(&shared.Expvar.AnnouncesOK, 1)

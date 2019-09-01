@@ -110,7 +110,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	resp := announceResp{
 		Action:        1,
 		TransactionID: announce.TransactionID,
-		Interval:      u.conf.Tracker.AnnounceInterval,
+		Interval:      u.conf.Tracker.Announce,
 		Leechers:      incomplete,
 		Seeders:       complete,
 		Peers:         u.peerdb.PeerListBytes(&announce.InfoHash, int(announce.NumWant)),

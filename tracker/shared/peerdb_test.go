@@ -18,12 +18,10 @@ func TestTrim(t *testing.T) {
 	db := dbWithHashes(1000000)
 	db.conf = &c
 
-	p, h := db.trim()
-	t.Logf("Peers: %v Hashes: %v", p, h)
+	db.trim()
 
 	db, _ = dbWithPeers(1000000)
 	db.conf = &c
 
-	p, h = db.trim()
-	t.Logf("Peers: %v Hashes: %v", p, h)
+	db.trim()
 }
