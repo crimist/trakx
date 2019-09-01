@@ -44,8 +44,7 @@ func (db *PeerDatabase) Save(p *Peer, h *Hash, id *PeerID) {
 			if dbPeer.Complete == false && p.Complete == true { // They completed
 				AddExpval(&Expvar.Leeches, -1)
 				AddExpval(&Expvar.Seeds, 1)
-			}
-			if dbPeer.Complete == true && p.Complete == false { // They uncompleted?
+			} else if dbPeer.Complete == true && p.Complete == false { // They uncompleted?
 				AddExpval(&Expvar.Seeds, -1)
 				AddExpval(&Expvar.Leeches, 1)
 			}
