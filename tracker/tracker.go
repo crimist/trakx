@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/syc0x00/trakx/bencoding"
+	"github.com/syc0x00/trakx/tracker/database"
+	"github.com/syc0x00/trakx/tracker/database/inmemory"
 	trakxhttp "github.com/syc0x00/trakx/tracker/http"
 	"github.com/syc0x00/trakx/tracker/shared"
 	"github.com/syc0x00/trakx/tracker/udp"
@@ -33,10 +35,15 @@ func Run() {
 	logger.Info("Loaded conf")
 
 	// db
-	peerdb := shared.NewPeerDatabase(conf, logger)
+	var peerdb database.Database
+	if appeng == true {
+		peerdb = inmemory.NewMemory(conf, logger, inmemory.PgBackup{})
+	} else {
+		peerdb = inmemory.NewMemory(conf, logger, inmemory.FileBackup{})
+	}
 
 	// pprof, sigs, expvar
-	shared.InitExpvar(peerdb)
+	peerdb.InitExpvar()
 	go handleSigs(peerdb, udptracker)
 	if conf.Trakx.Pprof.Port != 0 {
 		logger.Info("pprof on", zap.Int("port", conf.Trakx.Pprof.Port))

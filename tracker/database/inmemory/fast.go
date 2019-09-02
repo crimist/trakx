@@ -1,5 +1,5 @@
 // +build fast
 
-package database
+package inmemory
 
 const fast = true

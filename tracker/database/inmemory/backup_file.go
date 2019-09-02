@@ -1,42 +1,29 @@
-package database
+package inmemory
 
 import (
 	"archive/zip"
-	"bytes"
 	"encoding/gob"
 	"encoding/hex"
+	"errors"
 	"io/ioutil"
 	"os"
 	"time"
 
+	"github.com/syc0x00/trakx/tracker/database"
 	"github.com/syc0x00/trakx/tracker/shared"
 	"go.uber.org/zap"
 )
 
-type MemoryBackup struct {
+type FileBackup struct {
 	db *Memory
 }
 
-func (bck MemoryBackup) Save() int {
-	encoded := bck.db.encode()
-	if encoded == nil {
-		return -1
-	}
-
-	bck.db.logger.Info("Writing zip to file", zap.Float32("mb", float32(len(encoded)/1024.0/1024.0)))
-	if err := ioutil.WriteFile(bck.db.conf.Database.Peer.Filename, encoded, 0644); err != nil {
-		bck.db.logger.Error("Database writefile failed", zap.Error(err))
-		return -1
-	}
-
-	return len(encoded)
+func (bck FileBackup) Init(db database.Database) error {
+	bck.db = db.(*Memory)
+	return nil
 }
 
-func (db *Memory) make() {
-	db.hashmap = make(map[shared.Hash]*subPeerMap, initCap)
-}
-
-func (bck MemoryBackup) Load() error {
+func (bck FileBackup) Load() error {
 	bck.db.logger.Info("Loading database")
 	start := time.Now()
 	loadtemp := false
@@ -57,7 +44,7 @@ func (bck MemoryBackup) Load() error {
 			if loadtemp {
 				bck.db.logger.Info("No peerdb found")
 				bck.db.make()
-				return nil
+				return errors.New("No dbs found")
 			}
 		} else {
 			bck.db.logger.Error("os.Stat", zap.Error(err))
@@ -78,7 +65,7 @@ func (bck MemoryBackup) Load() error {
 			if err := bck.db.loadFile(bck.db.conf.Database.Peer.Filename); err != nil {
 				bck.db.logger.Info("Loading full peerdb failed", zap.Error(err))
 				bck.db.make()
-				return nil
+				return errors.New("Failed to load any db")
 			} else {
 				loaded = "full"
 			}
@@ -92,7 +79,7 @@ func (bck MemoryBackup) Load() error {
 			if err := bck.db.loadFile(bck.db.conf.Database.Peer.Filename + ".tmp"); err != nil {
 				bck.db.logger.Info("Loading temp peerdb failed", zap.Error(err))
 				bck.db.make()
-				return nil
+				return errors.New("Failed to load any db")
 			} else {
 				loaded = "temp"
 			}
@@ -138,34 +125,54 @@ func (db *Memory) loadFile(filename string) error {
 	return nil
 }
 
-func (db *Memory) encode() []byte {
-	var buff bytes.Buffer
-	archive := zip.NewWriter(&buff)
-
-	db.mu.RLock()
-	for hash, submap := range db.hashmap {
-		db.mu.RUnlock()
-
-		submap.RLock()
-		writer, err := archive.Create(hex.EncodeToString(hash[:]))
-		if err != nil {
-			db.logger.Error("Failed to create in archive", zap.Error(err), zap.Any("hash", hash[:]))
-			submap.RUnlock()
-			continue
-		}
-		if err := gob.NewEncoder(writer).Encode(submap.peers); err != nil {
-			db.logger.Warn("Failed to encode a peermap", zap.Error(err), zap.Any("hash", hash[:]))
-		}
-		submap.RUnlock()
-
-		db.mu.RLock()
-	}
-	db.mu.RUnlock()
-
-	if err := archive.Close(); err != nil {
-		db.logger.Error("Failed to close archive", zap.Error(err))
-		return nil
+// like trim() this uses costly locking but it's worth it to prevent blocking
+func (bck FileBackup) writeToFile(temp bool) int {
+	filename := bck.db.conf.Database.Peer.Filename
+	if temp {
+		filename += ".tmp"
+	} else {
+		bck.db.Trim()
 	}
 
-	return buff.Bytes()
+	encoded := bck.db.encode()
+	if encoded == nil {
+		return database.SaveFail
+	}
+
+	bck.db.logger.Info("Writing zip to file", zap.Float32("mb", float32(len(encoded)/1024.0/1024.0)))
+	if err := ioutil.WriteFile(filename, encoded, 0644); err != nil {
+		bck.db.logger.Error("Database writefile failed", zap.Error(err))
+		return database.SaveFail
+	}
+	return len(encoded)
+}
+
+// WriteTmp writes the database to tmp file
+func (bck FileBackup) SaveTmp() error {
+	bck.db.logger.Info("Writing temp database")
+	start := time.Now()
+	ret := bck.writeToFile(true)
+
+	if ret == database.SaveFail {
+		bck.db.logger.Info("Failed to write temp database", zap.Duration("duration", time.Now().Sub(start)))
+	} else {
+		bck.db.logger.Info("Wrote temp database", zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
+	}
+
+	return nil
+}
+
+// WriteFull writes the database to file
+func (bck FileBackup) SaveFull() error {
+	bck.db.logger.Info("Writing full database")
+	start := time.Now()
+	ret := bck.writeToFile(false)
+
+	if ret == database.SaveFail {
+		bck.db.logger.Info("Failed to write full database", zap.Duration("duration", time.Now().Sub(start)))
+	} else {
+		bck.db.logger.Info("Wrote full database", zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
+	}
+
+	return nil
 }

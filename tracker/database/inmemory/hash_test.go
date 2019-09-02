@@ -1,4 +1,4 @@
-package shared
+package inmemory
 
 import (
 	"math/rand"

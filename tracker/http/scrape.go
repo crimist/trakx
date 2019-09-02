@@ -5,11 +5,12 @@ import (
 	"net/url"
 
 	"github.com/syc0x00/trakx/bencoding"
+	"github.com/syc0x00/trakx/tracker/database"
 	"github.com/syc0x00/trakx/tracker/shared"
 )
 
 func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
-	shared.AddExpval(&shared.Expvar.Scrapes, 1)
+	database.AddExpval(&database.Expvar.Scrapes, 1)
 
 	infohashes := vals["info_hash"]
 	if len(infohashes) == 0 {
@@ -43,5 +44,5 @@ func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
 	}
 
 	conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + dict.Get()))
-	shared.AddExpval(&shared.Expvar.ScrapesOK, 1)
+	database.AddExpval(&database.Expvar.ScrapesOK, 1)
 }

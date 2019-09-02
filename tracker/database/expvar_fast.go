@@ -1,6 +1,6 @@
 // +build fast
 
-package shared
+package database
 
 import (
 	"sync/atomic"
@@ -38,4 +38,3 @@ type expvals struct {
 func AddExpval(num *int64, inc int64) {
 	atomic.AddInt64(num, inc)
 }
-func InitExpvar(peerdb *PeerDatabase) {}

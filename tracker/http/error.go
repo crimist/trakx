@@ -4,7 +4,7 @@ import (
 	"net"
 
 	"github.com/syc0x00/trakx/bencoding"
-	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/database"
 	"go.uber.org/zap"
 )
 
@@ -15,12 +15,12 @@ func writeErr(conn net.Conn, msg string) {
 }
 
 func (t *HTTPTracker) clientError(conn net.Conn, msg string) {
-	shared.AddExpval(&shared.Expvar.Clienterrs, 1)
+	database.AddExpval(&database.Expvar.Clienterrs, 1)
 	writeErr(conn, msg)
 }
 
 func (t *HTTPTracker) internalError(conn net.Conn, errmsg string, err error) {
-	shared.AddExpval(&shared.Expvar.Errs, 1)
+	database.AddExpval(&database.Expvar.Errs, 1)
 	writeErr(conn, "internal server error")
 	t.logger.Error(errmsg, zap.Error(err))
 }

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/syc0x00/trakx/tracker/database"
 	"github.com/syc0x00/trakx/tracker/shared"
 	"go.uber.org/zap"
 )
@@ -17,11 +18,11 @@ type UDPTracker struct {
 
 	conf   *shared.Config
 	logger *zap.Logger
-	peerdb *shared.PeerDatabase
+	peerdb database.Database
 }
 
 // NewUDPTracker creates are runs the UDP tracker
-func NewUDPTracker(conf *shared.Config, logger *zap.Logger, peerdb *shared.PeerDatabase, threads int) *UDPTracker {
+func NewUDPTracker(conf *shared.Config, logger *zap.Logger, peerdb database.Database, threads int) *UDPTracker {
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 
 	tracker := UDPTracker{
