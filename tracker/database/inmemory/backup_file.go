@@ -18,8 +18,11 @@ type FileBackup struct {
 	db *Memory
 }
 
-func (bck FileBackup) Init(db database.Database) error {
+func (bck *FileBackup) Init(db database.Database) error {
 	bck.db = db.(*Memory)
+	if bck.db == nil {
+		panic("db nil on backup init")
+	}
 	return nil
 }
 
@@ -126,7 +129,7 @@ func (db *Memory) loadFile(filename string) error {
 }
 
 // like trim() this uses costly locking but it's worth it to prevent blocking
-func (bck FileBackup) writeToFile(temp bool) int {
+func (bck FileBackup) writeToFile(temp bool) error {
 	filename := bck.db.conf.Database.Peer.Filename
 	if temp {
 		filename += ".tmp"
@@ -136,43 +139,43 @@ func (bck FileBackup) writeToFile(temp bool) int {
 
 	encoded := bck.db.encode()
 	if encoded == nil {
-		return database.SaveFail
+		return errors.New("Failed to encode")
 	}
 
 	bck.db.logger.Info("Writing zip to file", zap.Float32("mb", float32(len(encoded)/1024.0/1024.0)))
 	if err := ioutil.WriteFile(filename, encoded, 0644); err != nil {
 		bck.db.logger.Error("Database writefile failed", zap.Error(err))
-		return database.SaveFail
+		return errors.New("Failed to write file")
 	}
-	return len(encoded)
+	return nil
 }
 
 // WriteTmp writes the database to tmp file
 func (bck FileBackup) SaveTmp() error {
 	bck.db.logger.Info("Writing temp database")
 	start := time.Now()
-	ret := bck.writeToFile(true)
+	err := bck.writeToFile(true)
 
-	if ret == database.SaveFail {
+	if err != nil {
 		bck.db.logger.Info("Failed to write temp database", zap.Duration("duration", time.Now().Sub(start)))
 	} else {
 		bck.db.logger.Info("Wrote temp database", zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 	}
 
-	return nil
+	return err
 }
 
 // WriteFull writes the database to file
 func (bck FileBackup) SaveFull() error {
 	bck.db.logger.Info("Writing full database")
 	start := time.Now()
-	ret := bck.writeToFile(false)
+	err := bck.writeToFile(false)
 
-	if ret == database.SaveFail {
+	if err != nil {
 		bck.db.logger.Info("Failed to write full database", zap.Duration("duration", time.Now().Sub(start)))
 	} else {
 		bck.db.logger.Info("Wrote full database", zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 	}
 
-	return nil
+	return err
 }

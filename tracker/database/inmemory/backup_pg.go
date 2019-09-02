@@ -20,10 +20,14 @@ type PgBackup struct {
 	db *Memory
 }
 
-func (bck PgBackup) Init(db database.Database) error {
+func (bck *PgBackup) Init(db database.Database) error {
 	var err error
 
 	bck.db = db.(*Memory)
+	if bck.db == nil {
+		panic("db nil on backup init")
+	}
+
 	bck.pg, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return err

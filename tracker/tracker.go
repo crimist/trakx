@@ -37,9 +37,9 @@ func Run() {
 	// db
 	var peerdb database.Database
 	if appeng == true {
-		peerdb = inmemory.NewMemory(conf, logger, inmemory.PgBackup{})
+		peerdb = inmemory.NewMemory(conf, logger, &inmemory.PgBackup{})
 	} else {
-		peerdb = inmemory.NewMemory(conf, logger, inmemory.FileBackup{})
+		peerdb = inmemory.NewMemory(conf, logger, &inmemory.FileBackup{})
 	}
 
 	// pprof, sigs, expvar
