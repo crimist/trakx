@@ -54,6 +54,14 @@ tracker:
   announce: 1800 # 30m
 
 database:
+  # Options
+  # mem - in memory database using golang maps
+  type: "mem"
+  # Backup options for "mem":
+  # file - backup to file
+  # pg - backup to postgres
+  backup: "file"
+  
   peer:
     filename: "~/.trakx/peers.db"
     # How often to check for expired peers

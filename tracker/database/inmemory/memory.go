@@ -25,15 +25,19 @@ type Memory struct {
 	logger *zap.Logger
 }
 
-func NewMemory(conf *shared.Config, logger *zap.Logger, backup database.Backup) *Memory {
-	db := Memory{
+func (db *Memory) Init(conf *shared.Config, logger *zap.Logger, backup database.Backup) {
+	*db = Memory{
 		conf:   conf,
 		logger: logger,
 		backup: backup,
 	}
 
-	db.backup.Init(&db)
-	db.backup.Load()
+	if err := db.backup.Init(db); err != nil {
+		panic(err)
+	}
+	if err := db.backup.Load(); err != nil {
+		panic(err)
+	}
 
 	if conf.Database.Peer.Write > 0 {
 		go shared.RunOn(time.Duration(conf.Database.Peer.Write)*time.Second, func() {
@@ -43,24 +47,13 @@ func NewMemory(conf *shared.Config, logger *zap.Logger, backup database.Backup) 
 	if conf.Database.Peer.Trim > 0 {
 		go shared.RunOn(time.Duration(conf.Database.Peer.Trim)*time.Second, db.Trim)
 	}
-
-	return &db
 }
 
-func (db *Memory) make() {
-	db.hashmap = make(map[shared.Hash]*subPeerMap, initCap)
-}
+func (db *Memory) make() { db.hashmap = make(map[shared.Hash]*subPeerMap, initCap) }
 
-func (db *Memory) Backup() database.Backup {
-	return db.backup
-}
+func (db *Memory) Backup() database.Backup { return db.backup }
 
-func (db *Memory) Check() (ok bool) {
-	if db.hashmap != nil {
-		ok = true
-	}
-	return
-}
+func (db *Memory) Check() bool { return db.hashmap != nil }
 
 func (db *Memory) Trim() {
 	start := time.Now()

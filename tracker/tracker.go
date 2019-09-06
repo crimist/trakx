@@ -7,11 +7,13 @@ import (
 
 	"github.com/syc0x00/trakx/bencoding"
 	"github.com/syc0x00/trakx/tracker/database"
-	"github.com/syc0x00/trakx/tracker/database/inmemory"
 	trakxhttp "github.com/syc0x00/trakx/tracker/http"
 	"github.com/syc0x00/trakx/tracker/shared"
 	"github.com/syc0x00/trakx/tracker/udp"
 	"go.uber.org/zap"
+
+	// import database types so init is called
+	_ "github.com/syc0x00/trakx/tracker/database/inmemory"
 )
 
 var (
@@ -35,15 +37,15 @@ func Run() {
 	logger.Info("Loaded conf")
 
 	// db
-	var peerdb database.Database
-	if appeng == true {
-		peerdb = inmemory.NewMemory(conf, logger, &inmemory.PgBackup{})
-	} else {
-		peerdb = inmemory.NewMemory(conf, logger, &inmemory.FileBackup{})
+	peerdb, backup, err := database.Open(conf.Database.Type, conf.Database.Backup)
+	if err != nil {
+		logger.Fatal("Failed to open database", zap.Error(err))
+		return
 	}
+	peerdb.Init(conf, logger, backup)
 
 	// pprof, sigs, expvar
-	peerdb.InitExpvar()
+	peerdb.Expvar()
 	go handleSigs(peerdb, udptracker)
 	if conf.Trakx.Pprof.Port != 0 {
 		logger.Info("pprof on", zap.Int("port", conf.Trakx.Pprof.Port))

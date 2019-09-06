@@ -2,7 +2,7 @@ package inmemory
 
 import "github.com/syc0x00/trakx/tracker/database"
 
-func (db *Memory) InitExpvar() {
+func (db *Memory) Expvar() {
 	if ok := db.Check(); !ok {
 		panic("db not init before expvars")
 	}

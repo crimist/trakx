@@ -26,7 +26,7 @@ func (bck *FileBackup) Init(db database.Database) error {
 	return nil
 }
 
-func (bck FileBackup) Load() error {
+func (bck *FileBackup) Load() error {
 	bck.db.logger.Info("Loading database")
 	start := time.Now()
 	loadtemp := false
@@ -47,7 +47,7 @@ func (bck FileBackup) Load() error {
 			if loadtemp {
 				bck.db.logger.Info("No peerdb found")
 				bck.db.make()
-				return errors.New("No dbs found")
+				return nil
 			}
 		} else {
 			bck.db.logger.Error("os.Stat", zap.Error(err))
@@ -129,7 +129,7 @@ func (db *Memory) loadFile(filename string) error {
 }
 
 // like trim() this uses costly locking but it's worth it to prevent blocking
-func (bck FileBackup) writeToFile(temp bool) error {
+func (bck *FileBackup) writeToFile(temp bool) error {
 	filename := bck.db.conf.Database.Peer.Filename
 	if temp {
 		filename += ".tmp"
@@ -150,8 +150,8 @@ func (bck FileBackup) writeToFile(temp bool) error {
 	return nil
 }
 
-// WriteTmp writes the database to tmp file
-func (bck FileBackup) SaveTmp() error {
+// SaveTmp writes the database to tmp file
+func (bck *FileBackup) SaveTmp() error {
 	bck.db.logger.Info("Writing temp database")
 	start := time.Now()
 	err := bck.writeToFile(true)
@@ -165,8 +165,8 @@ func (bck FileBackup) SaveTmp() error {
 	return err
 }
 
-// WriteFull writes the database to file
-func (bck FileBackup) SaveFull() error {
+// SaveFull writes the database to file
+func (bck *FileBackup) SaveFull() error {
 	bck.db.logger.Info("Writing full database")
 	start := time.Now()
 	err := bck.writeToFile(false)
