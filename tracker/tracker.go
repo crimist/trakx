@@ -6,10 +6,14 @@ import (
 	"time"
 
 	"github.com/syc0x00/trakx/bencoding"
+	"github.com/syc0x00/trakx/tracker/database"
 	trakxhttp "github.com/syc0x00/trakx/tracker/http"
 	"github.com/syc0x00/trakx/tracker/shared"
 	"github.com/syc0x00/trakx/tracker/udp"
 	"go.uber.org/zap"
+
+	// import database types so init is called
+	_ "github.com/syc0x00/trakx/tracker/database/inmemory"
 )
 
 var (
@@ -33,10 +37,15 @@ func Run() {
 	logger.Info("Loaded conf")
 
 	// db
-	peerdb := shared.NewPeerDatabase(conf, logger)
+	peerdb, backup, err := database.Open(conf.Database.Type, conf.Database.Backup)
+	if err != nil {
+		logger.Fatal("Failed to open database", zap.Error(err))
+		return
+	}
+	peerdb.Init(conf, logger, backup)
 
 	// pprof, sigs, expvar
-	shared.InitExpvar(peerdb)
+	peerdb.Expvar()
 	go handleSigs(peerdb, udptracker)
 	if conf.Trakx.Pprof.Port != 0 {
 		logger.Info("pprof on", zap.Int("port", conf.Trakx.Pprof.Port))

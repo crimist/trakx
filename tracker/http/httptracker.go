@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/syc0x00/trakx/tracker/database"
 	"github.com/syc0x00/trakx/tracker/shared"
 	"go.uber.org/zap"
 )
@@ -16,12 +17,12 @@ import (
 type HTTPTracker struct {
 	conf   *shared.Config
 	logger *zap.Logger
-	peerdb *shared.PeerDatabase
+	peerdb database.Database
 
 	workers workers
 }
 
-func NewHTTPTracker(conf *shared.Config, logger *zap.Logger, peerdb *shared.PeerDatabase) *HTTPTracker {
+func NewHTTPTracker(conf *shared.Config, logger *zap.Logger, peerdb database.Database) *HTTPTracker {
 	tracker := HTTPTracker{
 		conf:   conf,
 		logger: logger,

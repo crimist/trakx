@@ -1,11 +1,11 @@
-package shared
+package inmemory
 
 import (
 	"testing"
 )
 
 func TestCheck(t *testing.T) {
-	var db PeerDatabase
+	var db Memory
 	if db.check() != false {
 		t.Error("check() on empty db returned true")
 	}

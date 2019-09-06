@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/database"
 	"go.uber.org/zap"
 )
 
@@ -33,7 +33,7 @@ func (e *udperror) marshall() ([]byte, error) {
 type cerrFields map[string]interface{}
 
 func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ...cerrFields) []byte {
-	shared.AddExpval(&shared.Expvar.Clienterrs, 1)
+	database.AddExpval(&database.Expvar.Clienterrs, 1)
 
 	if !u.conf.Trakx.Prod {
 		fields := []zap.Field{zap.String("msg", msg)}
@@ -60,7 +60,7 @@ func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ..
 }
 
 func (u *UDPTracker) newServerError(msg string, err error, TransactionID int32) []byte {
-	shared.AddExpval(&shared.Expvar.Errs, 1)
+	database.AddExpval(&database.Expvar.Errs, 1)
 
 	e := udperror{
 		Action:        3,

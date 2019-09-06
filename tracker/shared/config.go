@@ -47,7 +47,9 @@ type Config struct {
 		Announce   int32  `yaml:"announce"`
 	} `yaml:"tracker"`
 	Database struct {
-		Peer struct {
+		Type   string `yaml:"type"`
+		Backup string `yaml:"backup"`
+		Peer   struct {
 			Filename string `yaml:"filename"`
 			Trim     int    `yaml:"trim"`
 			Write    int    `yaml:"write"`
