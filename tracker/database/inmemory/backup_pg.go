@@ -88,7 +88,7 @@ func (bck PgBackup) load() error {
 
 	err := bck.pg.QueryRow("SELECT bytes FROM peerdb ORDER BY ts DESC LIMIT 1").Scan(&data)
 	if err != nil {
-		if !strings.Contains(err.Error(), "no rows in result set") {
+		if strings.Contains(err.Error(), "no rows in result set") {
 			// empty table
 			return nil
 		}
