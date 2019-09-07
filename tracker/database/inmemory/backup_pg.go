@@ -40,7 +40,7 @@ func (bck *PgBackup) Init(db database.Database) error {
 		return err
 	}
 
-	_, err = bck.pg.Exec("CREATE TABLE IF NOT EXISTS peerdb (ts TIMESTAMP DEFAULT now(), bytes TEXT)")
+	_, err = bck.pg.Exec("CREATE TABLE IF NOT EXISTS peerdb (ts TIMESTAMP DEFAULT now(), bytes BYTEA)")
 	if err != nil {
 		bck.db.logger.Error("postgres table create failed", zap.Error(err))
 		return err
@@ -89,10 +89,11 @@ func (bck PgBackup) load() error {
 	err := bck.pg.QueryRow("SELECT bytes FROM peerdb ORDER BY ts DESC LIMIT 1").Scan(&data)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
-			// empty table
+			bck.db.logger.Info("Empty table")
 			return nil
 		}
-		return err
+		bck.db.logger.Error("SELECT failed", zap.Error(err))
+		return nil
 	}
 
 	archive, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
