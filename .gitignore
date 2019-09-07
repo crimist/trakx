@@ -1,6 +1,6 @@
 # VSCode/macOS folders
 *.DS_Store
-.vscode/
+.vscode
 
 # Golang sum
 go.sum
