@@ -39,10 +39,8 @@ func (t *HTTPTracker) Serve(index []byte, threads int) {
 		index:    string(index),
 	}
 
-	// TODO: Find HTTP req max size
-	// Note: go 1.13 will finally allow pools to survive past GC cycle so
-	// this will be far more efficient as our load is quite consistant
-	t.workers.pool.New = func() interface{} { return make([]byte, 1000, 1000) }
+	// 1800 is a reasonable limit for large scrape req (20 hashes)
+	t.workers.pool.New = func() interface{} { return make([]byte, 1800, 1800) }
 	t.workers.startWorkers(threads)
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", t.conf.Tracker.HTTP.Port))

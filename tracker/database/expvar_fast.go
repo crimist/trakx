@@ -4,6 +4,8 @@ package database
 
 import (
 	"sync/atomic"
+
+	"github.com/syc0x00/trakx/tracker/shared"
 )
 
 const fast = true
@@ -12,14 +14,16 @@ var (
 	Expvar expvals
 )
 
-type expvarIPmap struct{}
+type expvarIPmap struct {
+	M map[shared.PeerIP]int16
+}
 
-func (e *expvarIPmap) Lock()               {}
-func (e *expvarIPmap) Unlock()             {}
-func (e *expvarIPmap) delete(ip PeerIP)    {}
-func (e *expvarIPmap) inc(ip PeerIP)       {}
-func (e *expvarIPmap) dec(ip PeerIP)       {}
-func (e *expvarIPmap) dead(ip PeerIP) bool { return false }
+func (e *expvarIPmap) Lock()                      {}
+func (e *expvarIPmap) Unlock()                    {}
+func (e *expvarIPmap) Delete(ip shared.PeerIP)    {}
+func (e *expvarIPmap) Inc(ip shared.PeerIP)       {}
+func (e *expvarIPmap) Dec(ip shared.PeerIP)       {}
+func (e *expvarIPmap) Dead(ip shared.PeerIP) bool { return false }
 
 type expvals struct {
 	Connects    int64

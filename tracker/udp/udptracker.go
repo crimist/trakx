@@ -141,7 +141,6 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 			return
 		}
 		u.announce(&announce, remote, addr)
-
 	case 2:
 		scrape := scrape{}
 		if err := scrape.unmarshall(data); err != nil {

@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// nmber of hashes to make()
 const initCap = 1000000
 
 type subPeerMap struct {

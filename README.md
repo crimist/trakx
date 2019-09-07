@@ -14,7 +14,7 @@ cd trakx
 
 ### Netdata install
 
-Note: If you have other go program using expvar with netdata you'll have to manually add the trakx config, `install.sh` will overwrite `go_expvar.conf`.
+**Note:** If you have other go program using expvar with netdata you'll have to manually add the trakx config, `install.sh` will overwrite `go_expvar.conf`.
 
 * Open netdata python conf with `/etc/netdata/edit-config python.d.conf` and change `go_expvar` to `yes`
 * Customize the url in `expvar.conf` if needed
@@ -29,16 +29,18 @@ Note: If you have other go program using expvar with netdata you'll have to manu
 `-fast` will build without IP, seeds, and leeches metrics which will speed up trakx
 
 ```
-8700K@5.0 DDR4-3000/16-18-18-38
+// 8700K@5.0 DDR4-3000/16-18-18-38
+// BenchmarkDrop fasttracks either way
 
 Normal:
-BenchmarkDrop-12                        30000000                57.9 ns/op
-BenchmarkSave-12                        20000000                91.9 ns/op
-BenchmarkSaveDrop-12                    10000000                210 ns/op
+BenchmarkSave-12                        18526666                64.7 ns/op
+BenchmarkDrop-12                       100000000                10.8 ns/op
+BenchmarkSaveDrop-12                     8140426               147   ns/op
+
 Fast:
-BenchmarkDrop-12                        50000000                24.5 ns/op
-BenchmarkSave-12                        20000000                62.7 ns/op
-BenchmarkSaveDrop-12                    20000000                116 ns/op
+BenchmarkSave-12                        23938716                50.1 ns/op
+BenchmarkDrop-12                       100000000                10.8 ns/op
+BenchmarkSaveDrop-12                    11566442               104   ns/op
 ```
 
 ## Notes

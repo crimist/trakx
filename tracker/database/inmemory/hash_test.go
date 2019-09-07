@@ -3,22 +3,24 @@ package inmemory
 import (
 	"math/rand"
 	"testing"
+
+	"github.com/syc0x00/trakx/tracker/shared"
 )
 
-func dbWithHashesAndPeers(hashes, peers int) *PeerDatabase {
-	var db PeerDatabase
+func dbWithHashesAndPeers(hashes, peers int) *Memory {
+	var db Memory
 	db.make()
-	InitExpvar(&db)
+	db.Expvar()
 
-	peerid := PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	peer := Peer{
+	peerid := shared.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	peer := shared.Peer{
 		Complete: true,
-		IP:       PeerIP{1, 2, 3, 4},
+		IP:       shared.PeerIP{1, 2, 3, 4},
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
 
-	var h Hash
+	var h shared.Hash
 	for i := 0; i < hashes; i++ {
 		hash := make([]byte, 20)
 		rand.Read(hash[:])
@@ -33,20 +35,20 @@ func dbWithHashesAndPeers(hashes, peers int) *PeerDatabase {
 	return &db
 }
 
-func dbWithHashes(count int) *PeerDatabase {
-	var db PeerDatabase
+func dbWithHashes(count int) *Memory {
+	var db Memory
 	db.make()
-	InitExpvar(&db)
+	db.Expvar()
 
-	peerid := PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	peer := Peer{
+	peerid := shared.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	peer := shared.Peer{
 		Complete: true,
-		IP:       PeerIP{1, 2, 3, 4},
+		IP:       shared.PeerIP{1, 2, 3, 4},
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
 
-	var h Hash
+	var h shared.Hash
 	for i := 0; i < count; i++ {
 		hash := make([]byte, 20)
 		rand.Read(hash)
@@ -58,21 +60,21 @@ func dbWithHashes(count int) *PeerDatabase {
 	return &db
 }
 
-func dbWithPeers(count int) (*PeerDatabase, Hash) {
-	var db PeerDatabase
+func dbWithPeers(count int) (*Memory, shared.Hash) {
+	var db Memory
 	db.make()
-	InitExpvar(&db)
+	db.Expvar()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := Hash(bytes)
-	peer := Peer{
+	hash := shared.Hash(bytes)
+	peer := shared.Peer{
 		Complete: true,
-		IP:       PeerIP{1, 2, 3, 4},
+		IP:       shared.PeerIP{1, 2, 3, 4},
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
 
-	var p PeerID
+	var p shared.PeerID
 	for i := 0; i < count; i++ {
 		peerid := make([]byte, 20)
 		rand.Read(peerid)

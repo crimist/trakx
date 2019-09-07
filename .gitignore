@@ -1,4 +1,12 @@
+# VSCode/macOS folders
 *.DS_Store
 .vscode/
+
+# Golang sum
 go.sum
+
+# Heroku file
 Procfile
+
+# database backup files
+*.db

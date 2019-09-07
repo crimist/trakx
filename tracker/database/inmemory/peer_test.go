@@ -3,20 +3,22 @@ package inmemory
 import (
 	"bytes"
 	"testing"
+
+	"github.com/syc0x00/trakx/tracker/shared"
 )
 
 func TestSaveDrop(t *testing.T) {
-	var db PeerDatabase
+	var db Memory
 	db.make()
-	InitExpvar(&db)
+	db.Expvar()
 
 	exbytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := Hash(exbytes)
-	peerid := PeerID(exbytes)
+	hash := shared.Hash(exbytes)
+	peerid := shared.PeerID(exbytes)
 
-	savePeer := Peer{
+	savePeer := shared.Peer{
 		Complete: true,
-		IP:       PeerIP{1, 2, 3, 4},
+		IP:       shared.PeerIP{1, 2, 3, 4},
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
@@ -42,23 +44,23 @@ func TestSaveDrop(t *testing.T) {
 	db.Drop(&savePeer, &hash, &peerid)
 }
 
-func benchmarkSave(b *testing.B, db *PeerDatabase, peer Peer, hash Hash, peerid PeerID) {
+func benchmarkSave(b *testing.B, db *Memory, peer shared.Peer, hash shared.Hash, peerid shared.PeerID) {
 	for n := 0; n < b.N; n++ {
 		db.Save(&peer, &hash, &peerid)
 	}
 }
 
 func BenchmarkSave(b *testing.B) {
-	var db PeerDatabase
+	var db Memory
 	db.make()
-	InitExpvar(&db)
+	db.Expvar()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := Hash(bytes)
-	peerid := PeerID(bytes)
-	peer := Peer{
+	hash := shared.Hash(bytes)
+	peerid := shared.PeerID(bytes)
+	peer := shared.Peer{
 		Complete: true,
-		IP:       PeerIP{1, 2, 3, 4},
+		IP:       shared.PeerIP{1, 2, 3, 4},
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
@@ -67,23 +69,23 @@ func BenchmarkSave(b *testing.B) {
 	benchmarkSave(b, &db, peer, hash, peerid)
 }
 
-func benchmarkDrop(b *testing.B, db *PeerDatabase, peer Peer, hash Hash, peerid PeerID) {
+func benchmarkDrop(b *testing.B, db *Memory, peer shared.Peer, hash shared.Hash, peerid shared.PeerID) {
 	for n := 0; n < b.N; n++ {
 		db.Drop(&peer, &hash, &peerid)
 	}
 }
 
 func BenchmarkDrop(b *testing.B) {
-	var db PeerDatabase
+	var db Memory
 	db.make()
-	InitExpvar(&db)
+	db.Expvar()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := Hash(bytes)
-	peerid := PeerID(bytes)
-	peer := Peer{
+	hash := shared.Hash(bytes)
+	peerid := shared.PeerID(bytes)
+	peer := shared.Peer{
 		Complete: true,
-		IP:       PeerIP{1, 2, 3, 4},
+		IP:       shared.PeerIP{1, 2, 3, 4},
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
@@ -92,7 +94,7 @@ func BenchmarkDrop(b *testing.B) {
 	benchmarkDrop(b, &db, peer, hash, peerid)
 }
 
-func benchmarkSaveDrop(b *testing.B, db *PeerDatabase, peer Peer, hash Hash, peerid PeerID) {
+func benchmarkSaveDrop(b *testing.B, db *Memory, peer shared.Peer, hash shared.Hash, peerid shared.PeerID) {
 	for n := 0; n < b.N; n++ {
 		db.Save(&peer, &hash, &peerid)
 		db.Drop(&peer, &hash, &peerid)
@@ -100,16 +102,16 @@ func benchmarkSaveDrop(b *testing.B, db *PeerDatabase, peer Peer, hash Hash, pee
 }
 
 func BenchmarkSaveDrop(b *testing.B) {
-	var db PeerDatabase
+	var db Memory
 	db.make()
-	InitExpvar(&db)
+	db.Expvar()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := Hash(bytes)
-	peerid := PeerID(bytes)
-	peer := Peer{
+	hash := shared.Hash(bytes)
+	peerid := shared.PeerID(bytes)
+	peer := shared.Peer{
 		Complete: true,
-		IP:       PeerIP{1, 2, 3, 4},
+		IP:       shared.PeerIP{1, 2, 3, 4},
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
@@ -119,16 +121,16 @@ func BenchmarkSaveDrop(b *testing.B) {
 }
 
 func benchmarkSaveDropParallel(b *testing.B, routines int) {
-	var db PeerDatabase
+	var db Memory
 	db.make()
-	InitExpvar(&db)
+	db.Expvar()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := Hash(bytes)
-	peerid := PeerID(bytes)
-	peer := Peer{
+	hash := shared.Hash(bytes)
+	peerid := shared.PeerID(bytes)
+	peer := shared.Peer{
 		Complete: true,
-		IP:       PeerIP{1, 2, 3, 4},
+		IP:       shared.PeerIP{1, 2, 3, 4},
 		Port:     4321,
 		LastSeen: 1234567890,
 	}

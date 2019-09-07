@@ -2,17 +2,19 @@ package inmemory
 
 import (
 	"testing"
+
+	"github.com/syc0x00/trakx/tracker/shared"
 )
 
 func TestCheck(t *testing.T) {
 	var db Memory
-	if db.check() != false {
+	if db.Check() != false {
 		t.Error("check() on empty db returned true")
 	}
 }
 
 func TestTrim(t *testing.T) {
-	var c Config
+	var c shared.Config
 	c.Database.Peer.Timeout = 0
 
 	db := dbWithHashes(1000000)
