@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"os"
+	"strings"
 
 	_ "github.com/lib/pq"
 	"github.com/syc0x00/trakx/tracker/database"
@@ -80,14 +81,19 @@ func (bck PgBackup) SaveFull() error {
 }
 
 func (bck PgBackup) load() error {
+	bck.db.make()
+
 	var data []byte
+	var hash shared.Hash
+
 	err := bck.pg.QueryRow("SELECT bytes FROM peerdb ORDER BY ts DESC LIMIT 1").Scan(&data)
 	if err != nil {
+		if !strings.Contains(err.Error(), "no rows in result set") {
+			// empty table
+			return nil
+		}
 		return err
 	}
-
-	var hash shared.Hash
-	bck.db.make()
 
 	archive, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
