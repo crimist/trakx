@@ -23,8 +23,8 @@ type parsed struct {
 // I wrote a shitty custom parser because the normal url.Parse().Values()
 // creates a map of params which is very expensive with memory
 func parse(data []byte) (parsed, error) {
-	// uTorrent sometimes encodes the request in b64
-	if bytes.HasSuffix(data, []byte("==")) {
+	// uTorrent sometimes encodes scrape req in b64
+	if bytes.HasPrefix(data, []byte("R0VU")) { // R0VUIC9zY3JhcGU/aW5mb19oYXNoPS = GET /scrape?info_hash=
 		b := make([]byte, base64.StdEncoding.DecodedLen(len(data)))
 		if _, err := base64.StdEncoding.Decode(b, data); err == nil {
 			return parse(b)
