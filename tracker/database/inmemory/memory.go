@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// nmber of hashes to make()
+// number of sub hashtables to make() for
 const initCap = 1000000
 
 type subPeerMap struct {

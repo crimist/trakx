@@ -17,8 +17,7 @@ import (
 )
 
 const (
-	tablename = "trakx"
-	maxrows   = "10000" // -1 for unlimited
+	maxrows = "10000" // -1 for unlimited
 )
 
 type PgBackup struct {
@@ -45,7 +44,7 @@ func (bck *PgBackup) Init(db database.Database) error {
 		return err
 	}
 
-	_, err = bck.pg.Exec("CREATE TABLE IF NOT EXISTS " + tablename + " (ts TIMESTAMP DEFAULT now(), bytes BYTEA)")
+	_, err = bck.pg.Exec("CREATE TABLE IF NOT EXISTS trakx (ts TIMESTAMP DEFAULT now(), bytes BYTEA)")
 	if err != nil {
 		bck.db.logger.Error("postgres table create failed", zap.Error(err))
 		return err
@@ -61,7 +60,7 @@ func (bck PgBackup) save() error {
 		return errors.New("Failed to encode db")
 	}
 
-	_, err := bck.pg.Query("INSERT INTO "+tablename+"(bytes) VALUES($1)", data)
+	_, err := bck.pg.Query("INSERT INTO trakx(bytes) VALUES($1)", data)
 	if err != nil {
 		bck.db.logger.Error("postgres insert failed", zap.Error(err))
 		return errors.New("postgres insert failed")
@@ -93,7 +92,7 @@ func (bck PgBackup) load() error {
 	var data []byte
 	var hash shared.Hash
 
-	err := bck.pg.QueryRow("SELECT bytes FROM " + tablename + " ORDER BY ts DESC LIMIT 1").Scan(&data)
+	err := bck.pg.QueryRow("SELECT bytes FROM trakx ORDER BY ts DESC LIMIT 1").Scan(&data)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
 			bck.db.logger.Info("Empty table")
@@ -140,7 +139,7 @@ func (bck PgBackup) Load() error {
 
 func (bck PgBackup) trimBackups() (int64, error) {
 	// delete records older than 7 days
-	result, err := bck.pg.Exec("DELETE FROM " + tablename + " WHERE ts < NOW() - INTERVAL '7 days'")
+	result, err := bck.pg.Exec("DELETE FROM trakx WHERE ts < NOW() - INTERVAL '7 days'")
 	if err != nil {
 		return -1, err
 	}
@@ -151,7 +150,7 @@ func (bck PgBackup) trimBackups() (int64, error) {
 	}
 
 	if maxrows != "-1" {
-		result, err = bck.pg.Exec("DELETE FROM " + tablename + " WHERE ROWID IN (SELECT ROWID FROM " + tablename + " ORDER BY ROWID DESC LIMIT -1 OFFSET " + maxrows + ")")
+		result, err = bck.pg.Exec("DELETE FROM trakx WHERE ctid IN (SELECT ctid FROM trakx ORDER BY ctid DESC OFFSET " + maxrows + ")")
 		if err != nil {
 			return -1, err
 		}
