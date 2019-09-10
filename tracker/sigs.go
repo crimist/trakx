@@ -31,9 +31,10 @@ func handleSigs(peerdb database.Database, udptracker *udp.UDPTracker) {
 				udptracker.WriteConns()
 			}
 
-			os.Exit(128 + int(sig.(syscall.Signal)))
+			os.Exit(0)
 		default:
 			logger.Info("Got unknown sig", zap.Any("Signal", sig))
 		}
+		// os.Exit(128 + int(sig.(syscall.Signal)))
 	}
 }
