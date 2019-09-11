@@ -27,3 +27,18 @@ func TestTrim(t *testing.T) {
 
 	db.trim()
 }
+
+func BenchmarkTrim(b *testing.B) {
+	cfg := new(shared.Config)
+	cfg.Database.Peer.Timeout = 0
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		peerdb := dbWithHashesAndPeers(20_000, 2)
+		peerdb.conf = cfg
+
+		b.StartTimer()
+		peerdb.trim()
+		b.StopTimer()
+	}
+}
