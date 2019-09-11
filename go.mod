@@ -3,7 +3,6 @@ module github.com/syc0x00/trakx
 go 1.13
 
 require (
-	github.com/cornelk/hashmap v1.0.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-torrent/bencode v0.0.0-20150403200907-4318e12a955c

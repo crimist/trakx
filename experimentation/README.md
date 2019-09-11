@@ -21,4 +21,14 @@
 
 ## Benchmarks
 
-//TODO
+//IN PROG
+
+
+## Notes
+
+* `hashmap`
+  * Very slow
+* `freecache`
+  * 50KB min mem size
+* `gocache`
+  * More mem than map
