@@ -1,6 +1,6 @@
-package inmemory
+package gomap
 
-import "github.com/syc0x00/trakx/tracker/database"
+import "github.com/syc0x00/trakx/tracker/storage"
 
 func (db *Memory) Expvar() {
 	if ok := db.Check(); !ok {
@@ -10,11 +10,11 @@ func (db *Memory) Expvar() {
 	// Called on main thread no locking needed
 	for _, peermap := range db.hashmap {
 		for _, peer := range peermap.peers {
-			database.Expvar.IPs.M[peer.IP]++
+			storage.Expvar.IPs.M[peer.IP]++
 			if peer.Complete == true {
-				database.Expvar.Seeds++
+				storage.Expvar.Seeds++
 			} else {
-				database.Expvar.Leeches++
+				storage.Expvar.Leeches++
 			}
 		}
 	}

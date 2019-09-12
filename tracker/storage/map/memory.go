@@ -1,11 +1,11 @@
-package inmemory
+package gomap
 
 import (
 	"sync"
 	"time"
 
-	"github.com/syc0x00/trakx/tracker/database"
 	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/storage"
 	"go.uber.org/zap"
 )
 
@@ -14,19 +14,19 @@ const initCap = 1000000
 
 type subPeerMap struct {
 	sync.RWMutex
-	peers map[shared.PeerID]*shared.Peer
+	peers map[storage.PeerID]*storage.Peer
 }
 
 type Memory struct {
 	mu      sync.RWMutex
-	hashmap map[shared.Hash]*subPeerMap
+	hashmap map[storage.Hash]*subPeerMap
 
-	backup database.Backup
+	backup storage.Backup
 	conf   *shared.Config
 	logger *zap.Logger
 }
 
-func (db *Memory) Init(conf *shared.Config, logger *zap.Logger, backup database.Backup) {
+func (db *Memory) Init(conf *shared.Config, logger *zap.Logger, backup storage.Backup) {
 	*db = Memory{
 		conf:   conf,
 		logger: logger,
@@ -50,9 +50,9 @@ func (db *Memory) Init(conf *shared.Config, logger *zap.Logger, backup database.
 	}
 }
 
-func (db *Memory) make() { db.hashmap = make(map[shared.Hash]*subPeerMap, initCap) }
+func (db *Memory) make() { db.hashmap = make(map[storage.Hash]*subPeerMap, initCap) }
 
-func (db *Memory) Backup() database.Backup { return db.backup }
+func (db *Memory) Backup() storage.Backup { return db.backup }
 
 func (db *Memory) Check() bool { return db.hashmap != nil }
 

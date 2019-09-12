@@ -1,12 +1,10 @@
 // +build !fast
 
-package database
+package storage
 
 import (
 	"sync"
 	"sync/atomic"
-
-	"github.com/syc0x00/trakx/tracker/shared"
 )
 
 const (
@@ -20,7 +18,7 @@ var (
 
 type expvarIPmap struct {
 	mu sync.Mutex
-	M  map[shared.PeerIP]int16
+	M  map[PeerIP]int16
 }
 
 func (e *expvarIPmap) Lock() {
@@ -31,19 +29,19 @@ func (e *expvarIPmap) Unlock() {
 	e.mu.Unlock()
 }
 
-func (e *expvarIPmap) Delete(ip shared.PeerIP) {
+func (e *expvarIPmap) Delete(ip PeerIP) {
 	delete(e.M, ip)
 }
 
-func (e *expvarIPmap) Inc(ip shared.PeerIP) {
+func (e *expvarIPmap) Inc(ip PeerIP) {
 	e.M[ip]++
 }
 
-func (e *expvarIPmap) Dec(ip shared.PeerIP) {
+func (e *expvarIPmap) Dec(ip PeerIP) {
 	e.M[ip]--
 }
 
-func (e *expvarIPmap) Dead(ip shared.PeerIP) (dead bool) {
+func (e *expvarIPmap) Dead(ip PeerIP) (dead bool) {
 	if e.M[ip] < 1 {
 		dead = true
 	}
@@ -68,4 +66,4 @@ func AddExpval(num *int64, inc int64) {
 	atomic.AddInt64(num, inc)
 }
 
-func init() { Expvar.IPs.M = make(map[shared.PeerIP]int16, IPMapCap) }
+func init() { Expvar.IPs.M = make(map[PeerIP]int16, IPMapCap) }

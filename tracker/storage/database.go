@@ -1,4 +1,4 @@
-package database
+package storage
 
 import (
 	"errors"
@@ -29,12 +29,12 @@ type Database interface {
 	Trim()
 	Expvar()
 
-	Save(*shared.Peer, *shared.Hash, *shared.PeerID)
-	Drop(*shared.Peer, *shared.Hash, *shared.PeerID)
+	Save(*Peer, *Hash, *PeerID)
+	Drop(*Peer, *Hash, *PeerID)
 
-	HashStats(*shared.Hash) (int32, int32)
-	PeerList(*shared.Hash, int, bool) []string
-	PeerListBytes(*shared.Hash, int) []byte
+	HashStats(*Hash) (int32, int32)
+	PeerList(*Hash, int, bool) []string
+	PeerListBytes(*Hash, int) []byte
 
 	// Only used for expvar
 	Hashes() int

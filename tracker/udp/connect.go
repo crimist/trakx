@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"net"
 
-	"github.com/syc0x00/trakx/tracker/database"
+	"github.com/syc0x00/trakx/tracker/storage"
 )
 
 type connect struct {
@@ -32,7 +32,7 @@ func (cr *connectResp) marshall() ([]byte, error) {
 }
 
 func (u *UDPTracker) connect(connect *connect, remote *net.UDPAddr, addr [4]byte) {
-	database.AddExpval(&database.Expvar.Connects, 1)
+	storage.AddExpval(&storage.Expvar.Connects, 1)
 
 	id := rand.Int63()
 	u.conndb.add(id, addr)
@@ -50,7 +50,7 @@ func (u *UDPTracker) connect(connect *connect, remote *net.UDPAddr, addr [4]byte
 		return
 	}
 
-	database.AddExpval(&database.Expvar.ConnectsOK, 1)
+	storage.AddExpval(&storage.Expvar.ConnectsOK, 1)
 	u.sock.WriteToUDP(respBytes, remote)
 	return
 }

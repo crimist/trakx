@@ -5,13 +5,12 @@ import (
 	"encoding/binary"
 	"net"
 
-	"github.com/syc0x00/trakx/tracker/database"
-	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/storage"
 )
 
 type scrape struct {
 	Base     connect
-	InfoHash []shared.Hash
+	InfoHash []storage.Hash
 }
 
 func (s *scrape) unmarshall(data []byte) error {
@@ -19,7 +18,7 @@ func (s *scrape) unmarshall(data []byte) error {
 		return err
 	}
 
-	s.InfoHash = make([]shared.Hash, (len(data)-16)/20)
+	s.InfoHash = make([]storage.Hash, (len(data)-16)/20)
 	return binary.Read(bytes.NewReader(data[16:]), binary.BigEndian, &s.InfoHash)
 }
 
@@ -50,7 +49,7 @@ func (sr *scrapeResp) marshall() ([]byte, error) {
 }
 
 func (u *UDPTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
-	database.AddExpval(&database.Expvar.Scrapes, 1)
+	storage.AddExpval(&storage.Expvar.Scrapes, 1)
 
 	if len(scrape.InfoHash) > 74 {
 		msg := u.newClientError("74 hashes max", scrape.Base.TransactionID)
@@ -87,6 +86,6 @@ func (u *UDPTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
 	}
 
 	u.sock.WriteToUDP(respBytes, remote)
-	database.AddExpval(&database.Expvar.ScrapesOK, 1)
+	storage.AddExpval(&storage.Expvar.ScrapesOK, 1)
 	return
 }

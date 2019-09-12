@@ -1,4 +1,4 @@
-package shared
+package storage
 
 type PeerID [20]byte
 type PeerIP [4]byte

@@ -1,4 +1,4 @@
-package inmemory
+package gomap
 
 import (
 	"archive/zip"
@@ -9,8 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/syc0x00/trakx/tracker/database"
-	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/storage"
 	"go.uber.org/zap"
 )
 
@@ -18,7 +17,7 @@ type FileBackup struct {
 	db *Memory
 }
 
-func (bck *FileBackup) Init(db database.Database) error {
+func (bck *FileBackup) Init(db storage.Database) error {
 	bck.db = db.(*Memory)
 	if bck.db == nil {
 		panic("db nil on backup init")
@@ -97,7 +96,7 @@ func (bck *FileBackup) Load() error {
 }
 
 func (db *Memory) loadFile(filename string) error {
-	var hash shared.Hash
+	var hash storage.Hash
 	db.make()
 
 	archive, err := zip.OpenReader(filename)

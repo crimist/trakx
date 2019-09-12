@@ -9,20 +9,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/syc0x00/trakx/tracker/database"
 	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/storage"
 	"go.uber.org/zap"
 )
 
 type HTTPTracker struct {
 	conf   *shared.Config
 	logger *zap.Logger
-	peerdb database.Database
+	peerdb storage.Database
 
 	workers workers
 }
 
-func NewHTTPTracker(conf *shared.Config, logger *zap.Logger, peerdb database.Database) *HTTPTracker {
+func NewHTTPTracker(conf *shared.Config, logger *zap.Logger, peerdb storage.Database) *HTTPTracker {
 	tracker := HTTPTracker{
 		conf:   conf,
 		logger: logger,
@@ -172,7 +172,7 @@ func (w *workers) work() {
 					}
 				}
 
-				var ip shared.PeerIP
+				var ip storage.PeerIP
 				var ipStr string
 
 				forwarded, forwardedIP := getForwarded(data)

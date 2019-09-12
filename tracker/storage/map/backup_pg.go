@@ -1,4 +1,4 @@
-package inmemory
+package gomap
 
 import (
 	"archive/zip"
@@ -11,8 +11,7 @@ import (
 	"strings"
 
 	_ "github.com/lib/pq"
-	"github.com/syc0x00/trakx/tracker/database"
-	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/storage"
 	"go.uber.org/zap"
 )
 
@@ -25,7 +24,7 @@ type PgBackup struct {
 	db *Memory
 }
 
-func (bck *PgBackup) Init(db database.Database) error {
+func (bck *PgBackup) Init(db storage.Database) error {
 	var err error
 
 	bck.db = db.(*Memory)
@@ -90,7 +89,7 @@ func (bck PgBackup) load() error {
 	bck.db.make()
 
 	var data []byte
-	var hash shared.Hash
+	var hash storage.Hash
 
 	err := bck.pg.QueryRow("SELECT bytes FROM trakx ORDER BY ts DESC LIMIT 1").Scan(&data)
 	if err != nil {

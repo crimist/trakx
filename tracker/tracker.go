@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/syc0x00/trakx/bencoding"
-	"github.com/syc0x00/trakx/tracker/database"
 	trakxhttp "github.com/syc0x00/trakx/tracker/http"
 	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/storage"
 	"github.com/syc0x00/trakx/tracker/udp"
 	"go.uber.org/zap"
 
 	// import database types so init is called
-	_ "github.com/syc0x00/trakx/tracker/database/inmemory"
+	_ "github.com/syc0x00/trakx/tracker/storage/map"
 )
 
 var (
@@ -37,7 +37,7 @@ func Run() {
 	logger.Info("Loaded conf")
 
 	// db
-	peerdb, backup, err := database.Open(conf.Database.Type, conf.Database.Backup)
+	peerdb, backup, err := storage.Open(conf.Database.Type, conf.Database.Backup)
 	if err != nil {
 		logger.Fatal("Failed to open database", zap.Error(err))
 		return

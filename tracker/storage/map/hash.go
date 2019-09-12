@@ -1,11 +1,11 @@
-package inmemory
+package gomap
 
 import (
 	"encoding/binary"
 	"net"
 
 	"github.com/syc0x00/trakx/bencoding"
-	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/storage"
 )
 
 // Hashes gets the number of hashes
@@ -14,7 +14,7 @@ func (db *Memory) Hashes() int {
 }
 
 // HashStats returns number of complete and incomplete peers associated with the hash
-func (db *Memory) HashStats(h *shared.Hash) (complete, incomplete int32) {
+func (db *Memory) HashStats(h *storage.Hash) (complete, incomplete int32) {
 	db.mu.RLock()
 	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
@@ -35,7 +35,7 @@ func (db *Memory) HashStats(h *shared.Hash) (complete, incomplete int32) {
 }
 
 // PeerList returns a peer list for the given hash capped at num
-func (db *Memory) PeerList(h *shared.Hash, num int, noPeerID bool) []string {
+func (db *Memory) PeerList(h *storage.Hash, num int, noPeerID bool) []string {
 	var i int
 
 	db.mu.RLock()
@@ -72,7 +72,7 @@ func (db *Memory) PeerList(h *shared.Hash, num int, noPeerID bool) []string {
 }
 
 // PeerListBytes returns a byte encoded peer list for the given hash capped at num
-func (db *Memory) PeerListBytes(h *shared.Hash, num int) []byte {
+func (db *Memory) PeerListBytes(h *storage.Hash, num int) []byte {
 	db.mu.RLock()
 	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()

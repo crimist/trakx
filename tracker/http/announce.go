@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"github.com/syc0x00/trakx/bencoding"
-	"github.com/syc0x00/trakx/tracker/database"
-	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/storage"
 )
 
 type announceParams struct {
@@ -21,13 +20,13 @@ type announceParams struct {
 	numwant  string
 }
 
-func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip shared.PeerIP) {
-	database.AddExpval(&database.Expvar.Announces, 1)
+func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.PeerIP) {
+	storage.AddExpval(&storage.Expvar.Announces, 1)
 
 	// get vars
-	var hash shared.Hash
-	var peerid shared.PeerID
-	peer := shared.Peer{LastSeen: time.Now().Unix(), IP: ip}
+	var hash storage.Hash
+	var peerid storage.PeerID
+	peer := storage.Peer{LastSeen: time.Now().Unix(), IP: ip}
 	numwant := int(t.conf.Tracker.Numwant.Default)
 
 	// Port
@@ -72,7 +71,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip shared.Pe
 	// Processing
 	if vals.event == "stopped" {
 		t.peerdb.Drop(&peer, &hash, &peerid)
-		database.AddExpval(&database.Expvar.AnnouncesOK, 1)
+		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
 		conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + t.conf.Tracker.StoppedMsg))
 		return
 	}
@@ -91,6 +90,6 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip shared.Pe
 		d.Any("peers", t.peerdb.PeerList(&hash, numwant, vals.nopeerid))
 	}
 
-	database.AddExpval(&database.Expvar.AnnouncesOK, 1)
+	storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
 	conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + d.Get()))
 }

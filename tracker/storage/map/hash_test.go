@@ -1,4 +1,4 @@
-package inmemory
+package gomap
 
 import (
 	"math/rand"
@@ -6,7 +6,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/storage"
 )
 
 func dbWithHashesAndPeers(hashes, peers int) *Memory {
@@ -19,15 +19,15 @@ func dbWithHashesAndPeers(hashes, peers int) *Memory {
 		panic(err)
 	}
 
-	peerid := shared.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	peer := shared.Peer{
+	peerid := storage.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	peer := storage.Peer{
 		Complete: true,
-		IP:       shared.PeerIP{1, 2, 3, 4},
+		IP:       storage.PeerIP{1, 2, 3, 4},
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
 
-	var h shared.Hash
+	var h storage.Hash
 	for i := 0; i < hashes; i++ {
 		hash := make([]byte, 20)
 		rand.Read(hash[:])
@@ -47,15 +47,15 @@ func dbWithHashes(count int) *Memory {
 	db.make()
 	db.Expvar()
 
-	peerid := shared.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	peer := shared.Peer{
+	peerid := storage.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	peer := storage.Peer{
 		Complete: true,
-		IP:       shared.PeerIP{1, 2, 3, 4},
+		IP:       storage.PeerIP{1, 2, 3, 4},
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
 
-	var h shared.Hash
+	var h storage.Hash
 	for i := 0; i < count; i++ {
 		hash := make([]byte, 20)
 		rand.Read(hash)
@@ -67,21 +67,21 @@ func dbWithHashes(count int) *Memory {
 	return &db
 }
 
-func dbWithPeers(count int) (*Memory, shared.Hash) {
+func dbWithPeers(count int) (*Memory, storage.Hash) {
 	var db Memory
 	db.make()
 	db.Expvar()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := shared.Hash(bytes)
-	peer := shared.Peer{
+	hash := storage.Hash(bytes)
+	peer := storage.Peer{
 		Complete: true,
-		IP:       shared.PeerIP{1, 2, 3, 4},
+		IP:       storage.PeerIP{1, 2, 3, 4},
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
 
-	var p shared.PeerID
+	var p storage.PeerID
 	for i := 0; i < count; i++ {
 		peerid := make([]byte, 20)
 		rand.Read(peerid)

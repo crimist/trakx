@@ -55,9 +55,9 @@ tracker:
 
 database:
   # Options
-  # mem - in memory database using golang maps
-  type: "mem"
-  # Backup options for "mem":
+  # gomap - in memory database using golang maps
+  type: "gomap"
+  # Backup options for "gomap":
   # file - backup to file
   # pg - backup to postgres
   backup: "file"

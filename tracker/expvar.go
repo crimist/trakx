@@ -6,13 +6,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/syc0x00/trakx/tracker/database"
 	"github.com/syc0x00/trakx/tracker/http"
 	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/storage"
 	"github.com/syc0x00/trakx/tracker/udp"
 )
 
-func publishExpvar(conf *shared.Config, peerdb database.Database, httptracker *http.HTTPTracker, udptracker *udp.UDPTracker) {
+func publishExpvar(conf *shared.Config, peerdb storage.Database, httptracker *http.HTTPTracker, udptracker *udp.UDPTracker) {
 	var errsOld int64
 	start := time.Now()
 
@@ -42,13 +42,13 @@ func publishExpvar(conf *shared.Config, peerdb database.Database, httptracker *h
 	connectsOK := expvar.NewInt("tracker.performance.connectsok")
 
 	shared.RunOn(time.Duration(conf.Trakx.Expvar.Every)*time.Second, func() {
-		database.Expvar.IPs.Lock()
-		uniqueIP.Set(int64(len(database.Expvar.IPs.M)))
-		database.Expvar.IPs.Unlock()
+		storage.Expvar.IPs.Lock()
+		uniqueIP.Set(int64(len(storage.Expvar.IPs.M)))
+		storage.Expvar.IPs.Unlock()
 		uniqueHash.Set(int64(peerdb.Hashes()))
 
-		s := atomic.LoadInt64(&database.Expvar.Seeds)
-		l := atomic.LoadInt64(&database.Expvar.Leeches)
+		s := atomic.LoadInt64(&storage.Expvar.Seeds)
+		l := atomic.LoadInt64(&storage.Expvar.Leeches)
 		uniquePeer.Set(s + l)
 		seeds.Set(s)
 		leeches.Set(l)
@@ -63,30 +63,30 @@ func publishExpvar(conf *shared.Config, peerdb database.Database, httptracker *h
 		goroutines.Set(int64(runtime.NumGoroutine()))
 		qlen.Set(int64(httptracker.QueueLen()))
 
-		announcesSec.Set(atomic.LoadInt64(&database.Expvar.Announces))
-		atomic.StoreInt64(&database.Expvar.Announces, 0)
+		announcesSec.Set(atomic.LoadInt64(&storage.Expvar.Announces))
+		atomic.StoreInt64(&storage.Expvar.Announces, 0)
 
-		announcesSecOK.Set(atomic.LoadInt64(&database.Expvar.AnnouncesOK))
-		atomic.StoreInt64(&database.Expvar.AnnouncesOK, 0)
+		announcesSecOK.Set(atomic.LoadInt64(&storage.Expvar.AnnouncesOK))
+		atomic.StoreInt64(&storage.Expvar.AnnouncesOK, 0)
 
-		scrapesSec.Set(atomic.LoadInt64(&database.Expvar.Scrapes))
-		atomic.StoreInt64(&database.Expvar.Scrapes, 0)
+		scrapesSec.Set(atomic.LoadInt64(&storage.Expvar.Scrapes))
+		atomic.StoreInt64(&storage.Expvar.Scrapes, 0)
 
-		scrapesSecOK.Set(atomic.LoadInt64(&database.Expvar.ScrapesOK))
-		atomic.StoreInt64(&database.Expvar.ScrapesOK, 0)
+		scrapesSecOK.Set(atomic.LoadInt64(&storage.Expvar.ScrapesOK))
+		atomic.StoreInt64(&storage.Expvar.ScrapesOK, 0)
 
-		clientErrors.Set(atomic.LoadInt64(&database.Expvar.Clienterrs))
-		atomic.StoreInt64(&database.Expvar.Clienterrs, 0)
+		clientErrors.Set(atomic.LoadInt64(&storage.Expvar.Clienterrs))
+		atomic.StoreInt64(&storage.Expvar.Clienterrs, 0)
 
-		e := atomic.LoadInt64(&database.Expvar.Errs)
+		e := atomic.LoadInt64(&storage.Expvar.Errs)
 		errors.Set(e)
 		errorsSec.Set(e - errsOld)
 		errsOld = e
 
-		connects.Set(atomic.LoadInt64(&database.Expvar.Connects))
-		atomic.StoreInt64(&database.Expvar.Connects, 0)
+		connects.Set(atomic.LoadInt64(&storage.Expvar.Connects))
+		atomic.StoreInt64(&storage.Expvar.Connects, 0)
 
-		connectsOK.Set(atomic.LoadInt64(&database.Expvar.ConnectsOK))
-		atomic.StoreInt64(&database.Expvar.ConnectsOK, 0)
+		connectsOK.Set(atomic.LoadInt64(&storage.Expvar.ConnectsOK))
+		atomic.StoreInt64(&storage.Expvar.ConnectsOK, 0)
 	})
 }

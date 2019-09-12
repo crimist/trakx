@@ -1,4 +1,4 @@
-package inmemory
+package gomap
 
 import (
 	"testing"

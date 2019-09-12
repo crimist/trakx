@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/syc0x00/trakx/tracker/storage"
 	"go.uber.org/zap"
 )
 
@@ -23,7 +23,7 @@ type connID struct {
 
 type connectionDatabase struct {
 	mu sync.RWMutex
-	db map[shared.PeerIP]connID
+	db map[storage.PeerIP]connID
 
 	timeout  int64
 	filename string
@@ -51,7 +51,7 @@ func (db *connectionDatabase) conns() (count int) {
 	return
 }
 
-func (db *connectionDatabase) add(id int64, addr shared.PeerIP) {
+func (db *connectionDatabase) add(id int64, addr storage.PeerIP) {
 	db.mu.Lock()
 	db.db[addr] = connID{
 		ID: id,
@@ -60,7 +60,7 @@ func (db *connectionDatabase) add(id int64, addr shared.PeerIP) {
 	db.mu.Unlock()
 }
 
-func (db *connectionDatabase) check(id int64, addr shared.PeerIP) bool {
+func (db *connectionDatabase) check(id int64, addr storage.PeerIP) bool {
 	db.mu.RLock()
 	cid, ok := db.db[addr]
 	db.mu.RUnlock()
@@ -139,5 +139,5 @@ func (db *connectionDatabase) load() bool {
 }
 
 func (db *connectionDatabase) make() {
-	db.db = make(map[shared.PeerIP]connID, conndbCap)
+	db.db = make(map[storage.PeerIP]connID, conndbCap)
 }

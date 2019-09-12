@@ -1,6 +1,6 @@
 // +build fast
 
-package database
+package storage
 
 import (
 	"sync/atomic"

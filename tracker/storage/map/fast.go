@@ -1,5 +1,5 @@
 // +build fast
 
-package inmemory
+package gomap
 
 const fast = true
