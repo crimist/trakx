@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/syc0x00/trakx/tracker/shared"
 	"github.com/syc0x00/trakx/tracker/storage"
@@ -182,7 +183,7 @@ func (w *workers) work() {
 						w.tracker.clientError(j.conn, "Bad IP - might be heroku issue")
 						break
 					}
-					ipStr = string(forwardedIP)
+					ipStr = *(*string)(unsafe.Pointer(&forwardedIP))
 				} else {
 					// Not appeng
 					ipStr, _, _ = net.SplitHostPort(j.conn.RemoteAddr().String())

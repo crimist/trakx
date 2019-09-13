@@ -4,6 +4,7 @@ import (
 	"net"
 	"strconv"
 	"time"
+	"unsafe"
 
 	"github.com/syc0x00/trakx/bencoding"
 	"github.com/syc0x00/trakx/tracker/storage"
@@ -84,8 +85,8 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	d.Int64("complete", int64(complete))
 	d.Int64("incomplete", int64(incomplete))
 	if vals.compact {
-		d.String("peers", string(t.peerdb.PeerListBytes(&hash, numwant)))
-		d.Any("peers", t.peerdb.PeerListBytes(&hash, numwant))
+		peerlist := t.peerdb.PeerListBytes(&hash, numwant)
+		d.String("peers", *(*string)(unsafe.Pointer(&peerlist)))
 	} else {
 		d.Any("peers", t.peerdb.PeerList(&hash, numwant, vals.nopeerid))
 	}

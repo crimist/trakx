@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/url"
 	"strings"
+	"unsafe"
 )
 
 const errorInvalid = "Invalid Request"
@@ -41,14 +42,17 @@ func parse(data []byte) (parsed, error) {
 	if methodend == -1 {
 		return p, errors.New(errorInvalid)
 	}
-	p.Method = string(data[:methodend])
+
+	tmp := data[:methodend]
+	p.Method = *(*string)(unsafe.Pointer(&tmp))
 
 	if p.URLend == -1 {
 		return p, errors.New(errorInvalid)
 	}
 
 	if p.pathend != -1 && p.pathend < p.URLend { // if the ? is part of a query then parse it
-		p.Params = strings.Split(string(data[p.pathend+1:p.URLend]), "&")
+		tmp = data[p.pathend+1 : p.URLend]
+		p.Params = strings.Split(*(*string)(unsafe.Pointer(&tmp)), "&")
 
 		var err error
 		for i := 0; i < len(p.Params); i++ {
@@ -57,9 +61,12 @@ func parse(data []byte) (parsed, error) {
 				return p, errors.New(errorInvalid + ": " + err.Error())
 			}
 		}
-		p.Path = string(data[p.pathstart:p.pathend])
+
+		tmp = data[p.pathstart:p.pathend]
+		p.Path = *(*string)(unsafe.Pointer(&tmp))
 	} else {
-		p.Path = string(data[p.pathstart:p.URLend])
+		tmp = data[p.pathstart:p.URLend]
+		p.Path = *(*string)(unsafe.Pointer(&tmp))
 	}
 
 	return p, nil
