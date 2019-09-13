@@ -7,7 +7,7 @@
 
 trakx:
   prod: true
-  index: "~/.trakx/index.html"
+  index: "/usr/local/trakx/index.html"
   # Expvar is served on /stats over the set http port
   expvar:
     # How often to update expvar vals
@@ -63,7 +63,7 @@ database:
   backup: "file"
   
   peer:
-    filename: "~/.trakx/peers.db"
+    filename: "/usr/local/trakx/peers.db"
     # How often to check for expired peers
     trim: 600 # 10m
     # How often to write temp db in case of crash
@@ -72,7 +72,7 @@ database:
     # Peer max TTL
     timeout: 2400 # 40m
   conn:
-    filename: "~/.trakx/conn.db"
+    filename: "/usr/local/trakx/conn.db"
     # A connection that has expired could still be used if it hasn't been purged yet
     # How often to check for expired conns
     trim: 600 # 10m

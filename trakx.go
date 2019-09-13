@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	trakxRoot  = "~/.trakx/"
+	trakxRoot  = "/usr/local/trakx/"
 	trakxPerms = 0740
 )
 
