@@ -136,9 +136,9 @@ func (bck *FileBackup) writeToFile(temp bool) error {
 		bck.db.Trim()
 	}
 
-	encoded := bck.db.encode()
-	if encoded == nil {
-		return errors.New("Failed to encode")
+	encoded, err := bck.db.encode()
+	if err != nil {
+		return err
 	}
 
 	bck.db.logger.Info("Writing zip to file", zap.Float32("mb", float32(len(encoded)/1024.0/1024.0)))

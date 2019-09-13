@@ -1,42 +1,61 @@
 package gomap
 
 import (
-	"archive/zip"
 	"bytes"
 	"encoding/gob"
-	"encoding/hex"
 
-	"go.uber.org/zap"
+	"github.com/syc0x00/trakx/tracker/storage"
 )
 
-func (db *Memory) encode() []byte {
+type encoded struct {
+	Hash  storage.Hash
+	Peers map[storage.PeerID]*storage.Peer
+}
+
+func (db *Memory) encode() ([]byte, error) {
 	var buff bytes.Buffer
-	archive := zip.NewWriter(&buff)
+	enc := gob.NewEncoder(&buff)
+	encodes := make([]encoded, db.Hashes())
 
 	db.mu.RLock()
 	for hash, submap := range db.hashmap {
 		db.mu.RUnlock()
 
 		submap.RLock()
-		writer, err := archive.Create(hex.EncodeToString(hash[:]))
-		if err != nil {
-			db.logger.Error("Failed to create in archive", zap.Error(err), zap.Any("hash", hash[:]))
-			submap.RUnlock()
-			continue
-		}
-		if err := gob.NewEncoder(writer).Encode(submap.peers); err != nil {
-			db.logger.Warn("Failed to encode a peermap", zap.Error(err), zap.Any("hash", hash[:]))
-		}
+		encodes = append(encodes, encoded{
+			Hash:  hash,
+			Peers: submap.peers,
+		})
 		submap.RUnlock()
 
 		db.mu.RLock()
 	}
 	db.mu.RUnlock()
 
-	if err := archive.Close(); err != nil {
-		db.logger.Error("Failed to close archive", zap.Error(err))
-		return nil
+	db.mu.RLock()
+	err := enc.Encode(encodes)
+	db.mu.RUnlock()
+	if err != nil {
+		return nil, err
 	}
 
-	return buff.Bytes()
+	return buff.Bytes(), nil
+}
+
+func (db *Memory) decode(data []byte) error {
+	db.make()
+
+	var encodes []encoded
+	dec := gob.NewDecoder(bytes.NewBuffer(data))
+
+	if err := dec.Decode(&encodes); err != nil {
+		return err
+	}
+
+	for _, encd := range encodes {
+		peermap := db.makePeermap(&encd.Hash)
+		peermap.peers = encd.Peers
+	}
+
+	return nil
 }

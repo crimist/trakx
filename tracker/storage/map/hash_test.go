@@ -31,7 +31,7 @@ func dbWithHashesAndPeers(hashes, peers int) *Memory {
 	for i := 0; i < hashes; i++ {
 		hash := make([]byte, 20)
 		rand.Read(hash[:])
-		// copy(h[:], hash)
+		copy(h[:], hash)
 
 		for i := 0; i < peers; i++ {
 			rand.Read(peerid[:])

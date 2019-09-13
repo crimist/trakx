@@ -1,11 +1,7 @@
 package gomap
 
 import (
-	"archive/zip"
-	"bytes"
 	"database/sql"
-	"encoding/gob"
-	"encoding/hex"
 	"errors"
 	"os"
 	"strings"
@@ -53,13 +49,17 @@ func (bck *PgBackup) Init(db storage.Database) error {
 }
 
 func (bck PgBackup) save() error {
-	data := bck.db.encode()
+	data, err := bck.db.encode()
+	if err != nil {
+		return err
+	}
+
 	if data == nil {
 		bck.db.logger.Error("Failed to encode db")
 		return errors.New("Failed to encode db")
 	}
 
-	_, err := bck.pg.Query("INSERT INTO trakx(bytes) VALUES($1)", data)
+	_, err = bck.pg.Query("INSERT INTO trakx(bytes) VALUES($1)", data)
 	if err != nil {
 		bck.db.logger.Error("postgres insert failed", zap.Error(err))
 		return errors.New("postgres insert failed")
@@ -86,10 +86,7 @@ func (bck PgBackup) SaveFull() error {
 }
 
 func (bck PgBackup) load() error {
-	bck.db.make()
-
 	var data []byte
-	var hash storage.Hash
 
 	err := bck.pg.QueryRow("SELECT bytes FROM trakx ORDER BY ts DESC LIMIT 1").Scan(&data)
 	if err != nil {
@@ -101,29 +98,7 @@ func (bck PgBackup) load() error {
 		return nil
 	}
 
-	archive, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
-	if err != nil {
-		return err
-	}
-
-	for _, file := range archive.File {
-		hashbytes, err := hex.DecodeString(file.Name)
-		if err != nil {
-			return err
-		}
-		copy(hash[:], hashbytes)
-		peermap := bck.db.makePeermap(&hash)
-
-		reader, err := file.Open()
-		if err != nil {
-			return err
-		}
-		err = gob.NewDecoder(reader).Decode(&peermap.peers)
-		if err != nil {
-			return err
-		}
-		reader.Close()
-	}
+	bck.db.decode(data)
 
 	return nil
 }
