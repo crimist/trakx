@@ -1,6 +1,10 @@
 # trakx
 
-Efficient bittorrent tracker written in go.
+Bittorrent tracker generally focused on speed and efficiency.
+
+![performance](img/performance.png)
+
+Memory usage was around 210MB with this load. This is with the extensive metrics enabled.
 
 ## Install
 
@@ -27,21 +31,6 @@ cd trakx
 ## Build tags
 
 `-fast` will build without IP, seeds, and leeches metrics which will speed up trakx
-
-```
-// 8700K@5.0 DDR4-3000/16-18-18-38
-// BenchmarkDrop fasttracks either way
-
-Normal:
-BenchmarkSave-12                        18526666                64.7 ns/op
-BenchmarkDrop-12                       100000000                10.8 ns/op
-BenchmarkSaveDrop-12                     8140426               147   ns/op
-
-Fast:
-BenchmarkSave-12                        23938716                50.1 ns/op
-BenchmarkDrop-12                       100000000                10.8 ns/op
-BenchmarkSaveDrop-12                    11566442               104   ns/op
-```
 
 ## Notes
 
