@@ -4,10 +4,11 @@ import "github.com/syc0x00/trakx/tracker/storage"
 
 func (db *Memory) Expvar() {
 	if ok := db.Check(); !ok {
-		panic("db not init before expvars")
+		db.logger.Fatal("storage was not initialized before calling Expvar()")
+		return
 	}
 
-	// Called on main thread no locking needed
+	// Called on main thread before thread dispatch no locking needed
 	for _, peermap := range db.hashmap {
 		for _, peer := range peermap.peers {
 			storage.Expvar.IPs.M[peer.IP]++

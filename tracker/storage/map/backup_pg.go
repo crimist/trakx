@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	maxrows = "10000" // -1 for unlimited
+	maxdate = "7 days" // "off" to disable
+	maxrows = "10000"  // -1 for unlimited
 )
 
 type PgBackup struct {
@@ -51,12 +52,8 @@ func (bck *PgBackup) Init(db storage.Database) error {
 func (bck PgBackup) save() error {
 	data, err := bck.db.encode()
 	if err != nil {
+		bck.db.logger.Error("Failed to encode", zap.Error(err))
 		return err
-	}
-
-	if data == nil {
-		bck.db.logger.Error("Failed to encode db")
-		return errors.New("Failed to encode db")
 	}
 
 	_, err = bck.pg.Query("INSERT INTO trakx(bytes) VALUES($1)", data)
@@ -65,7 +62,7 @@ func (bck PgBackup) save() error {
 		return errors.New("postgres insert failed")
 	}
 
-	rm, err := bck.trimBackups()
+	rm, err := bck.trim()
 	if err != nil {
 		bck.db.logger.Error("failed to trim backups", zap.Error(err))
 	} else {
@@ -111,20 +108,23 @@ func (bck PgBackup) Load() error {
 	return err
 }
 
-func (bck PgBackup) trimBackups() (int64, error) {
-	// delete records older than 7 days
-	result, err := bck.pg.Exec("DELETE FROM trakx WHERE ts < NOW() - INTERVAL '7 days'")
-	if err != nil {
-		return -1, err
-	}
+func (bck PgBackup) trim() (int64, error) {
+	var trimmed int64
 
-	trimmed, err := result.RowsAffected()
-	if err != nil {
-		return -1, err
+	if maxdate != "off" {
+		result, err := bck.pg.Exec("DELETE FROM trakx WHERE ts < NOW() - INTERVAL '" + maxdate + "'")
+		if err != nil {
+			return -1, err
+		}
+
+		trimmed, err = result.RowsAffected()
+		if err != nil {
+			return -1, err
+		}
 	}
 
 	if maxrows != "-1" {
-		result, err = bck.pg.Exec("DELETE FROM trakx WHERE ctid IN (SELECT ctid FROM trakx ORDER BY ctid DESC OFFSET " + maxrows + ")")
+		result, err := bck.pg.Exec("DELETE FROM trakx WHERE ctid IN (SELECT ctid FROM trakx ORDER BY ctid DESC OFFSET " + maxrows + ")")
 		if err != nil {
 			return -1, err
 		}

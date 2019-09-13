@@ -5,8 +5,5 @@
 # Golang sum
 go.sum
 
-# Heroku file
-Procfile
-
 # database backup files
 *.db
