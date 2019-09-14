@@ -34,6 +34,10 @@ func Run() {
 	}
 
 	conf = shared.ViperConf(logger)
+	if conf.Tracker.Announce == 0 {
+		logger.Fatal("Failed to load config")
+		return
+	}
 	logger.Info("Loaded conf")
 
 	// db
