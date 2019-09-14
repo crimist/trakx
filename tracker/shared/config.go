@@ -69,7 +69,7 @@ func ViperConf(logger *zap.Logger) *Config {
 	// Load from file
 	viper.SetConfigType("yaml")
 	viper.SetConfigName("config")
-	viper.AddConfigPath("$HOME/.trakx/")
+	viper.AddConfigPath("/usr/local/trakx/")
 	viper.AddConfigPath("/app/")
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig()
