@@ -12,8 +12,13 @@ import (
 )
 
 const (
-	maxdate = "7 days" // "off" to disable
-	maxrows = "10000"  // -1 for unlimited
+	// Maximum retention for entries. Rows older than this will be removed
+	// "off" to disable
+	maxdate = "7 days"
+
+	// Maximum number of rows. Rows exceeding this will be removed by timestamp
+	// -1 for unlimited
+	maxrows = "10"
 )
 
 type PgBackup struct {
