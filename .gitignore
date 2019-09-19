@@ -2,8 +2,5 @@
 *.DS_Store
 .vscode
 
-# Golang sum
-go.sum
-
 # database backup files
 *.db

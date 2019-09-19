@@ -1,3 +1,5 @@
+// +heroku goVersion go1.13
+
 module github.com/syc0x00/trakx
 
 go 1.13
