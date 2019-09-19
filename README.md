@@ -4,16 +4,16 @@ Bittorrent tracker generally focused on speed and efficiency.
 
 ![performance](img/performance.png)
 
-Memory usage was around 210MB with this load. This is with the extensive metrics enabled.
+HTTP only with extensive metrics enabled. Memory usage was 150MB with this load.
 
 ## Install
 
-Requires Go 1.12+
+Go 1.13+ recommended for `sync.Pool` and `sync.RMutex` optimizations.
 
 ```sh
 git clone github.com/syc0x00/trakx
-cd trakx
-./setup.sh
+./trakx/setup.sh
+trakx status # "Trakx is not running"
 ```
 
 ### Netdata install
