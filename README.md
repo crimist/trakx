@@ -6,6 +6,10 @@ Bittorrent tracker generally focused on speed and efficiency.
 
 HTTP only with extensive metrics enabled. Memory usage was 150MB with this load.
 
+![flame](img/flame.png)
+
+As you can see basically all the CPU usage is overhead from handling so many TCP connections. For example in this flamegraph the databases save function was only 0.3% of the flamegraphs time.
+
 ## Install
 
 Go 1.13+ recommended for `sync.Pool` and `sync.RMutex` optimizations.
