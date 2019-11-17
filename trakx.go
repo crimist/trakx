@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/syc0x00/trakx/controller"
+	"github.com/crimist/trakx/controller"
 )
 
 const (

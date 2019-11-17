@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	_ "github.com/lib/pq"
-	"github.com/syc0x00/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/storage"
 	"go.uber.org/zap"
 )
 

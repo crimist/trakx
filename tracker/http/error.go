@@ -3,8 +3,8 @@ package http
 import (
 	"net"
 
-	"github.com/syc0x00/trakx/bencoding"
-	"github.com/syc0x00/trakx/tracker/storage"
+	"github.com/crimist/trakx/bencoding"
+	"github.com/crimist/trakx/tracker/storage"
 	"go.uber.org/zap"
 )
 

@@ -1,6 +1,6 @@
 package gomap
 
-import "github.com/syc0x00/trakx/tracker/storage"
+import "github.com/crimist/trakx/tracker/storage"
 
 func (db *Memory) Expvar() {
 	if ok := db.Check(); !ok {

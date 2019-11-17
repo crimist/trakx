@@ -3,7 +3,7 @@ package storage
 import (
 	"errors"
 
-	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/shared"
 	"go.uber.org/zap"
 )
 

@@ -3,7 +3,7 @@ package bencoding_test
 import (
 	"testing"
 
-	"github.com/syc0x00/trakx/bencoding"
+	"github.com/crimist/trakx/bencoding"
 )
 
 func TestDict(t *testing.T) {

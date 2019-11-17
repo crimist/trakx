@@ -10,8 +10,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/syc0x00/trakx/tracker/shared"
-	"github.com/syc0x00/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/storage"
 	"go.uber.org/zap"
 )
 

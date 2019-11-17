@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"net"
 
-	"github.com/syc0x00/trakx/bencoding"
-	"github.com/syc0x00/trakx/tracker/storage"
+	"github.com/crimist/trakx/bencoding"
+	"github.com/crimist/trakx/tracker/storage"
 )
 
 // Hashes gets the number of hashes

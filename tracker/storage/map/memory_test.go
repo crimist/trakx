@@ -3,7 +3,7 @@ package gomap
 import (
 	"testing"
 
-	"github.com/syc0x00/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/shared"
 )
 
 func TestCheck(t *testing.T) {

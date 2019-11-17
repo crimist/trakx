@@ -4,8 +4,8 @@ import (
 	"net"
 	"net/url"
 
-	"github.com/syc0x00/trakx/bencoding"
-	"github.com/syc0x00/trakx/tracker/storage"
+	"github.com/crimist/trakx/bencoding"
+	"github.com/crimist/trakx/tracker/storage"
 )
 
 func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {

@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"net"
 
-	"github.com/syc0x00/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/storage"
 )
 
 type scrape struct {

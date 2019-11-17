@@ -5,15 +5,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/syc0x00/trakx/bencoding"
-	trakxhttp "github.com/syc0x00/trakx/tracker/http"
-	"github.com/syc0x00/trakx/tracker/shared"
-	"github.com/syc0x00/trakx/tracker/storage"
-	"github.com/syc0x00/trakx/tracker/udp"
+	"github.com/crimist/trakx/bencoding"
+	trakxhttp "github.com/crimist/trakx/tracker/http"
+	"github.com/crimist/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/udp"
 	"go.uber.org/zap"
 
 	// import database types so init is called
-	_ "github.com/syc0x00/trakx/tracker/storage/map"
+	_ "github.com/crimist/trakx/tracker/storage/map"
 )
 
 var (

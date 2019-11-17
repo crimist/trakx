@@ -15,7 +15,7 @@ As you can see basically all the CPU usage is overhead from handling so many TCP
 Go 1.13+ recommended for `sync.Pool` and `sync.RMutex` optimizations.
 
 ```sh
-git clone github.com/syc0x00/trakx
+git clone github.com/crimist/trakx
 ./trakx/setup.sh
 trakx status # "Trakx is not running"
 ```

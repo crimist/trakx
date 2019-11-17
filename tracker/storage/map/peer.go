@@ -1,7 +1,7 @@
 package gomap
 
 import (
-	"github.com/syc0x00/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/storage"
 )
 
 func (db *Memory) makePeermap(h *storage.Hash) (peermap *subPeerMap) {
