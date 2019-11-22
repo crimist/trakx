@@ -1,3 +1,5 @@
+// +heroku goVersion go1.13
+
 module github.com/crimist/trakx
 
 go 1.13
