@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	_ "github.com/lib/pq"
 	"github.com/crimist/trakx/tracker/storage"
+	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )
 
@@ -93,11 +93,9 @@ func (bck PgBackup) load() error {
 	err := bck.pg.QueryRow("SELECT bytes FROM trakx ORDER BY ts DESC LIMIT 1").Scan(&data)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
-			bck.db.logger.Info("Empty table")
-			return nil
+			return errors.New("empty postgres table")
 		}
-		bck.db.logger.Error("SELECT failed", zap.Error(err))
-		return nil
+		return errors.New("postgres SELECT query failed: " + err.Error())
 	}
 
 	bck.db.decode(data)
@@ -106,11 +104,7 @@ func (bck PgBackup) load() error {
 }
 
 func (bck PgBackup) Load() error {
-	err := bck.load()
-	if err != nil {
-		bck.db.logger.Error("failed to load pg db", zap.Error(err))
-	}
-	return err
+	return bck.load()
 }
 
 func (bck PgBackup) trim() (int64, error) {

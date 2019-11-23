@@ -37,7 +37,7 @@ func (db *Memory) Init(conf *shared.Config, logger *zap.Logger, backup storage.B
 		panic(err)
 	}
 	if err := db.backup.Load(); err != nil {
-		panic(err)
+		logger.Error("Failed to load stored database", zap.Error(err))
 	}
 
 	if conf.Database.Peer.Write > 0 {
