@@ -93,12 +93,16 @@ func (bck PgBackup) load() error {
 	err := bck.pg.QueryRow("SELECT bytes FROM trakx ORDER BY ts DESC LIMIT 1").Scan(&data)
 	if err != nil {
 		if strings.Contains(err.Error(), "no rows in result set") {
-			return errors.New("empty postgres table")
+			// empty postgres table
+			bck.db.logger.Info("No stored database found")
+			bck.db.make()
+			return nil
 		}
 		return errors.New("postgres SELECT query failed: " + err.Error())
 	}
 
 	bck.db.decode(data)
+	bck.db.logger.Info("Loaded stored database")
 
 	return nil
 }
