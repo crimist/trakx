@@ -101,7 +101,11 @@ func (bck PgBackup) load() error {
 		return errors.New("postgres SELECT query failed: " + err.Error())
 	}
 
-	bck.db.decode(data)
+	bck.db.logger.Info("Loading stored database", zap.Int("size", len(data)))
+	if err := bck.db.decode(data); err != nil {
+		bck.db.logger.Error("Error decoding stored database", zap.Error(err))
+		return err
+	}
 	bck.db.logger.Info("Loaded stored database")
 
 	return nil
