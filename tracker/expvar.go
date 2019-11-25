@@ -43,7 +43,7 @@ func publishExpvar(conf *shared.Config, peerdb storage.Database, httptracker *ht
 
 	shared.RunOn(time.Duration(conf.Trakx.Expvar.Every)*time.Second, func() {
 		storage.Expvar.IPs.Lock()
-		uniqueIP.Set(int64(len(storage.Expvar.IPs.M)))
+		uniqueIP.Set(int64(storage.Expvar.IPs.Len()))
 		storage.Expvar.IPs.Unlock()
 		uniqueHash.Set(int64(peerdb.Hashes()))
 

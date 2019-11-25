@@ -13,15 +13,15 @@ var (
 )
 
 type expvarIPmap struct {
-	M map[PeerIP]int16
+	submap map[PeerIP]int16
 }
 
-func (e *expvarIPmap) Lock()               {}
-func (e *expvarIPmap) Unlock()             {}
-func (e *expvarIPmap) Delete(ip PeerIP)    {}
-func (e *expvarIPmap) Inc(ip PeerIP)       {}
-func (e *expvarIPmap) Dec(ip PeerIP)       {}
-func (e *expvarIPmap) Dead(ip PeerIP) bool { return false }
+func (e *expvarIPmap) Lock()            {}
+func (e *expvarIPmap) Unlock()          {}
+func (e *expvarIPmap) Delete(ip PeerIP) {}
+func (e *expvarIPmap) Inc(ip PeerIP)    {}
+func (e *expvarIPmap) Dec(ip PeerIP)    {}
+func (e *expvarIPmap) Remove(ip PeerIP) {}
 
 type expvals struct {
 	Connects    int64

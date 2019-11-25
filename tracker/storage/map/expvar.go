@@ -11,7 +11,7 @@ func (db *Memory) Expvar() {
 	// Called on main thread before thread dispatch no locking needed
 	for _, peermap := range db.hashmap {
 		for _, peer := range peermap.peers {
-			storage.Expvar.IPs.M[peer.IP]++
+			storage.Expvar.IPs.Inc(peer.IP)
 			if peer.Complete == true {
 				storage.Expvar.Seeds++
 			} else {

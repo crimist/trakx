@@ -4,14 +4,6 @@ import (
 	"github.com/crimist/trakx/tracker/storage"
 )
 
-func (db *Memory) makePeermap(h *storage.Hash) (peermap *subPeerMap) {
-	// build struct and assign
-	peermap = new(subPeerMap)
-	peermap.peers = make(map[storage.PeerID]*storage.Peer, 1)
-	db.hashmap[*h] = peermap
-	return
-}
-
 // Save writes a peer
 func (db *Memory) Save(p *storage.Peer, h *storage.Hash, id *storage.PeerID) {
 	var dbPeer *storage.Peer
@@ -43,7 +35,7 @@ func (db *Memory) Save(p *storage.Peer, h *storage.Hash, id *storage.PeerID) {
 			}
 			if dbPeer.IP != p.IP { // IP changed
 				storage.Expvar.IPs.Lock()
-				storage.Expvar.IPs.Delete(dbPeer.IP)
+				storage.Expvar.IPs.Remove(dbPeer.IP)
 				storage.Expvar.IPs.Inc(p.IP)
 				storage.Expvar.IPs.Unlock()
 			}
@@ -72,10 +64,7 @@ func (db *Memory) delete(p *storage.Peer, pmap *subPeerMap, id *storage.PeerID) 
 		}
 
 		storage.Expvar.IPs.Lock()
-		storage.Expvar.IPs.Dec(p.IP)
-		if storage.Expvar.IPs.Dead(p.IP) {
-			storage.Expvar.IPs.Delete(p.IP)
-		}
+		storage.Expvar.IPs.Remove(p.IP)
 		storage.Expvar.IPs.Unlock()
 	}
 }
@@ -101,10 +90,7 @@ func (db *Memory) Drop(p *storage.Peer, h *storage.Hash, id *storage.PeerID) {
 		}
 
 		storage.Expvar.IPs.Lock()
-		storage.Expvar.IPs.Dec(p.IP)
-		if storage.Expvar.IPs.Dead(p.IP) {
-			storage.Expvar.IPs.Delete(p.IP)
-		}
+		storage.Expvar.IPs.Remove(p.IP)
 		storage.Expvar.IPs.Unlock()
 	}
 }

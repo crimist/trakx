@@ -50,7 +50,7 @@ func Run() {
 
 	// pprof, sigs, expvar
 	peerdb.Expvar()
-	go handleSigs(peerdb, udptracker)
+	go sigHandler(peerdb, udptracker)
 	if conf.Trakx.Pprof.Port != 0 {
 		logger.Info("pprof on", zap.Int("port", conf.Trakx.Pprof.Port))
 		initpprof()

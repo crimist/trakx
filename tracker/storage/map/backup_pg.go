@@ -79,11 +79,7 @@ func (bck PgBackup) save() error {
 	return nil
 }
 
-func (bck PgBackup) SaveTmp() error {
-	return bck.save()
-}
-
-func (bck PgBackup) SaveFull() error {
+func (bck PgBackup) Save() error {
 	return bck.save()
 }
 

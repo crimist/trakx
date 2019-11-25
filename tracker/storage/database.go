@@ -42,7 +42,6 @@ type Database interface {
 
 type Backup interface {
 	Init(Database) error
-	SaveTmp() error
-	SaveFull() error
+	Save() error
 	Load() error
 }

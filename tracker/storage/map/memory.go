@@ -9,8 +9,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// number of sub hashtables to make() for
-const initCap = 1000000
+const (
+	hashMapAlloc = 1000000
+	peerMapAlloc = 1
+)
 
 type subPeerMap struct {
 	sync.RWMutex
@@ -42,7 +44,7 @@ func (db *Memory) Init(conf *shared.Config, logger *zap.Logger, backup storage.B
 
 	if conf.Database.Peer.Write > 0 {
 		go shared.RunOn(time.Duration(conf.Database.Peer.Write)*time.Second, func() {
-			db.backup.SaveTmp()
+			db.backup.Save()
 		})
 	}
 	if conf.Database.Peer.Trim > 0 {
@@ -50,11 +52,25 @@ func (db *Memory) Init(conf *shared.Config, logger *zap.Logger, backup storage.B
 	}
 }
 
-func (db *Memory) make() { db.hashmap = make(map[storage.Hash]*subPeerMap, initCap) }
+func (db *Memory) make() {
+	db.hashmap = make(map[storage.Hash]*subPeerMap, hashMapAlloc)
+}
 
-func (db *Memory) Backup() storage.Backup { return db.backup }
+func (db *Memory) makePeermap(h *storage.Hash) (peermap *subPeerMap) {
+	// build struct and assign
+	peermap = new(subPeerMap)
+	peermap.peers = make(map[storage.PeerID]*storage.Peer, peerMapAlloc)
+	db.hashmap[*h] = peermap
+	return
+}
 
-func (db *Memory) Check() bool { return db.hashmap != nil }
+func (db *Memory) Backup() storage.Backup {
+	return db.backup
+}
+
+func (db *Memory) Check() bool {
+	return db.hashmap != nil
+}
 
 func (db *Memory) Trim() {
 	start := time.Now()
@@ -70,9 +86,9 @@ func (db *Memory) Trim() {
 func (db *Memory) trim() (peers, hashes int) {
 	now := time.Now().Unix()
 
-	db.mu.Lock()
+	db.mu.RLock()
 	for hash, peermap := range db.hashmap {
-		db.mu.Unlock()
+		db.mu.RUnlock()
 
 		peermap.Lock()
 		for id, peer := range peermap.peers {
@@ -81,15 +97,18 @@ func (db *Memory) trim() (peers, hashes int) {
 				peers++
 			}
 		}
+		peersize := len(peermap.peers)
 		peermap.Unlock()
 
-		db.mu.Lock()
-		if len(peermap.peers) == 0 {
+		if peersize == 0 {
+			db.mu.Lock()
 			delete(db.hashmap, hash)
+			db.mu.Unlock()
 			hashes++
 		}
+		db.mu.RLock()
 	}
-	db.mu.Unlock()
+	db.mu.RUnlock()
 
 	return
 }

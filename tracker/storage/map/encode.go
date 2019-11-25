@@ -14,6 +14,8 @@ type encoded struct {
 
 func (db *Memory) encode() ([]byte, error) {
 	var buff bytes.Buffer
+	var i int
+
 	enc := gob.NewEncoder(&buff)
 	encodes := make([]encoded, db.Hashes())
 
@@ -22,19 +24,18 @@ func (db *Memory) encode() ([]byte, error) {
 		db.mu.RUnlock()
 
 		submap.RLock()
-		encodes = append(encodes, encoded{
+		encodes[i] = encoded{
 			Hash:  hash,
 			Peers: submap.peers,
-		})
+		}
 		submap.RUnlock()
 
+		i++
 		db.mu.RLock()
 	}
 	db.mu.RUnlock()
 
-	db.mu.RLock()
 	err := enc.Encode(encodes)
-	db.mu.RUnlock()
 	if err != nil {
 		return nil, err
 	}

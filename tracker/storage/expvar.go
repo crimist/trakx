@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	fast     = false
-	IPMapCap = 100000
+	fast       = false
+	IPMapAlloc = 100000
 )
 
 var (
@@ -17,35 +17,32 @@ var (
 )
 
 type expvarIPmap struct {
-	mu sync.Mutex
-	M  map[PeerIP]int16
+	sync.Mutex
+	submap map[PeerIP]int16
 }
 
-func (e *expvarIPmap) Lock() {
-	e.mu.Lock()
-}
-
-func (e *expvarIPmap) Unlock() {
-	e.mu.Unlock()
+func (e *expvarIPmap) Len() int {
+	return len(e.submap)
 }
 
 func (e *expvarIPmap) Delete(ip PeerIP) {
-	delete(e.M, ip)
+	delete(e.submap, ip)
 }
 
 func (e *expvarIPmap) Inc(ip PeerIP) {
-	e.M[ip]++
+	e.submap[ip]++
 }
 
 func (e *expvarIPmap) Dec(ip PeerIP) {
-	e.M[ip]--
+	e.submap[ip]--
 }
 
-func (e *expvarIPmap) Dead(ip PeerIP) (dead bool) {
-	if e.M[ip] < 1 {
-		dead = true
+// Remove decrements the IP and removes it if it's dead
+func (e *expvarIPmap) Remove(ip PeerIP) {
+	e.submap[ip]--
+	if e.submap[ip] < 1 {
+		delete(e.submap, ip)
 	}
-	return
 }
 
 type expvals struct {
@@ -66,4 +63,4 @@ func AddExpval(num *int64, inc int64) {
 	atomic.AddInt64(num, inc)
 }
 
-func init() { Expvar.IPs.M = make(map[PeerIP]int16, IPMapCap) }
+func init() { Expvar.IPs.submap = make(map[PeerIP]int16, IPMapAlloc) }

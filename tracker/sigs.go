@@ -12,10 +12,11 @@ import (
 )
 
 var (
-	SigStop = os.Interrupt
+	SigStop     = os.Interrupt
+	exitSuccess = 0
 )
 
-func handleSigs(peerdb storage.Database, udptracker *udp.UDPTracker) {
+func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGUSR1)
 
@@ -24,14 +25,14 @@ func handleSigs(peerdb storage.Database, udptracker *udp.UDPTracker) {
 
 		switch sig {
 		case os.Interrupt, os.Kill, syscall.SIGTERM:
-			logger.Info("Exiting")
+			logger.Info("Got exit signal", zap.Any("sig", sig))
 
-			peerdb.Backup().SaveFull()
+			peerdb.Backup().Save()
 			if udptracker != nil {
 				udptracker.WriteConns()
 			}
 
-			os.Exit(0)
+			os.Exit(exitSuccess)
 		default:
 			logger.Info("Got unknown sig", zap.Any("Signal", sig))
 		}
