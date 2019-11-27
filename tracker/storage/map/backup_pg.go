@@ -14,11 +14,11 @@ import (
 const (
 	// Maximum retention for entries. Rows older than this will be removed
 	// "off" to disable
-	maxdate = "7 days"
+	maxDate = "7 days"
 
 	// Maximum number of rows. Rows exceeding this will be removed by timestamp
 	// -1 for unlimited
-	maxrows = "10"
+	maxRows = "10"
 )
 
 type PgBackup struct {
@@ -88,10 +88,10 @@ func (bck PgBackup) load() error {
 
 	err := bck.pg.QueryRow("SELECT bytes FROM trakx ORDER BY ts DESC LIMIT 1").Scan(&data)
 	if err != nil {
-		if strings.Contains(err.Error(), "no rows in result set") {
-			// empty postgres table
+		defer bck.db.make()
+
+		if strings.Contains(err.Error(), "no rows in result set") { // empty postgres table
 			bck.db.logger.Info("No stored database found")
-			bck.db.make()
 			return nil
 		}
 		return errors.New("postgres SELECT query failed: " + err.Error())
@@ -100,10 +100,11 @@ func (bck PgBackup) load() error {
 	bck.db.logger.Info("Loading stored database", zap.Int("size", len(data)))
 	if err := bck.db.decode(data); err != nil {
 		bck.db.logger.Error("Error decoding stored database", zap.Error(err))
+		bck.db.make()
 		return err
 	}
-	bck.db.logger.Info("Loaded stored database")
 
+	bck.db.logger.Info("Loaded stored database")
 	return nil
 }
 
@@ -114,8 +115,8 @@ func (bck PgBackup) Load() error {
 func (bck PgBackup) trim() (int64, error) {
 	var trimmed int64
 
-	if maxdate != "off" {
-		result, err := bck.pg.Exec("DELETE FROM trakx WHERE ts < NOW() - INTERVAL '" + maxdate + "'")
+	if maxDate != "off" {
+		result, err := bck.pg.Exec("DELETE FROM trakx WHERE ts < NOW() - INTERVAL '" + maxDate + "'")
 		if err != nil {
 			return -1, err
 		}
@@ -126,8 +127,8 @@ func (bck PgBackup) trim() (int64, error) {
 		}
 	}
 
-	if maxrows != "-1" {
-		result, err := bck.pg.Exec("DELETE FROM trakx WHERE ctid IN (SELECT ctid FROM trakx ORDER BY ctid DESC OFFSET " + maxrows + ")")
+	if maxRows != "-1" {
+		result, err := bck.pg.Exec("DELETE FROM trakx WHERE ctid IN (SELECT ctid FROM trakx ORDER BY ctid DESC OFFSET " + maxRows + ")")
 		if err != nil {
 			return -1, err
 		}
