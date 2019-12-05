@@ -4,30 +4,39 @@ import (
 	"errors"
 
 	"github.com/crimist/trakx/tracker/shared"
-	"go.uber.org/zap"
 )
 
-func Open(name, backupname string) (Database, Backup, error) {
-	driver, ok := drivers[name]
+func Open(conf *shared.Config) (Database, error) {
+	driver, ok := drivers[conf.Database.Type]
 	if !ok {
-		return nil, nil, errors.New("Invalid database type: '" + name + "'")
+		return nil, errors.New("Invalid database driver: '" + conf.Database.Type + "'")
 	}
-	backup, ok := driver.backups[backupname]
+
+	backup, ok := driver.backups[conf.Database.Backup]
 	if !ok {
-		return nil, nil, errors.New("Invalid backup type: '" + backupname + "'")
+		return nil, errors.New("Invalid backup driver: '" + conf.Database.Backup + "'")
 	}
-	return driver.db, backup, nil
+
+	if err := driver.db.Init(conf, backup); err != nil {
+		return nil, errors.New("Failed to initialize storage driver: " + err.Error())
+	}
+
+	if err := driver.db.Expvar(); err != nil {
+		return nil, errors.New("Expvar() call failed: " + err.Error())
+	}
+
+	return driver.db, nil
 }
 
 type Database interface {
 	// Used to init the database after open()
-	Init(conf *shared.Config, logger *zap.Logger, backup Backup)
+	Init(conf *shared.Config, backup Backup) error
 
 	// Internal functions
 	Check() bool
 	Backup() Backup
 	Trim()
-	Expvar()
+	Expvar() error
 
 	Save(*Peer, *Hash, *PeerID)
 	Drop(*Peer, *Hash, *PeerID)

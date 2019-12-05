@@ -3,9 +3,11 @@
 #   All time is measured in seconds
 #   Time can be set to 0 to not execute
 # All values in this can be overridden with env vars
-#   Ex: export TRAKX_TRAKX_PROD=false
+#   Ex: export TRAKX_TRAKX_HONEY=<insert api key>
 
 trakx:
+  # Honeybadger.io api key, I would recommend you use env vars for this
+  honey: ""
   prod: true
   index: "/usr/local/trakx/index.html"
   # Expvar is served on /stats over the set http port

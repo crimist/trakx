@@ -23,7 +23,7 @@ func (bck *FileBackup) Init(db storage.Database) error {
 }
 
 func (bck *FileBackup) Load() error {
-	bck.db.logger.Info("Loading database from file")
+	bck.db.conf.Logger.Info("Loading database from file")
 	start := time.Now()
 
 	_, err := os.Stat(bck.db.conf.Database.Peer.Filename)
@@ -39,7 +39,7 @@ func (bck *FileBackup) Load() error {
 		return errors.New("Failed to load file: " + err.Error())
 	}
 
-	bck.db.logger.Info("Loaded database", zap.Int("hashes", bck.db.Hashes()), zap.Duration("took", time.Now().Sub(start)))
+	bck.db.conf.Logger.Info("Loaded database", zap.Int("hashes", bck.db.Hashes()), zap.Duration("took", time.Now().Sub(start)))
 
 	return nil
 }
@@ -74,14 +74,14 @@ func (bck *FileBackup) writeFile() (float32, error) {
 }
 
 func (bck *FileBackup) Save() error {
-	bck.db.logger.Info("Writing database to file")
+	bck.db.conf.Logger.Info("Writing database to file")
 	start := time.Now()
 	size, err := bck.writeFile()
 
 	if err != nil {
-		bck.db.logger.Info("Failed to write database", zap.Duration("duration", time.Now().Sub(start)))
+		bck.db.conf.Logger.Info("Failed to write database", zap.Duration("duration", time.Now().Sub(start)))
 	} else {
-		bck.db.logger.Info("Wrote database", zap.Float32("size", size), zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
+		bck.db.conf.Logger.Info("Wrote database", zap.Float32("size", size), zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 	}
 
 	return err

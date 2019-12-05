@@ -6,8 +6,8 @@
 package main
 
 import (
-	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/crimist/trakx/tracker"
+	_ "github.com/heroku/x/hmetrics/onload"
 )
 
 func main() {

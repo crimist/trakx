@@ -10,6 +10,7 @@ import (
 	"github.com/crimist/trakx/tracker/shared"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp"
+	"github.com/honeybadger-io/honeybadger-go"
 	"go.uber.org/zap"
 
 	// import database types so init is called
@@ -33,29 +34,34 @@ func Run() {
 		panic(err)
 	}
 
-	conf = shared.ViperConf(logger)
-	if conf.Tracker.Announce == 0 {
-		logger.Fatal("Failed to load config")
-		return
+	logger.Info("Starting trakx...")
+
+	conf, err = shared.ViperConf(logger)
+	if err != nil || !conf.Loaded() {
+		logger.Fatal("Failed to load configuration", zap.Any("config", conf), zap.Error(err))
 	}
-	logger.Info("Loaded conf")
+
+	logger.Info("dbg", zap.String("honey", conf.Trakx.Honey), zap.String("index", conf.Trakx.Index))
+
+	if conf.Trakx.Honey != "" {
+		logger.Info("Honeybadger.io API key detected", zap.String("keysample", conf.Trakx.Honey[:9]))
+		honeybadger.Configure(honeybadger.Configuration{
+			APIKey: conf.Trakx.Honey, // env TRAKX_TRACKER_HONEY
+		})
+		defer honeybadger.Monitor()
+	}
 
 	// db
-	peerdb, backup, err := storage.Open(conf.Database.Type, conf.Database.Backup)
+	peerdb, err := storage.Open(conf)
 	if err != nil {
-		logger.Fatal("Failed to open database", zap.Error(err))
-		return
+		logger.Fatal("Failed to initialize storage", zap.Error(err))
 	}
-	peerdb.Init(conf, logger, backup)
 
 	// pprof, sigs, expvar
-	peerdb.Expvar()
 	go sigHandler(peerdb, udptracker)
 	if conf.Trakx.Pprof.Port != 0 {
-		logger.Info("pprof on", zap.Int("port", conf.Trakx.Pprof.Port))
+		logger.Info("pprof enabled", zap.Int("port", conf.Trakx.Pprof.Port))
 		initpprof()
-	} else {
-		logger.Info("pprof off")
 	}
 
 	// HTTP tracker / routes

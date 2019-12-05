@@ -1,6 +1,7 @@
 package gomap
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -25,21 +26,19 @@ type Memory struct {
 
 	backup storage.Backup
 	conf   *shared.Config
-	logger *zap.Logger
 }
 
-func (db *Memory) Init(conf *shared.Config, logger *zap.Logger, backup storage.Backup) {
+func (db *Memory) Init(conf *shared.Config, backup storage.Backup) error {
 	*db = Memory{
 		conf:   conf,
-		logger: logger,
 		backup: backup,
 	}
 
 	if err := db.backup.Init(db); err != nil {
-		panic(err)
+		return errors.New("Failed to initialize backup: " + err.Error())
 	}
 	if err := db.backup.Load(); err != nil {
-		logger.Error("Failed to load", zap.Error(err))
+		return errors.New("Failed to load backup: " + err.Error())
 	}
 
 	if conf.Database.Peer.Write > 0 {
@@ -50,6 +49,8 @@ func (db *Memory) Init(conf *shared.Config, logger *zap.Logger, backup storage.B
 	if conf.Database.Peer.Trim > 0 {
 		go shared.RunOn(time.Duration(conf.Database.Peer.Trim)*time.Second, db.Trim)
 	}
+
+	return nil
 }
 
 func (db *Memory) make() {
@@ -74,12 +75,12 @@ func (db *Memory) Check() bool {
 
 func (db *Memory) Trim() {
 	start := time.Now()
-	db.logger.Info("Trimming database")
+	db.conf.Logger.Info("Trimming database")
 	peers, hashes := db.trim()
 	if peers < 1 && hashes < 1 {
-		db.logger.Info("Can't trim database: database empty")
+		db.conf.Logger.Info("Can't trim database: database empty")
 	} else {
-		db.logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
+		db.conf.Logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
 	}
 }
 
