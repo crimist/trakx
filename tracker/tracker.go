@@ -38,7 +38,7 @@ func Run() {
 
 	conf, err = shared.ViperConf(logger)
 	if err != nil || !conf.Loaded() {
-		logger.Fatal("Failed to load configuration", zap.Any("config", conf), zap.Error(err))
+		logger.Panic("Failed to load configuration", zap.Any("config", conf), zap.Error(err))
 	}
 
 	logger.Info("dbg", zap.String("honey", conf.Trakx.Honey), zap.String("index", conf.Trakx.Index))
@@ -54,7 +54,7 @@ func Run() {
 	// db
 	peerdb, err := storage.Open(conf)
 	if err != nil {
-		logger.Fatal("Failed to initialize storage", zap.Error(err))
+		logger.Panic("Failed to initialize storage", zap.Error(err))
 	}
 
 	// pprof, sigs, expvar
