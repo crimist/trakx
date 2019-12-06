@@ -82,7 +82,11 @@ func (db *Memory) Drop(h *storage.Hash, id *storage.PeerID) {
 	}
 
 	peermap.Lock()
-	peer = peermap.peers[*id]
+	peer, ok = peermap.peers[*id]
+	if !ok {
+		peermap.Unlock()
+		return
+	}
 	delete(peermap.peers, *id)
 	peermap.Unlock()
 
