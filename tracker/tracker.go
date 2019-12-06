@@ -3,6 +3,7 @@ package tracker
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/crimist/trakx/bencoding"
@@ -36,20 +37,20 @@ func Run() {
 
 	logger.Info("Starting trakx...")
 
+	if honeyAPIKey := os.Getenv("TRAKX_TRACKER_HONEY"); honeyAPIKey != "" {
+		logger.Info("Honeybadger.io API key detected", zap.String("keysample", conf.Trakx.Honey[:9]))
+		honeybadger.Configure(honeybadger.Configuration{
+			APIKey: honeyAPIKey,
+		})
+		defer honeybadger.Monitor()
+	}
+
 	conf, err = shared.ViperConf(logger)
 	if err != nil || !conf.Loaded() {
 		logger.Panic("Failed to load configuration", zap.Any("config", conf), zap.Error(err))
 	}
 
 	logger.Info("dbg", zap.String("honey", conf.Trakx.Honey), zap.String("index", conf.Trakx.Index))
-
-	if conf.Trakx.Honey != "" {
-		logger.Info("Honeybadger.io API key detected", zap.String("keysample", conf.Trakx.Honey[:9]))
-		honeybadger.Configure(honeybadger.Configuration{
-			APIKey: conf.Trakx.Honey, // env TRAKX_TRACKER_HONEY
-		})
-		defer honeybadger.Monitor()
-	}
 
 	// db
 	peerdb, err := storage.Open(conf)

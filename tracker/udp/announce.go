@@ -94,7 +94,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	}
 
 	if announce.Event == stopped {
-		u.peerdb.Drop(&peer, &announce.InfoHash, &announce.PeerID)
+		u.peerdb.Drop(&announce.InfoHash, &announce.PeerID)
 
 		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
 		if u.conf.Tracker.StoppedMsg != "" {

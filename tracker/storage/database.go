@@ -39,7 +39,7 @@ type Database interface {
 	Expvar() error
 
 	Save(*Peer, *Hash, *PeerID)
-	Drop(*Peer, *Hash, *PeerID)
+	Drop(*Hash, *PeerID)
 
 	HashStats(*Hash) (int32, int32)
 	PeerList(*Hash, int, bool) []string

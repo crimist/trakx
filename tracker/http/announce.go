@@ -30,19 +30,6 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	peer := storage.Peer{LastSeen: time.Now().Unix(), IP: ip}
 	numwant := int(t.conf.Tracker.Numwant.Default)
 
-	// Port
-	portInt, err := strconv.Atoi(vals.port)
-	if err != nil || (portInt > 65535 || portInt < 1) {
-		t.clientError(conn, "Invalid port")
-		return
-	}
-	peer.Port = uint16(portInt)
-
-	// Complete
-	if vals.event == "completed" || vals.noneleft {
-		peer.Complete = true
-	}
-
 	// hash
 	if len(vals.hash) != 20 {
 		t.clientError(conn, "Invalid infohash")
@@ -57,6 +44,27 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	}
 	copy(peerid[:], vals.peerid)
 
+	// Get if stop before continuing
+	if vals.event == "stopped" {
+		t.peerdb.Drop(&hash, &peerid)
+		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
+		conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + t.conf.Tracker.StoppedMsg))
+		return
+	}
+
+	// Port
+	portInt, err := strconv.Atoi(vals.port)
+	if err != nil || (portInt > 65535 || portInt < 1) {
+		t.clientError(conn, "Invalid port")
+		return
+	}
+	peer.Port = uint16(portInt)
+
+	// Complete
+	if vals.event == "completed" || vals.noneleft {
+		peer.Complete = true
+	}
+
 	// numwant
 	if vals.numwant != "" {
 		numwantInt, err := strconv.Atoi(vals.numwant)
@@ -67,14 +75,6 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 		if numwantInt < int(t.conf.Tracker.Numwant.Max) || numwantInt > 0 {
 			numwant = numwantInt
 		}
-	}
-
-	// Processing
-	if vals.event == "stopped" {
-		t.peerdb.Drop(&peer, &hash, &peerid)
-		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
-		conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + t.conf.Tracker.StoppedMsg))
-		return
 	}
 
 	t.peerdb.Save(&peer, &hash, &peerid)

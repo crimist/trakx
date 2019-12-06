@@ -4,18 +4,19 @@ import (
 	"math/rand"
 	"testing"
 
-	"go.uber.org/zap"
-
+	"github.com/crimist/trakx/tracker/shared"
 	"github.com/crimist/trakx/tracker/storage"
+	"go.uber.org/zap"
 )
 
 func dbWithHashesAndPeers(hashes, peers int) *Memory {
 	var err error
 	var db Memory
+	db.conf = new(shared.Config)
 
 	db.make()
 	db.Expvar()
-	if db.logger, err = zap.NewDevelopment(); err != nil {
+	if db.conf.Logger, err = zap.NewDevelopment(); err != nil {
 		panic(err)
 	}
 
