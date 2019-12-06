@@ -37,8 +37,9 @@ func Run() {
 
 	logger.Info("Starting trakx...")
 
-	if honeyAPIKey := os.Getenv("TRAKX_TRACKER_HONEY"); honeyAPIKey != "" {
-		logger.Info("Honeybadger.io API key detected", zap.String("keysample", conf.Trakx.Honey[:9]))
+	honeyAPIKey := os.Getenv("TRAKX_TRACKER_HONEY")
+	if honeyAPIKey != "" && len(honeyAPIKey) >= 10 {
+		logger.Info("honeybadger.io API key detected", zap.String("keysample", honeyAPIKey[:9]))
 		honeybadger.Configure(honeybadger.Configuration{
 			APIKey: honeyAPIKey,
 		})
@@ -49,8 +50,6 @@ func Run() {
 	if err != nil || !conf.Loaded() {
 		logger.Panic("Failed to load configuration", zap.Any("config", conf), zap.Error(err))
 	}
-
-	logger.Info("dbg", zap.String("honey", conf.Trakx.Honey), zap.String("index", conf.Trakx.Index))
 
 	// db
 	peerdb, err := storage.Open(conf)
