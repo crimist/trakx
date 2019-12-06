@@ -96,13 +96,14 @@ func (bck PgBackup) load() error {
 	}
 
 	bck.db.conf.Logger.Info("Loading stored database", zap.Int("size", len(data)))
-	if err := bck.db.decode(data); err != nil {
+	peers, hashes, err := bck.db.decode(data)
+	if err != nil {
 		bck.db.conf.Logger.Error("Error decoding stored database", zap.Error(err))
 		bck.db.make()
 		return err
 	}
 
-	bck.db.conf.Logger.Info("Loaded stored database")
+	bck.db.conf.Logger.Info("Loaded stored database", zap.Int("peers", peers), zap.Int("hashes", hashes))
 	return nil
 }
 

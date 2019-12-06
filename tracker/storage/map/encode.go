@@ -43,20 +43,23 @@ func (db *Memory) encode() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (db *Memory) decode(data []byte) error {
+func (db *Memory) decode(data []byte) (peers, hashes int, err error) {
 	db.make()
 
 	var encodes []encoded
 	dec := gob.NewDecoder(bytes.NewBuffer(data))
 
-	if err := dec.Decode(&encodes); err != nil {
-		return err
+	if err = dec.Decode(&encodes); err != nil {
+		return
 	}
 
 	for _, encd := range encodes {
 		peermap := db.makePeermap(&encd.Hash)
 		peermap.peers = encd.Peers
+
+		hashes++
+		peers += len(encd.Peers)
 	}
 
-	return nil
+	return
 }

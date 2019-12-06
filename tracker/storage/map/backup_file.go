@@ -50,7 +50,7 @@ func (db *Memory) loadFile(filename string) error {
 		return err
 	}
 
-	if err := db.decode(data); err != nil {
+	if _, _, err := db.decode(data); err != nil {
 		return err
 	}
 
