@@ -29,7 +29,9 @@ func (bck *FileBackup) Load() error {
 	_, err := os.Stat(bck.db.conf.Database.Peer.Filename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return errors.New("Database file not found: " + err.Error())
+			bck.db.make()
+			bck.db.conf.Logger.Info("Database file not found", zap.Error(err))
+			return nil
 		}
 
 		return errors.New("os.Stat failed: " + err.Error())
@@ -50,7 +52,7 @@ func (db *Memory) loadFile(filename string) error {
 		return err
 	}
 
-	if _, _, err := db.decode(data); err != nil {
+	if _, _, err := db.decodeBinary(data); err != nil {
 		return err
 	}
 
@@ -61,7 +63,7 @@ func (db *Memory) loadFile(filename string) error {
 func (bck *FileBackup) writeFile() (float32, error) {
 	filename := bck.db.conf.Database.Peer.Filename
 
-	encoded, err := bck.db.encode()
+	encoded, err := bck.db.encodeBinary()
 	if err != nil {
 		return 0, err
 	}

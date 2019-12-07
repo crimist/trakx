@@ -53,7 +53,7 @@ func (bck *PgBackup) Init(db storage.Database) error {
 }
 
 func (bck PgBackup) save() error {
-	data, err := bck.db.encode()
+	data, err := bck.db.encodeBinary()
 	if err != nil {
 		bck.db.conf.Logger.Error("Failed to encode", zap.Error(err))
 		return err
@@ -96,7 +96,7 @@ func (bck PgBackup) load() error {
 	}
 
 	bck.db.conf.Logger.Info("Loading stored database", zap.Int("size", len(data)))
-	peers, hashes, err := bck.db.decode(data)
+	peers, hashes, err := bck.db.decodeBinary(data)
 	if err != nil {
 		bck.db.conf.Logger.Error("Error decoding stored database", zap.Error(err))
 		bck.db.make()
