@@ -77,6 +77,14 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 		}
 	}
 
+	// Processing
+	if vals.event == "stopped" {
+		t.peerdb.Drop(&hash, &peerid)
+		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
+		conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + t.conf.Tracker.StoppedMsg))
+		return
+	}
+
 	t.peerdb.Save(&peer, &hash, &peerid)
 	complete, incomplete := t.peerdb.HashStats(&hash)
 
