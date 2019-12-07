@@ -119,25 +119,28 @@ func BenchmarkDecodeBinary(b *testing.B) {
 }
 
 func BenchmarkEncodeMemuse(b *testing.B) {
-	b.ResetTimer()
 	b.StopTimer()
+	b.ResetTimer()
+
+	gcp := debug.SetGCPercent(-1)
 
 	for i := 0; i < b.N; i++ {
 		peerdb := dbWithHashesAndPeers(benchHashes, benchPeers)
 
-		var start runtime.MemStats
+		var start, end runtime.MemStats
 		runtime.ReadMemStats(&start)
 
 		b.StartTimer()
 		encoded, _ := peerdb.encode()
 		b.StopTimer()
 
-		var end runtime.MemStats
 		runtime.ReadMemStats(&end)
 
 		b.Logf("Trim: %dMB using %dMB with %d GC cycles", len(encoded)/1024/1024, (end.HeapAlloc-start.HeapAlloc)/1024/1024, end.NumGC-start.NumGC)
 		debug.FreeOSMemory()
 	}
+
+	debug.SetGCPercent(gcp)
 }
 
 func BenchmarkEncodeBinaryMemuse(b *testing.B) {
@@ -149,14 +152,13 @@ func BenchmarkEncodeBinaryMemuse(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		peerdb := dbWithHashesAndPeers(benchHashes, benchPeers)
 
-		var start runtime.MemStats
+		var start, end runtime.MemStats
 		runtime.ReadMemStats(&start)
 
 		b.StartTimer()
 		encoded, _ := peerdb.encodeBinary()
 		b.StopTimer()
 
-		var end runtime.MemStats
 		runtime.ReadMemStats(&end)
 
 		b.Logf("Trim: %dMB using %dMB with %d GC cycles", len(encoded)/1024/1024, (end.HeapAlloc-start.HeapAlloc)/1024/1024, end.NumGC-start.NumGC)

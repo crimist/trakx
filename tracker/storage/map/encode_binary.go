@@ -18,12 +18,12 @@ func (db *Memory) encodeBinary() ([]byte, error) {
 	for hash, submap := range db.hashmap {
 		db.mu.RUnlock()
 
-		binary.Write(w, binary.LittleEndian, hash)
+		binary.Write(w, binary.LittleEndian, &hash)
 		binary.Write(w, binary.LittleEndian, uint32(len(submap.peers)))
 
 		submap.RLock()
 		for id, peer := range submap.peers {
-			binary.Write(w, binary.LittleEndian, id)
+			binary.Write(w, binary.LittleEndian, &id)
 			binary.Write(w, binary.LittleEndian, peer)
 		}
 		submap.RUnlock()
