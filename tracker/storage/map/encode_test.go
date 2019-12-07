@@ -14,9 +14,15 @@ func TestEncodeDecode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = db.decode(data)
+	peers, hashes, err := db.decode(data)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if peers != 5000 {
+		t.Fatal("peers != 5000")
+	}
+	if hashes != 1000 {
+		t.Fatal("hashes != 1000")
 	}
 }
 
@@ -58,13 +64,13 @@ func BenchmarkEncodeMemuse(b *testing.B) {
 		runtime.ReadMemStats(&start)
 
 		b.StartTimer()
-		x, _ := peerdb.encode()
+		encoded, _ := peerdb.encode()
 		b.StopTimer()
 
 		var end runtime.MemStats
 		runtime.ReadMemStats(&end)
 
-		b.Logf("Trim: %dMB using %dMB with %d GC cycles", len(x)/1024/1024, (end.HeapAlloc-start.HeapAlloc)/1024/1024, end.NumGC-start.NumGC)
+		b.Logf("Trim: %dMB using %dMB with %d GC cycles", len(encoded)/1024/1024, (end.HeapAlloc-start.HeapAlloc)/1024/1024, end.NumGC-start.NumGC)
 		debug.FreeOSMemory()
 	}
 }

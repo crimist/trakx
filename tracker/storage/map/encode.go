@@ -7,35 +7,50 @@ import (
 	"github.com/crimist/trakx/tracker/storage"
 )
 
+const bytesPerPeer = 57
+
+type peerlist struct {
+	ID   *storage.PeerID
+	Peer *storage.Peer
+}
+
 type encoded struct {
 	Hash  storage.Hash
-	Peers map[storage.PeerID]*storage.Peer
+	Peers []peerlist
 }
 
 func (db *Memory) encode() ([]byte, error) {
 	var buff bytes.Buffer
-	var i int
+	var i, z int
 
-	enc := gob.NewEncoder(&buff)
 	encodes := make([]encoded, db.Hashes())
 
 	db.mu.RLock()
 	for hash, submap := range db.hashmap {
 		db.mu.RUnlock()
 
+		z = 0
+		plist := make([]peerlist, len(submap.peers))
+
 		submap.RLock()
-		encodes[i] = encoded{
-			Hash:  hash,
-			Peers: submap.peers,
+		for id, peer := range submap.peers {
+			plist[z].ID = &id
+			plist[z].Peer = peer
+			z++
 		}
 		submap.RUnlock()
 
+		encodes[i] = encoded{
+			Hash:  hash,
+			Peers: plist,
+		}
 		i++
+
 		db.mu.RLock()
 	}
 	db.mu.RUnlock()
 
-	err := enc.Encode(encodes)
+	err := gob.NewEncoder(&buff).Encode(encodes)
 	if err != nil {
 		return nil, err
 	}
@@ -44,21 +59,21 @@ func (db *Memory) encode() ([]byte, error) {
 }
 
 func (db *Memory) decode(data []byte) (peers, hashes int, err error) {
+	var encodes []encoded
 	db.make()
 
-	var encodes []encoded
-	dec := gob.NewDecoder(bytes.NewBuffer(data))
-
-	if err = dec.Decode(&encodes); err != nil {
+	if err = gob.NewDecoder(bytes.NewBuffer(data)).Decode(&encodes); err != nil {
 		return
 	}
 
-	for _, encd := range encodes {
-		peermap := db.makePeermap(&encd.Hash)
-		peermap.peers = encd.Peers
+	for _, encoded := range encodes {
+		peermap := db.makePeermap(&encoded.Hash)
+		for _, peer := range encoded.Peers {
+			peermap.peers[*peer.ID] = peer.Peer
+			peers++
+		}
 
 		hashes++
-		peers += len(encd.Peers)
 	}
 
 	return
