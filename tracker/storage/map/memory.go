@@ -2,13 +2,11 @@ package gomap
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/crimist/trakx/tracker/shared"
 	"github.com/crimist/trakx/tracker/storage"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/honeybadger-io/honeybadger-go"
 	"go.uber.org/zap"
 )
@@ -56,26 +54,6 @@ func (db *Memory) Init(conf *shared.Config, backup storage.Backup) error {
 	}
 
 	return nil
-}
-
-func (db *Memory) checkPeerCount() {
-	var peers int
-
-	db.mu.Lock()
-	for _, submap := range db.hashmap {
-		// submap.Lock()
-		peers += len(submap.peers)
-		// submap.Unlock()
-	}
-
-	expvarpeers := int(storage.Expvar.Seeds + storage.Expvar.Leeches)
-	db.mu.Unlock()
-
-	if expvarpeers != peers {
-		fmt.Println("Invlid peer count", spew.Sdump(expvarpeers, peers))
-	}
-
-	time.Sleep(1 * time.Second)
 }
 
 func (db *Memory) make() {
