@@ -92,6 +92,7 @@ func TestEncodeBinaryUnsafe(t *testing.T) {
 	db.Save(&peer, &hash, &peerid)
 
 	data, _ := db.encodeBinaryUnsafe()
+	data2, _ := db.encodeBinaryUnsafeAutoalloc()
 
 	db = Memory{}
 
@@ -100,7 +101,17 @@ func TestEncodeBinaryUnsafe(t *testing.T) {
 	dbpeer := submap.peers[peerid]
 
 	if !reflect.DeepEqual(*dbpeer, peer) {
-		t.Fatal("Not equal!\n" + hex.Dump(data) + spew.Sdump(peer, *dbpeer))
+		t.Fatal("encodeBinaryUnsafe not equal!\n" + hex.Dump(data) + spew.Sdump(peer, *dbpeer))
+	}
+
+	db = Memory{}
+
+	db.decodeBinaryUnsafe(data2)
+	submap = db.hashmap[hash]
+	dbpeer = submap.peers[peerid]
+
+	if !reflect.DeepEqual(*dbpeer, peer) {
+		t.Fatal("encodeBinaryUnsafeAutoalloc not equal!\n" + hex.Dump(data) + spew.Sdump(peer, *dbpeer))
 	}
 
 	return
@@ -137,15 +148,6 @@ func BenchmarkEncodeBinaryUnsafe(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		db.encodeBinaryUnsafe()
-	}
-}
-
-func BenchmarkEncodeBinaryUnsafePrealloc(b *testing.B) {
-	db := dbWithHashesAndPeers(benchHashes, benchPeers)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		db.encodeBinaryUnsafePrealloc(benchHashes*24 + (benchHashes*benchPeers)*36)
 	}
 }
 
@@ -226,13 +228,6 @@ func BenchmarkEncodeBinaryMemuse(b *testing.B) {
 func BenchmarkEncodeBinaryUnsafeMemuse(b *testing.B) {
 	peerdb := dbWithHashesAndPeers(benchHashes, benchPeers)
 	benchmarkMemuse(peerdb.encodeBinaryUnsafe, b)
-}
-
-func BenchmarkEncodeBinaryUnsafePreallocMemuse(b *testing.B) {
-	peerdb := dbWithHashesAndPeers(benchHashes, benchPeers)
-	benchmarkMemuse(func() ([]byte, error) {
-		return peerdb.encodeBinaryUnsafePrealloc(benchHashes*24 + (benchHashes*benchPeers)*36)
-	}, b)
 }
 
 func BenchmarkEncodeBinaryUnsafeAutoallocMemuse(b *testing.B) {

@@ -8,21 +8,26 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/crimist/trakx/utils"
 	"github.com/go-torrent/bencode"
 )
 
+const (
+	udptimeout    = 200 * time.Millisecond
+	udptimeoutmsg = "UDP tracker not running"
+)
+
 var client = &http.Client{
-	Timeout: 2 * time.Second,
+	Timeout: 1 * time.Second,
 }
 
 func TestHTTPAnnounce(t *testing.T) {
 	req, err := http.NewRequest("GET", "http://127.0.0.1:1337/announce", nil)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	q := req.URL.Query()
@@ -37,7 +42,10 @@ func TestHTTPAnnounce(t *testing.T) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		t.Error(err)
+		if strings.Contains(err.Error(), "connection refused") {
+			t.Skip("HTTP tracker not running")
+		}
+		t.Fatal(err)
 	}
 
 	// Parse it
@@ -48,12 +56,12 @@ func TestHTTPAnnounce(t *testing.T) {
 	resp.Body.Close()
 
 	if len(body) == 0 {
-		t.Error("body empty")
+		t.Fatal("body empty")
 	}
 
 	var decoded map[string]interface{}
 	if err = bencode.Unmarshal(body, &decoded); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if _, ok := decoded["failure reason"]; ok {
@@ -68,7 +76,7 @@ func TestHTTPAnnounce(t *testing.T) {
 	}
 	var peer map[string]interface{}
 	if err = bencode.Unmarshal([]byte(decoded["peers"].(bencode.List)[0].(string)), &peer); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if peer["peer id"] != "QB123456789012345678" {
 		t.Error("PeerID should be QB123456789012345678 got", peer["peer id"])
@@ -100,18 +108,21 @@ func TestHTTPAnnounceCompact(t *testing.T) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		t.Error(err)
+		if strings.Contains(err.Error(), "connection refused") {
+			t.Skip("HTTP tracker not running")
+		}
+		t.Fatal(err)
 	}
 
 	// Parse it
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	resp.Body.Close()
 	var decoded map[string]interface{}
 	if err = bencode.Unmarshal(body, &decoded); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if _, ok := decoded["failure reason"]; ok {
@@ -120,7 +131,7 @@ func TestHTTPAnnounceCompact(t *testing.T) {
 
 	peerBytes := []byte(decoded["peers"].(string))
 	if len(peerBytes) != 6 {
-		t.Error("len(peers) should be 6 got", len(peerBytes))
+		t.Fatal("len(peers) should be 6 got", len(peerBytes))
 	}
 	if bytes.Compare(peerBytes[0:4], []byte{127, 0, 0, 1}) != 0 {
 		t.Error("ip should be [127, 0, 0, 1] got", peerBytes[4:6])
@@ -254,12 +265,16 @@ func TestUDPAnnounce(t *testing.T) {
 	packet := make([]byte, 0xFFFF)
 	addr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:1337")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
+
 	conn, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
+
+	conn.SetWriteDeadline(time.Now().Add(udptimeout))
+	conn.SetReadDeadline(time.Now().Add(udptimeout))
 
 	c := Connect{
 		ConnectionID:  0x41727101980,
@@ -268,11 +283,14 @@ func TestUDPAnnounce(t *testing.T) {
 	}
 
 	if _, err = conn.Write(c.Marshall()); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	s, err := conn.Read(packet)
 	if err != nil {
-		t.Error(err)
+		if strings.Contains(err.Error(), "i/o timeout") {
+			t.Skip(udptimeoutmsg)
+		}
+		t.Fatal(err)
 	}
 
 	cr := ConnectResp{}
@@ -347,11 +365,7 @@ func TestUDPAnnounce(t *testing.T) {
 	if ar.Peers[0].Port != 1337 {
 		t.Error("Invalid peer port should be 1337 but got", ar.Peers[0].Port)
 	}
-	ip := utils.IntToIP(ar.Peers[0].IP)
 	ipstr := fmt.Sprintf("%d.%d.%d.%d", ar.Peers[0].IP>>24, uint16(ar.Peers[0].IP)>>16, uint16(ar.Peers[0].IP)>>8, byte(ar.Peers[0].IP))
-	if bytes.Compare(ip, net.IPv4(127, 0, 0, 1)) == 0 {
-		t.Error("Invalid peer ip should be 127.0.0.1 but got", ip)
-	}
 	if ipstr != "127.0.0.1" {
 		t.Error("Invalid peer ip should be 127.0.0.1 but got", ipstr)
 	}
@@ -361,12 +375,16 @@ func TestUDPBadAction(t *testing.T) {
 	packet := make([]byte, 0xFFFF)
 	addr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:1337")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
+
 	conn, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
+
+	conn.SetWriteDeadline(time.Now().Add(udptimeout))
+	conn.SetReadDeadline(time.Now().Add(udptimeout))
 
 	c := Connect{
 		ConnectionID:  0x41727101980,
@@ -375,11 +393,17 @@ func TestUDPBadAction(t *testing.T) {
 	}
 
 	if _, err = conn.Write(c.Marshall()); err != nil {
-		t.Error(err)
+		if strings.Contains(err.Error(), "i/o timeout") {
+			t.Skip(udptimeoutmsg)
+		}
+		t.Fatal(err)
 	}
 	_, err = conn.Read(packet)
 	if err != nil {
-		t.Error(err)
+		if strings.Contains(err.Error(), "i/o timeout") {
+			t.Skip(udptimeoutmsg)
+		}
+		t.Fatal(err)
 	}
 
 	cr := ConnectResp{}
@@ -411,12 +435,16 @@ func TestUDPBadConnID(t *testing.T) {
 	packet := make([]byte, 0xFFFF)
 	addr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:1337")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
+
 	conn, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
+
+	conn.SetWriteDeadline(time.Now().Add(udptimeout))
+	conn.SetReadDeadline(time.Now().Add(udptimeout))
 
 	a := Announce{
 		ConnectionID:  0xBAD, // bad connid
@@ -425,11 +453,17 @@ func TestUDPBadConnID(t *testing.T) {
 	}
 
 	if _, err = conn.Write(a.Marshall()); err != nil {
-		t.Error(err)
+		if strings.Contains(err.Error(), "i/o timeout") {
+			t.Skip(udptimeoutmsg)
+		}
+		t.Fatal(err)
 	}
 	s, err := conn.Read(packet)
 	if err != nil {
-		t.Error(err)
+		if strings.Contains(err.Error(), "i/o timeout") {
+			t.Skip(udptimeoutmsg)
+		}
+		t.Fatal(err)
 	}
 
 	e := Error{}
@@ -444,12 +478,16 @@ func TestUDPBadPort(t *testing.T) {
 	packet := make([]byte, 0xFFFF)
 	addr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:1337")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
+
 	conn, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
+
+	conn.SetWriteDeadline(time.Now().Add(udptimeout))
+	conn.SetReadDeadline(time.Now().Add(udptimeout))
 
 	c := Connect{
 		ConnectionID:  0x41727101980,
@@ -458,11 +496,14 @@ func TestUDPBadPort(t *testing.T) {
 	}
 
 	if _, err = conn.Write(c.Marshall()); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	_, err = conn.Read(packet)
 	if err != nil {
-		t.Error(err)
+		if strings.Contains(err.Error(), "i/o timeout") {
+			t.Skip(udptimeoutmsg)
+		}
+		t.Fatal(err)
 	}
 
 	cr := ConnectResp{}
@@ -486,11 +527,11 @@ func TestUDPBadPort(t *testing.T) {
 	}
 
 	if _, err = conn.Write(a.Marshall()); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	s, err := conn.Read(packet)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	e := Error{}
@@ -505,12 +546,16 @@ func TestUDPTransactionID(t *testing.T) {
 	packet := make([]byte, 0xFF)
 	addr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:1337")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
+
 	conn, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
+
+	conn.SetWriteDeadline(time.Now().Add(udptimeout))
+	conn.SetReadDeadline(time.Now().Add(udptimeout))
 
 	c := Connect{
 		ConnectionID:  0x41727101980,
@@ -522,11 +567,17 @@ func TestUDPTransactionID(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 
 		if _, err = conn.Write(data); err != nil {
-			t.Error(err)
+			if strings.Contains(err.Error(), "i/o timeout") {
+				t.Skip(udptimeoutmsg)
+			}
+			t.Fatal(err)
 		}
 		size, err := conn.Read(packet)
 		if err != nil {
-			t.Error(err)
+			if strings.Contains(err.Error(), "i/o timeout") {
+				t.Skip(udptimeoutmsg)
+			}
+			t.Fatal(err)
 		}
 
 		if size != 16 {
@@ -545,6 +596,7 @@ func TestUDPTransactionID(t *testing.T) {
 }
 
 func BenchmarkHTTPAnnounceStress(b *testing.B) {
+	b.Skip("Forever loop")
 	var i int
 
 	for x := 0; x < 10; x++ {

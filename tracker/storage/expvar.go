@@ -9,12 +9,14 @@ import (
 
 const (
 	fast       = false
-	IPMapAlloc = 100000
+	ipmapAlloc = 100000
 )
 
 var (
 	Expvar expvals
 )
+
+func init() { Expvar.IPs.submap = make(map[PeerIP]int16, ipmapAlloc) }
 
 type expvarIPmap struct {
 	sync.Mutex
@@ -62,5 +64,3 @@ type expvals struct {
 func AddExpval(num *int64, inc int64) {
 	atomic.AddInt64(num, inc)
 }
-
-func init() { Expvar.IPs.submap = make(map[PeerIP]int16, IPMapAlloc) }

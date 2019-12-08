@@ -17,12 +17,12 @@ func TestTrim(t *testing.T) {
 	var c shared.Config
 	c.Database.Peer.Timeout = 0
 
-	db := dbWithHashes(1000000)
+	db := dbWithHashes(150_000)
 	db.conf = &c
 
 	db.trim()
 
-	db, _ = dbWithPeers(1000000)
+	db, _ = dbWithPeers(200_000)
 	db.conf = &c
 
 	db.trim()
