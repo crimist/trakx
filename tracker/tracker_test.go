@@ -2,6 +2,7 @@ package tracker_test
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
@@ -541,4 +542,45 @@ func TestUDPTransactionID(t *testing.T) {
 			t.Error(i, "Tracker err: tid should be", 0xBAD, "but got", cr.TransactionID)
 		}
 	}
+}
+
+func BenchmarkHTTPAnnounceStress(b *testing.B) {
+	var i int
+
+	for x := 0; x < 10; x++ {
+		go func() {
+			for {
+				req, err := http.NewRequest("GET", "http://127.0.0.1:1337/announce", nil)
+				if err != nil {
+					b.Error(err)
+				}
+
+				hash := make([]byte, 20)
+				id := make([]byte, 20)
+				rand.Read(hash)
+				rand.Read(id)
+
+				q := req.URL.Query()
+				q.Add("info_hash", string(hash))
+				q.Add("event", "started")
+				q.Add("left", "9000")
+				q.Add("downloaded", "1000")
+				q.Add("peer_id", string(id))
+				q.Add("key", "useless")
+				q.Add("port", "6969")
+				req.URL.RawQuery = q.Encode()
+
+				if _, err := client.Do(req); err != nil {
+					b.Error(err)
+				}
+
+				i++
+				if i%100 == 0 {
+					fmt.Printf("%d, ", i)
+				}
+			}
+		}()
+	}
+
+	select {}
 }

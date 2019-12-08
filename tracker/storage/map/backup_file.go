@@ -52,7 +52,7 @@ func (db *Memory) loadFile(filename string) error {
 		return err
 	}
 
-	if _, _, err := db.decodeBinary(data); err != nil {
+	if _, _, err := db.decodeBinaryUnsafe(data); err != nil {
 		return err
 	}
 
@@ -63,7 +63,7 @@ func (db *Memory) loadFile(filename string) error {
 func (bck *FileBackup) writeFile() (float32, error) {
 	filename := bck.db.conf.Database.Peer.Filename
 
-	encoded, err := bck.db.encodeBinary()
+	encoded, err := bck.db.encodeBinaryUnsafeAutoalloc()
 	if err != nil {
 		return 0, err
 	}
@@ -83,7 +83,7 @@ func (bck *FileBackup) Save() error {
 	if err != nil {
 		bck.db.conf.Logger.Info("Failed to write database", zap.Duration("duration", time.Now().Sub(start)))
 	} else {
-		bck.db.conf.Logger.Info("Wrote database", zap.Float32("size", size), zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
+		bck.db.conf.Logger.Info("Wrote database", zap.Float32("size (MB)", size), zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 	}
 
 	return err
