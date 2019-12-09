@@ -117,11 +117,6 @@ func TestEncodeBinaryUnsafe(t *testing.T) {
 	return
 }
 
-const (
-	benchHashes = 150_000
-	benchPeers  = 3
-)
-
 // encode benches
 
 func BenchmarkEncode(b *testing.B) {

@@ -6,6 +6,12 @@ import (
 	"github.com/crimist/trakx/tracker/shared"
 )
 
+const (
+	benchHashes     = 150_000
+	benchPeers      = 3
+	benchPeersTotal = benchHashes * benchPeers
+)
+
 func TestCheck(t *testing.T) {
 	var db Memory
 	if db.Check() != false {
@@ -30,11 +36,13 @@ func TestTrim(t *testing.T) {
 
 func BenchmarkTrim(b *testing.B) {
 	cfg := new(shared.Config)
-	cfg.Database.Peer.Timeout = 0
+	cfg.Database.Peer.Timeout = -1
 
+	b.StopTimer()
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
-		peerdb := dbWithHashesAndPeers(20_000, 2)
+		peerdb := dbWithHashesAndPeers(benchHashes, benchPeers)
 		peerdb.conf = cfg
 
 		b.StartTimer()
