@@ -19,8 +19,8 @@ type parsed struct {
 	pathend   int
 }
 
-// I wrote a shitty custom parser because the normal url.Parse().Values()
-// creates a map of params which is very expensive with memory
+// I wrote a shitty custom parser because the normal url.Parse().Values() reates a map of params which is very expensive with memory
+// parse returns nil on an invalid request and error when there was an internal error
 func parse(data []byte) (*parsed, error) {
 	// uTorrent sometimes encodes scrape req in b64
 	if bytes.HasPrefix(data, []byte("R0VU")) { // R0VUIC9zY3JhcGU/aW5mb19oYXNoPS = GET /scrape?info_hash=
@@ -58,7 +58,7 @@ func parse(data []byte) (*parsed, error) {
 		for i := 0; i < len(p.Params); i++ {
 			p.Params[i], err = url.QueryUnescape(p.Params[i])
 			if err != nil {
-				return nil, errors.New("Failed to escape parameter: " + err.Error())
+				return p, errors.New("Failed to escape parameter: " + err.Error())
 			}
 		}
 

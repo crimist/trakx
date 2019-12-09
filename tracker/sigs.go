@@ -37,6 +37,7 @@ func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker) {
 				udptracker.WriteConns()
 			}
 
+			logger.Info("Goodbye")
 			os.Exit(exitSuccess)
 		case syscall.SIGUSR1:
 			// Save
@@ -49,6 +50,8 @@ func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker) {
 			if udptracker != nil {
 				udptracker.WriteConns()
 			}
+
+			logger.Info("Saved")
 		default:
 			logger.Info("Got unknown sig", zap.Any("sig", sig))
 		}

@@ -53,6 +53,8 @@ func (bck *PgBackup) Init(db storage.Database) error {
 }
 
 func (bck PgBackup) save() error {
+	bck.db.conf.Logger.Info("Saving database to pg")
+
 	data, err := bck.db.encodeBinaryUnsafeAutoalloc()
 	if err != nil {
 		bck.db.conf.Logger.Error("Failed to encode", zap.Error(err))
@@ -68,10 +70,6 @@ func (bck PgBackup) save() error {
 	bck.db.conf.Logger.Info("Saved database to pg", zap.ByteString("hash", data[:20]))
 
 	return nil
-}
-
-func (bck PgBackup) Save() error {
-	return bck.save()
 }
 
 func (bck PgBackup) load() error {
@@ -98,6 +96,10 @@ func (bck PgBackup) load() error {
 	bck.db.conf.Logger.Info("Loaded stored database from pg", zap.Int("size", len(data)), zap.ByteString("hash", data[:20]), zap.Int("peers", peers), zap.Int("hashes", hashes))
 
 	return nil
+}
+
+func (bck PgBackup) Save() error {
+	return bck.save()
 }
 
 func (bck PgBackup) Load() error {
