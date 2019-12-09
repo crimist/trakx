@@ -15,7 +15,8 @@ import (
 	"go.uber.org/zap"
 )
 
-const httpRequestMax = 12 + (11+60)*40
+// max req size before cutoff
+const httpRequestMax = 1800
 
 type HTTPTracker struct {
 	conf   *shared.Config
