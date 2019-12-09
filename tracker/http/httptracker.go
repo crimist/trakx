@@ -118,12 +118,12 @@ func (w *workers) work() {
 			j.conn.SetDeadline(now.Add(maxread))
 			j.conn.SetWriteDeadline(now.Add(maxwrite))
 
-			l, err := j.conn.Read(data)
+			_, err := j.conn.Read(data)
 			if err != nil {
 				break
 			}
 
-			p, err := parse(data[:l])
+			p, err := parse(data)
 			if err != nil {
 				w.tracker.logger.Error("parse()", zap.Error(err), zap.Any("data", data))
 				j.writeStatus("400")
