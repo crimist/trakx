@@ -40,14 +40,14 @@ func parse(data []byte) (*parsed, error) {
 
 	methodend := bytes.Index(data, []byte(" /"))
 	if methodend == -1 {
-		return p, errors.New("Failed to find method end (index) byte")
+		return nil, errors.New("Failed to find method end (index) byte")
 	}
 
 	tmp := data[:methodend]
 	p.Method = *(*string)(unsafe.Pointer(&tmp))
 
 	if p.URLend == -1 {
-		return p, errors.New("Failed to find HTTP signature")
+		return nil, errors.New("Failed to find HTTP signature")
 	}
 
 	if p.pathend != -1 && p.pathend < p.URLend { // if the ? is part of a query then parse it
@@ -58,7 +58,7 @@ func parse(data []byte) (*parsed, error) {
 		for i := 0; i < len(p.Params); i++ {
 			p.Params[i], err = url.QueryUnescape(p.Params[i])
 			if err != nil {
-				return p, errors.New("Failed to escape parameter: " + err.Error())
+				return nil, errors.New("Failed to escape parameter: " + err.Error())
 			}
 		}
 
