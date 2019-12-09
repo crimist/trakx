@@ -15,6 +15,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const httpRequestMax = 12 + (11+60)*40
+
 type HTTPTracker struct {
 	conf   *shared.Config
 	logger *zap.Logger
@@ -40,8 +42,7 @@ func (t *HTTPTracker) Serve(index []byte, threads int) {
 		index:    string(index),
 	}
 
-	// 1800 is a reasonable limit for large scrape req (20 hashes)
-	t.workers.pool.New = func() interface{} { return make([]byte, 1800, 1800) }
+	t.workers.pool.New = func() interface{} { return make([]byte, httpRequestMax, httpRequestMax) }
 	t.workers.startWorkers(threads)
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", t.conf.Tracker.HTTP.Port))

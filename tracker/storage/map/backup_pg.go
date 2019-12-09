@@ -65,14 +65,7 @@ func (bck PgBackup) save() error {
 		return errors.New("postgres insert failed")
 	}
 
-	rm, err := bck.trim()
-	if err != nil {
-		bck.db.conf.Logger.Error("failed to trim backups", zap.Error(err))
-	} else {
-		bck.db.conf.Logger.Info("Deleted expired postgres records", zap.Int64("deleted", rm))
-	}
-
-	bck.db.conf.Logger.Info("Deleted expired postgres records", zap.Int64("deleted", rm))
+	bck.db.conf.Logger.Info("Saved database to pg", zap.ByteString("hash", data[:20]))
 
 	return nil
 }
@@ -95,7 +88,6 @@ func (bck PgBackup) load() error {
 		return errors.New("postgres SELECT query failed: " + err.Error())
 	}
 
-	bck.db.conf.Logger.Info("Loading stored database", zap.Int("size", len(data)))
 	peers, hashes, err := bck.db.decodeBinaryUnsafe(data)
 	if err != nil {
 		bck.db.conf.Logger.Error("Error decoding stored database", zap.Error(err))
@@ -103,7 +95,8 @@ func (bck PgBackup) load() error {
 		return err
 	}
 
-	bck.db.conf.Logger.Info("Loaded stored database", zap.Int("peers", peers), zap.Int("hashes", hashes))
+	bck.db.conf.Logger.Info("Loaded stored database from pg", zap.Int("size", len(data)), zap.ByteString("hash", data[:20]), zap.Int("peers", peers), zap.Int("hashes", hashes))
+
 	return nil
 }
 
