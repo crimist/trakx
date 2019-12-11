@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/crimist/trakx/tracker/storage"
 	_ "github.com/lib/pq"
@@ -73,9 +74,13 @@ func (bck PgBackup) save() error {
 }
 
 func (bck PgBackup) load() error {
-	var data []byte
+	firstTry := true
+	var bytes []byte
+	var ts time.Time
 
-	err := bck.pg.QueryRow("SELECT bytes FROM trakx ORDER BY ts DESC LIMIT 1").Scan(&data)
+retry:
+
+	err := bck.pg.QueryRow("SELECT bytes, ts FROM trakx ORDER BY ts DESC LIMIT 1").Scan(&bytes, &ts)
 	if err != nil {
 		defer bck.db.make()
 
@@ -86,14 +91,21 @@ func (bck PgBackup) load() error {
 		return errors.New("postgres SELECT query failed: " + err.Error())
 	}
 
-	peers, hashes, err := bck.db.decodeBinaryUnsafe(data)
+	// If backup is older than 20 min wait a sec for a backup to arrive
+	if time.Now().Sub(ts).Minutes() > 20 && firstTry == true {
+		firstTry = false
+		time.Sleep(5 * time.Second)
+		goto retry
+	}
+
+	peers, hashes, err := bck.db.decodeBinaryUnsafe(bytes)
 	if err != nil {
 		bck.db.conf.Logger.Error("Error decoding stored database", zap.Error(err))
 		bck.db.make()
 		return err
 	}
 
-	bck.db.conf.Logger.Info("Loaded stored database from pg", zap.Int("size", len(data)), zap.ByteString("hash", data[:20]), zap.Int("peers", peers), zap.Int("hashes", hashes))
+	bck.db.conf.Logger.Info("Loaded stored database from pg", zap.Int("size", len(bytes)), zap.ByteString("hash", bytes[:20]), zap.Int("peers", peers), zap.Int("hashes", hashes))
 
 	return nil
 }
