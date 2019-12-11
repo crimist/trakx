@@ -78,14 +78,16 @@ func (bck PgBackup) load() error {
 	var bytes []byte
 	var ts time.Time
 
-retry:
+attemptLoad:
+
+	bck.db.conf.Logger.Info("Attempting to load stored database from pg")
 
 	err := bck.pg.QueryRow("SELECT bytes, ts FROM trakx ORDER BY ts DESC LIMIT 1").Scan(&bytes, &ts)
 	if err != nil {
 		defer bck.db.make()
 
 		if strings.Contains(err.Error(), "no rows in result set") { // empty postgres table
-			bck.db.conf.Logger.Info("No stored database found")
+			bck.db.conf.Logger.Info("No rows found in pg database. Creating empty maps")
 			return nil
 		}
 		return errors.New("postgres SELECT query failed: " + err.Error())
@@ -93,9 +95,10 @@ retry:
 
 	// If backup is older than 20 min wait a sec for a backup to arrive
 	if time.Now().Sub(ts).Minutes() > 20 && firstTry == true {
+		bck.db.conf.Logger.Info("Failed to detect a pg backup within 20 min. Waiting 5 seconds...")
 		firstTry = false
 		time.Sleep(5 * time.Second)
-		goto retry
+		goto attemptLoad
 	}
 
 	peers, hashes, err := bck.db.decodeBinaryUnsafe(bytes)
