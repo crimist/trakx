@@ -20,6 +20,12 @@ const (
 	// Maximum number of rows. Rows exceeding this will be removed by timestamp
 	// -1 for unlimited
 	maxRows = "10"
+
+	// If backup is older than this it will wait for a new backup
+	backupMaxAge = 20 * time.Minute
+
+	// Time to wait for if backup is older than backupMaxAge
+	backupWait = 5 * time.Second
 )
 
 type PgBackup struct {
@@ -94,10 +100,10 @@ attemptLoad:
 	}
 
 	// If backup is older than 20 min wait a sec for a backup to arrive
-	if time.Now().Sub(ts).Minutes() > 20 && firstTry == true {
+	if time.Now().Sub(ts) > backupMaxAge && firstTry == true {
 		bck.db.conf.Logger.Info("Failed to detect a pg backup within 20 min. Waiting 5 seconds...")
 		firstTry = false
-		time.Sleep(5 * time.Second)
+		time.Sleep(backupWait)
 		goto attemptLoad
 	}
 
