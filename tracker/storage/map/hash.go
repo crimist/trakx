@@ -3,6 +3,7 @@ package gomap
 import (
 	"encoding/binary"
 	"net"
+	"strconv"
 
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/storage"
@@ -28,16 +29,14 @@ func (db *Memory) HashStats(h *storage.Hash) (complete, incomplete int32) {
 			complete++
 		}
 	}
-	peermap.RUnlock()
 	incomplete = int32(len(peermap.peers)) - complete
+	peermap.RUnlock()
 
 	return
 }
 
-// PeerList returns a peer list for the given hash capped at num
-func (db *Memory) PeerList(h *storage.Hash, num int, noPeerID bool) []string {
-	var i int
-
+// PeerList returns a peer list for the given hash capped at max
+func (db *Memory) PeerList(h *storage.Hash, max int, noPeerID bool) []string {
 	db.mu.RLock()
 	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
@@ -46,25 +45,26 @@ func (db *Memory) PeerList(h *storage.Hash, num int, noPeerID bool) []string {
 	}
 
 	peermap.RLock()
-	maplen := len(peermap.peers)
-	if num > maplen {
-		num = maplen
+
+	if mlen := len(peermap.peers); max > mlen {
+		max = mlen
 	}
 
-	peerList := make([]string, num)
+	var i int
+	peerList := make([]string, max)
 	for id, peer := range peermap.peers {
-		if i == num {
-			break
-		}
 		dict := bencoding.NewDict()
 		if noPeerID == false {
-			dict.Any("peer id", string(id[:]))
+			dict.String("peer id", string(id[:]))
 		}
-		dict.Any("ip", net.IP(peer.IP[:]).String())
-		dict.Any("port", peer.Port)
-
+		dict.String("ip", net.IP(peer.IP[:]).String())
+		dict.String("port", strconv.Itoa(int(peer.Port)))
 		peerList[i] = dict.Get()
+
 		i++
+		if i == max {
+			break
+		}
 	}
 	peermap.RUnlock()
 
@@ -72,7 +72,7 @@ func (db *Memory) PeerList(h *storage.Hash, num int, noPeerID bool) []string {
 }
 
 // PeerListBytes returns a byte encoded peer list for the given hash capped at num
-func (db *Memory) PeerListBytes(h *storage.Hash, num int) []byte {
+func (db *Memory) PeerListBytes(h *storage.Hash, max int) []byte {
 	db.mu.RLock()
 	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
@@ -81,21 +81,20 @@ func (db *Memory) PeerListBytes(h *storage.Hash, num int) []byte {
 	}
 
 	peermap.RLock()
-	maplen := len(peermap.peers)
-	if num > maplen {
-		num = maplen
+	if mlen := len(peermap.peers); max > mlen {
+		max = mlen
 	}
-	peerlist := make([]byte, 6*num)
+
+	peerlist := make([]byte, 6*max)
 	var pos int
-
 	for _, peer := range peermap.peers {
-		if pos/6 == num {
-			break
-		}
-
 		copy(peerlist[pos:pos+4], peer.IP[:])
 		binary.BigEndian.PutUint16(peerlist[pos+4:pos+6], peer.Port)
+
 		pos += 6
+		if pos/6 == max {
+			break
+		}
 	}
 	peermap.RUnlock()
 

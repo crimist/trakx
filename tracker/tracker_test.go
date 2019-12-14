@@ -84,7 +84,7 @@ func TestHTTPAnnounce(t *testing.T) {
 	if peer["ip"] != "127.0.0.1" {
 		t.Error("ip should be 127.0.0.1 got", peer["ip"])
 	}
-	if peer["port"] != 1234 {
+	if peer["port"] != "1234" {
 		t.Error("port should be 1234 got", peer["port"])
 	}
 }

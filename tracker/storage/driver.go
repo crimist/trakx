@@ -20,10 +20,10 @@ type DatabaseInfo struct {
 	Backups []BackupInfo
 }
 
-var once sync.Once
+var initDrivers sync.Once
 
 func Register(dbnfo DatabaseInfo) {
-	once.Do(func() {
+	initDrivers.Do(func() {
 		drivers = make(map[string]DatabaseDriver)
 	})
 

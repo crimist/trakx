@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,18 +15,18 @@ import (
 
 const (
 	// Maximum retention for entries. Rows older than this will be removed
-	// "off" to disable
+	// empty to disable
 	maxDate = "7 days"
 
 	// Maximum number of rows. Rows exceeding this will be removed by timestamp
 	// -1 for unlimited
-	maxRows = "10"
+	maxRows = 10
 
 	// If backup is older than this it will wait for a new backup
-	backupMaxAge = 20 * time.Minute
+	backupRecentWindow = 20 * time.Minute
 
-	// Time to wait for if backup is older than backupMaxAge
-	backupWait = 5 * time.Second
+	// Time to wait for if backup is older than backupRecentWindow
+	backupRecentWait = 5 * time.Second
 )
 
 type PgBackup struct {
@@ -100,10 +101,11 @@ attemptLoad:
 	}
 
 	// If backup is older than 20 min wait a sec for a backup to arrive
-	if time.Now().Sub(ts) > backupMaxAge && firstTry == true {
-		bck.db.conf.Logger.Info("Failed to detect a pg backup within 20 min. Waiting 5 seconds...")
+	if time.Now().Sub(ts) > backupRecentWindow && firstTry == true {
 		firstTry = false
-		time.Sleep(backupWait)
+
+		bck.db.conf.Logger.Info("Failed to detect a pg backup, waiting...", zap.Duration("window", backupRecentWindow), zap.Duration("wait", backupRecentWait))
+		time.Sleep(backupRecentWait)
 		goto attemptLoad
 	}
 
@@ -130,7 +132,7 @@ func (bck PgBackup) Load() error {
 func (bck PgBackup) trim() (int64, error) {
 	var trimmed int64
 
-	if maxDate != "off" {
+	if len(maxDate) != 0 {
 		result, err := bck.pg.Exec("DELETE FROM trakx WHERE ts < NOW() - INTERVAL '" + maxDate + "'")
 		if err != nil {
 			return -1, err
@@ -142,8 +144,8 @@ func (bck PgBackup) trim() (int64, error) {
 		}
 	}
 
-	if maxRows != "-1" {
-		result, err := bck.pg.Exec("DELETE FROM trakx WHERE ctid IN (SELECT ctid FROM trakx ORDER BY ctid DESC OFFSET " + maxRows + ")")
+	if maxRows != -1 {
+		result, err := bck.pg.Exec("DELETE FROM trakx WHERE ctid IN (SELECT ctid FROM trakx ORDER BY ctid DESC OFFSET " + strconv.Itoa(maxRows) + ")")
 		if err != nil {
 			return -1, err
 		}
