@@ -50,6 +50,7 @@ func (db *Memory) PeerList(h *storage.Hash, max int, noPeerID bool) []string {
 	}
 
 	if max == 0 {
+		peermap.RUnlock()
 		return []string{}
 	}
 
@@ -91,6 +92,7 @@ func (db *Memory) PeerListBytes(h *storage.Hash, max int) []byte {
 	}
 
 	if max == 0 {
+		peermap.RUnlock()
 		return []byte("")
 	}
 
