@@ -38,6 +38,10 @@ func parse(data []byte) (*parsed, error) {
 		pathend:   bytes.Index(data, []byte("?")),
 	}
 
+	if p.pathend <= p.pathstart {
+		return nil, errors.New("Invalid request; pathend <= pathstart")
+	}
+
 	methodend := bytes.Index(data, []byte(" /"))
 	if methodend == -1 {
 		return nil, errors.New("Failed to find method end (index) byte")
