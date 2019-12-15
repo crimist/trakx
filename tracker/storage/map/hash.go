@@ -41,13 +41,17 @@ func (db *Memory) PeerList(h *storage.Hash, max int, noPeerID bool) []string {
 	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
 	if !ok {
-		return nil
+		return []string{}
 	}
 
 	peermap.RLock()
 
 	if mlen := len(peermap.peers); max > mlen {
 		max = mlen
+	}
+
+	if max == 0 {
+		return []string{}
 	}
 
 	var i int
@@ -77,12 +81,16 @@ func (db *Memory) PeerListBytes(h *storage.Hash, max int) []byte {
 	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
 	if !ok {
-		return nil
+		return []byte("")
 	}
 
 	peermap.RLock()
 	if mlen := len(peermap.peers); max > mlen {
 		max = mlen
+	}
+
+	if max == 0 {
+		return []byte("")
 	}
 
 	peerlist := make([]byte, 6*max)

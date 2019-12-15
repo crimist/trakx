@@ -3,7 +3,9 @@ package gomap
 import (
 	"math/rand"
 	"testing"
+	"unsafe"
 
+	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/shared"
 	"github.com/crimist/trakx/tracker/storage"
 	"go.uber.org/zap"
@@ -94,6 +96,18 @@ func dbWithPeers(count int) (*Memory, storage.Hash) {
 	}
 
 	return &db, hash
+}
+
+func TestPeerList(t *testing.T) {
+	var db Memory
+	db.make()
+
+	xd := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	hash := storage.Hash(xd)
+
+	d := bencoding.NewDict()
+	peerlist := db.PeerListBytes(&hash, 0)
+	d.String("peers", *(*string)(unsafe.Pointer(&peerlist)))
 }
 
 func benchmarkHashes(b *testing.B, count int) {
