@@ -23,7 +23,7 @@ const (
 	maxRows = 10
 
 	// If backup is older than this it will wait for a new backup
-	backupRecentWindow = 20 * time.Minute
+	backupRecentWindow = 10 * time.Minute
 
 	// Time to wait for if backup is older than backupRecentWindow
 	backupRecentWait = 5 * time.Second
