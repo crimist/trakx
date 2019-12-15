@@ -129,6 +129,10 @@ func (d *Dict) Get() string {
 	return d.encoded
 }
 
-func (d *Dict) Len() int {
-	return len(d.encoded) + 1 // +1 for e
+func (d *Dict) Len() (length int) {
+	length = len(d.encoded)
+	if !d.finished {
+		length++ // for "e"
+	}
+	return
 }

@@ -204,7 +204,7 @@ func (w *workers) work() {
 
 				w.tracker.announce(j.conn, &v, ip)
 			case "/scrape":
-				// TODO: custom parsing
+				// Custom parsing isn't needed since we aren't hammered with scrapes
 				u, err := url.Parse(string(data[4:p.URLend]))
 				if err != nil {
 					j.writeStatus("400")

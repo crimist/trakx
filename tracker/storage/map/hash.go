@@ -84,6 +84,8 @@ func (db *Memory) PeerListBytes(h *storage.Hash, max int) []byte {
 		return []byte("")
 	}
 
+	var pos int
+
 	peermap.RLock()
 	if mlen := len(peermap.peers); max > mlen {
 		max = mlen
@@ -93,14 +95,14 @@ func (db *Memory) PeerListBytes(h *storage.Hash, max int) []byte {
 		return []byte("")
 	}
 
-	peerlist := make([]byte, 6*max)
-	var pos int
+	size := 6 * max
+	peerlist := make([]byte, size)
 	for _, peer := range peermap.peers {
-		copy(peerlist[pos:pos+4], peer.IP[:])
+		copy(peerlist[pos:pos+4], peer.IP[:]) // TODO should this be in BigEndian?
 		binary.BigEndian.PutUint16(peerlist[pos+4:pos+6], peer.Port)
 
 		pos += 6
-		if pos/6 == max {
+		if pos == size {
 			break
 		}
 	}
