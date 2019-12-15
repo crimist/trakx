@@ -38,10 +38,6 @@ func parse(data []byte) (*parsed, error) {
 		pathend:   bytes.Index(data, []byte("?")),
 	}
 
-	if p.pathend < p.pathstart {
-		return nil, errors.New("Invalid request; pathend < pathstart")
-	}
-
 	methodend := bytes.Index(data, []byte(" /"))
 	if methodend == -1 {
 		return nil, errors.New("Failed to find method end (index) byte")
@@ -55,6 +51,10 @@ func parse(data []byte) (*parsed, error) {
 	}
 
 	if p.pathend != -1 && p.pathend < p.URLend { // if the ? is part of a query then parse it
+		if p.pathend < p.pathstart {
+			return nil, errors.New("Invalid request; pathend < pathstart")
+		}
+
 		tmp = data[p.pathend+1 : p.URLend]
 		p.Params = strings.Split(*(*string)(unsafe.Pointer(&tmp)), "&")
 
