@@ -3,7 +3,6 @@ package gomap
 import (
 	"encoding/binary"
 	"net"
-	"strconv"
 
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/storage"
@@ -62,7 +61,7 @@ func (db *Memory) PeerList(h *storage.Hash, max int, noPeerID bool) []string {
 			dict.String("peer id", string(id[:]))
 		}
 		dict.String("ip", net.IP(peer.IP[:]).String())
-		dict.String("port", strconv.Itoa(int(peer.Port)))
+		dict.Int64("port", int64(peer.Port))
 		peerList[i] = dict.Get()
 
 		i++
