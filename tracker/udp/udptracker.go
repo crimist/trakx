@@ -2,6 +2,7 @@ package udp
 
 import (
 	"encoding/binary"
+	"errors"
 	"net"
 	"sync"
 	"time"
@@ -11,13 +12,15 @@ import (
 	"go.uber.org/zap"
 )
 
+const errClosed = "use of closed network connection"
+
 type UDPTracker struct {
 	sock   *net.UDPConn
 	conndb *connectionDatabase
-
 	conf   *shared.Config
 	logger *zap.Logger
 	peerdb storage.Database
+	kill   chan struct{}
 }
 
 // Init creates are runs the UDP tracker
@@ -26,6 +29,7 @@ func (u *UDPTracker) Init(conf *shared.Config, logger *zap.Logger, peerdb storag
 	u.conf = conf
 	u.logger = logger
 	u.peerdb = peerdb
+	u.kill = make(chan struct{})
 
 	go shared.RunOn(time.Duration(conf.Database.Conn.Trim)*time.Second, u.conndb.trim)
 }
@@ -37,7 +41,6 @@ func (u *UDPTracker) Serve() {
 	if err != nil {
 		panic(err)
 	}
-	defer u.sock.Close()
 
 	pool := sync.Pool{
 		New: func() interface{} { return make([]byte, 1496, 1496) }, // 1496 is max size of a scrape with 20 hashes
@@ -49,6 +52,9 @@ func (u *UDPTracker) Serve() {
 				data := pool.Get().([]byte)
 				l, remote, err := u.sock.ReadFromUDP(data)
 				if err != nil {
+					if errors.Unwrap(err).Error() == errClosed { // if socket is closed we're done
+						break
+					}
 					u.logger.Error("ReadFromUDP()", zap.Error(err))
 					pool.Put(data)
 					continue
@@ -63,7 +69,19 @@ func (u *UDPTracker) Serve() {
 		}()
 	}
 
-	select {}
+	select {
+	case _ = <-u.kill:
+		u.logger.Info("Closing UDP tracker socket")
+		u.sock.Close()
+	}
+}
+
+func (u *UDPTracker) Kill() {
+	if u == nil || u.kill == nil {
+		return
+	}
+	var die struct{}
+	u.kill <- die
 }
 
 // GetConnCount get the number of connections in the connection database

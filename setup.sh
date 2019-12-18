@@ -5,7 +5,7 @@ git pull
 
 # Setup root if not setup
 mkdir -p /usr/local/trakx/
-cp -n config.yaml /usr/local/trakx/config.yaml
+cp -n trakx.yaml /usr/local/trakx/trakx.yaml
 cp -n index.html /usr/local/trakx/index.html
 
 # install

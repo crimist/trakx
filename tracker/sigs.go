@@ -30,6 +30,7 @@ func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker, httptracker
 			// Exit
 			logger.Info("Got exit signal", zap.Any("sig", sig))
 
+			udptracker.Kill()
 			httptracker.Kill()
 
 			if err := peerdb.Backup().Save(); err != nil {

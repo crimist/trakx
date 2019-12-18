@@ -596,7 +596,7 @@ func TestUDPTransactionID(t *testing.T) {
 }
 
 func BenchmarkHTTPAnnounceStress(b *testing.B) {
-	b.Skip("Forever loop")
+	b.Skip("Inf loop")
 	var i int
 
 	for x := 0; x < 10; x++ {
@@ -623,6 +623,89 @@ func BenchmarkHTTPAnnounceStress(b *testing.B) {
 				req.URL.RawQuery = q.Encode()
 
 				if _, err := client.Do(req); err != nil {
+					b.Error(err)
+				}
+
+				i++
+				if i%100 == 0 {
+					fmt.Printf("%d, ", i)
+				}
+			}
+		}()
+	}
+
+	select {}
+}
+
+func BenchmarkUDPAnnounceStress(b *testing.B) {
+	b.Skip("Inf loop")
+	var i int
+
+	for x := 0; x < 10; x++ {
+		go func() {
+			for {
+				packet := make([]byte, 0xFFFF)
+				addr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:1337")
+				if err != nil {
+					b.Fatal(err)
+				}
+
+				conn, err := net.DialUDP("udp", nil, addr)
+				if err != nil {
+					b.Fatal(err)
+				}
+
+				conn.SetWriteDeadline(time.Now().Add(udptimeout))
+				conn.SetReadDeadline(time.Now().Add(udptimeout))
+
+				c := Connect{
+					ConnectionID:  0x41727101980,
+					Action:        0,
+					TransactionID: 1337,
+				}
+
+				if _, err = conn.Write(c.Marshall()); err != nil {
+					b.Fatal(err)
+				}
+				s, err := conn.Read(packet)
+				if err != nil {
+					if strings.Contains(err.Error(), "i/o timeout") {
+						b.Skip(udptimeoutmsg)
+					}
+					b.Fatal(err)
+				}
+
+				cr := ConnectResp{}
+				cr.Unmarshall(packet)
+
+				if cr.Action == 3 {
+					e := Error{}
+					e.Unmarshall(packet, s)
+					b.Error("Tracker err:", string(e.ErrorString))
+				}
+
+				a := Announce{
+					ConnectionID:  cr.ConnectionID,
+					Action:        1,
+					TransactionID: 7331,
+					InfoHash:      [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14},
+					PeerID:        [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14},
+					Downloaded:    100,
+					Left:          100,
+					Uploaded:      50,
+					Event:         2,
+					IP:            0,
+					Key:           0xDEADBEEF,
+					NumWant:       1,
+					Port:          1337,
+					Extensions:    0,
+				}
+
+				if _, err = conn.Write(a.Marshall()); err != nil {
+					b.Error(err)
+				}
+				_, err = conn.Read(packet)
+				if err != nil {
 					b.Error(err)
 				}
 
