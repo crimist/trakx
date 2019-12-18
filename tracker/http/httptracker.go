@@ -74,7 +74,7 @@ func (t *HTTPTracker) Serve(index []byte) {
 
 // Kill kills the HTTP tracker by closing the listening connection
 func (t *HTTPTracker) Kill() {
-	if t == nil {
+	if t == nil || t.kill == nil {
 		return
 	}
 	var die struct{}
@@ -82,7 +82,7 @@ func (t *HTTPTracker) Kill() {
 }
 
 func (t *HTTPTracker) QueueLen() int {
-	if t == nil {
+	if t == nil || t.workers.jobQueue == nil {
 		return -1
 	}
 	return len(t.workers.jobQueue)
