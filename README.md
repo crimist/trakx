@@ -34,11 +34,14 @@ trakx status # "Trakx is not running"
 
 ## Build tags
 
-`-fast` will build without IP, seeds, and leeches metrics which will speed up trakx
+* `fast` tag will build without IP, seeds, and leeches metrics which will speed up trakx
+* `heroku` tag will build the service for app engines, this means that when executed the binary goes straight to `tracker.Run()` instead of a CLI
 
 ## Notes
 
 If you're going to be serving a lot of clients take a look at the sysctl tuning the resources section. This is especially true if you're using the TCP tracker
+
+There's no guarantee that database saves work between go versions - by default I use `unsafe` to read raw memory so if they change `struct` padding or completely change byte slices it could break your save between versions. You can change the encoding method to `encodeBinary()` to avoid this issue but it takes 3x more memory and is 7x slower.
 
 ## Resources
 
