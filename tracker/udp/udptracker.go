@@ -2,7 +2,6 @@ package udp
 
 import (
 	"encoding/binary"
-	"math/rand"
 	"net"
 	"sync"
 	"time"
@@ -21,40 +20,17 @@ type UDPTracker struct {
 	peerdb storage.Database
 }
 
-// NewUDPTracker creates are runs the UDP tracker
-func NewUDPTracker(conf *shared.Config, logger *zap.Logger, peerdb storage.Database, threads int) *UDPTracker {
-	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
+// Init creates are runs the UDP tracker
+func (u *UDPTracker) Init(conf *shared.Config, logger *zap.Logger, peerdb storage.Database) {
+	u.conndb = newConnectionDatabase(conf.Database.Conn.Timeout, conf.Database.Conn.Filename, logger)
+	u.conf = conf
+	u.logger = logger
+	u.peerdb = peerdb
 
-	tracker := UDPTracker{
-		conndb: newConnectionDatabase(conf.Database.Conn.Timeout, conf.Database.Conn.Filename, logger),
-		conf:   conf,
-		logger: logger,
-		peerdb: peerdb,
-	}
-
-	go shared.RunOn(time.Duration(conf.Database.Conn.Trim)*time.Second, tracker.conndb.trim)
-	go tracker.listen(threads)
-
-	return &tracker
+	go shared.RunOn(time.Duration(conf.Database.Conn.Trim)*time.Second, u.conndb.trim)
 }
 
-// GetConnCount get the number of connections in the connection database
-func (u *UDPTracker) GetConnCount() int {
-	if u.conndb == nil {
-		return -1
-	}
-	return u.conndb.conns()
-}
-
-// WriteConns writes the connection database to file
-func (u *UDPTracker) WriteConns() {
-	if u.conndb == nil {
-		return
-	}
-	u.conndb.write()
-}
-
-func (u *UDPTracker) listen(threads int) {
+func (u *UDPTracker) Serve() {
 	var err error
 
 	u.sock, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: u.conf.Tracker.UDP.Port, Zone: ""})
@@ -67,7 +43,7 @@ func (u *UDPTracker) listen(threads int) {
 		New: func() interface{} { return make([]byte, 1496, 1496) }, // 1496 is max size of a scrape with 20 hashes
 	}
 
-	for i := 0; i < threads; i++ {
+	for i := 0; i < u.conf.Tracker.UDP.Threads; i++ {
 		go func() {
 			for {
 				data := pool.Get().([]byte)
@@ -88,6 +64,22 @@ func (u *UDPTracker) listen(threads int) {
 	}
 
 	select {}
+}
+
+// GetConnCount get the number of connections in the connection database
+func (u *UDPTracker) GetConnCount() int {
+	if u == nil || u.conndb == nil {
+		return -1
+	}
+	return u.conndb.conns()
+}
+
+// WriteConns writes the connection database to file
+func (u *UDPTracker) WriteConns() {
+	if u == nil || u.conndb == nil {
+		return
+	}
+	u.conndb.write()
 }
 
 func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {

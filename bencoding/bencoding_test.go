@@ -6,47 +6,75 @@ import (
 	"github.com/crimist/trakx/bencoding"
 )
 
-func TestDict(t *testing.T) {
-	d := bencoding.NewDict()
-	d.Any("cow", "moo")
-	d.Any("spam", "eggs")
-	dictEncode := d.Get()
-	if dictEncode != "d3:cow3:moo4:spam4:eggse" {
-		t.Errorf("Expected d3:cow3:moo4:spam4:eggse got %s", dictEncode)
+func TestBencodingInt64(t *testing.T) {
+	var cases = []struct {
+		key    string
+		val    int64
+		result string
+	}{
+		{"small", 11, "d5:smalli11ee"},
+		{"big", 0xFFFFFFFFFFF, "d3:bigi17592186044415ee"},
+		{"negative", -11, "d8:negativei-11ee"},
 	}
 
-	d = bencoding.NewDict()
-	d.Any("spam", []string{"a", "b"})
-	dictEncode = d.Get()
-	if dictEncode != "d4:spaml1:a1:bee" {
-		t.Errorf("Expected d4:spaml1:a1:bee got %s", dictEncode)
-	}
-
-	d = bencoding.NewDict()
-	d.Any("publisher", "bob")
-	d.Any("publisher-webpage", "www.example.com")
-	d.Any("publisher.location", "home")
-	dictEncode = d.Get()
-	if dictEncode != "d9:publisher3:bob17:publisher-webpage15:www.example.com18:publisher.location4:homee" {
-		t.Errorf("Expected d9:publisher3:bob17:publisher-webpage15:www.example.com18:publisher.location4:homee got %s", dictEncode)
+	for _, c := range cases {
+		t.Run(c.key, func(t *testing.T) {
+			d := bencoding.NewDict()
+			d.Int64(c.key, c.val)
+			if val := d.Get(); val != c.result {
+				t.Errorf("Bad encode: '%s' should be '%s'", val, c.result)
+			}
+		})
 	}
 }
 
-func TestDictNew(t *testing.T) {
-	d := bencoding.NewDict()
-	d.String("cow", "moo")
-	d.String("spam", "eggs")
-	dictEncode := d.Get()
-	if dictEncode != "d3:cow3:moo4:spam4:eggse" {
-		t.Errorf("Expected d3:cow3:moo4:spam4:eggse got %s", dictEncode)
+func TestBencodingString(t *testing.T) {
+	var cases = []struct {
+		key    string
+		val    string
+		result string
+	}{
+		{"short", "hello", "d5:short5:helloe"},
+		{"long", "really_long_string_that_has_lots_of_shit_in_it", "d4:long46:really_long_string_that_has_lots_of_shit_in_ite"},
+		{"specialchars", "this_has controlchars\n", "d12:specialchars22:this_has controlchars\ne"}, // TODO: real special chars test
 	}
 
-	d = bencoding.NewDict()
-	d.String("publisher", "bob")
-	d.String("publisher-webpage", "www.example.com")
-	d.String("publisher.location", "home")
-	dictEncode = d.Get()
-	if dictEncode != "d9:publisher3:bob17:publisher-webpage15:www.example.com18:publisher.location4:homee" {
-		t.Errorf("Expected d9:publisher3:bob17:publisher-webpage15:www.example.com18:publisher.location4:homee got %s", dictEncode)
+	for _, c := range cases {
+		t.Run(c.key, func(t *testing.T) {
+			d := bencoding.NewDict()
+			d.String(c.key, c.val)
+			if val := d.Get(); val != c.result {
+				t.Errorf("Bad encode: '%s' should be '%s'", val, c.result)
+			}
+		})
+	}
+}
+
+func TestBencodingAny(t *testing.T) {
+	type kvpair struct {
+		key string
+		val interface{}
+	}
+
+	var cases = []struct {
+		name   string
+		pairs  []kvpair
+		result string
+	}{
+		{"strings", []kvpair{{"cow", "moo"}, {"spam", "eggs"}}, "d3:cow3:moo4:spam4:eggse"},
+		{"string array", []kvpair{{"spam", []string{"a", "b"}}}, "d4:spaml1:a1:bee"},
+		{"mixed", []kvpair{{"strkey", "strval"}, {"strarray", []string{"arr1", "arr2"}}, {"intval", 123456}}, "d6:strkey6:strval8:strarrayl4:arr14:arr2e6:intvali123456ee"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			d := bencoding.NewDict()
+			for _, pair := range c.pairs {
+				d.Any(pair.key, pair.val)
+			}
+			if val := d.Get(); val != c.result {
+				t.Errorf("Bad encode: '%s' should be '%s'", val, c.result)
+			}
+		})
 	}
 }

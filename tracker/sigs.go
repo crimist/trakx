@@ -5,6 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/crimist/trakx/tracker/http"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp"
 	"github.com/honeybadger-io/honeybadger-go"
@@ -17,7 +18,7 @@ var (
 	exitSuccess = 0
 )
 
-func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker) {
+func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker, httptracker *http.HTTPTracker) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGUSR1)
 
@@ -29,13 +30,13 @@ func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker) {
 			// Exit
 			logger.Info("Got exit signal", zap.Any("sig", sig))
 
+			httptracker.Kill()
+
 			if err := peerdb.Backup().Save(); err != nil {
 				honeybadger.Notify(err)
 			}
 
-			if udptracker != nil {
-				udptracker.WriteConns()
-			}
+			udptracker.WriteConns()
 
 			logger.Info("Goodbye")
 			os.Exit(exitSuccess)
@@ -47,9 +48,7 @@ func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker) {
 				honeybadger.Notify(err)
 			}
 
-			if udptracker != nil {
-				udptracker.WriteConns()
-			}
+			udptracker.WriteConns()
 
 			logger.Info("Saved")
 		default:

@@ -19,24 +19,21 @@ import (
 const httpRequestMax = 1800
 
 type HTTPTracker struct {
-	conf   *shared.Config
-	logger *zap.Logger
-	peerdb storage.Database
-
+	conf    *shared.Config
+	logger  *zap.Logger
+	peerdb  storage.Database
 	workers workers
+	kill    chan struct{}
 }
 
-func NewHTTPTracker(conf *shared.Config, logger *zap.Logger, peerdb storage.Database) *HTTPTracker {
-	tracker := HTTPTracker{
-		conf:   conf,
-		logger: logger,
-		peerdb: peerdb,
-	}
-
-	return &tracker
+func (t *HTTPTracker) Init(conf *shared.Config, logger *zap.Logger, peerdb storage.Database) {
+	t.conf = conf
+	t.logger = logger
+	t.peerdb = peerdb
+	t.kill = make(chan struct{})
 }
 
-func (t *HTTPTracker) Serve(index []byte, threads int) {
+func (t *HTTPTracker) Serve(index []byte) {
 	t.workers = workers{
 		tracker:  t,
 		jobQueue: make(chan job, t.conf.Tracker.HTTP.Qsize),
@@ -44,7 +41,7 @@ func (t *HTTPTracker) Serve(index []byte, threads int) {
 	}
 
 	t.workers.pool.New = func() interface{} { return make([]byte, httpRequestMax, httpRequestMax) }
-	t.workers.startWorkers(threads)
+	t.workers.startWorkers(t.conf.Tracker.HTTP.Threads)
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", t.conf.Tracker.HTTP.Port))
 	if err != nil {
@@ -68,10 +65,26 @@ func (t *HTTPTracker) Serve(index []byte, threads int) {
 		}()
 	}
 
-	select {}
+	select {
+	case _ = <-t.kill:
+		t.logger.Info("Closing HTTP tracker connection")
+		ln.Close()
+	}
+}
+
+// Kill kills the HTTP tracker by closing the listening connection
+func (t *HTTPTracker) Kill() {
+	if t == nil {
+		return
+	}
+	var die struct{}
+	t.kill <- die
 }
 
 func (t *HTTPTracker) QueueLen() int {
+	if t == nil {
+		return -1
+	}
 	return len(t.workers.jobQueue)
 }
 

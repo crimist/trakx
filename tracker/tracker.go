@@ -2,6 +2,7 @@ package tracker
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"time"
@@ -25,8 +26,11 @@ var (
 
 // Run runs the tracker
 func Run() {
-	var udptracker *udp.UDPTracker
+	var udptracker udp.UDPTracker
+	var httptracker trakxhttp.HTTPTracker
 	var err error
+
+	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 
 	// logger
 	cfg := zap.NewDevelopmentConfig()
@@ -58,19 +62,20 @@ func Run() {
 	}
 
 	// pprof, sigs, expvar
-	go sigHandler(peerdb, udptracker)
+	go sigHandler(peerdb, &udptracker, &httptracker)
 	if conf.Trakx.Pprof.Port != 0 {
 		logger.Info("pprof enabled", zap.Int("port", conf.Trakx.Pprof.Port))
 		initpprof()
 	}
 
-	// HTTP tracker / routes
+	// routes
 	initRoutes()
-	httptracker := trakxhttp.NewHTTPTracker(conf, logger, peerdb)
 
 	if conf.Tracker.HTTP.Enabled {
 		logger.Info("http tracker enabled", zap.Int("port", conf.Tracker.HTTP.Port))
-		go httptracker.Serve(indexData, conf.Tracker.HTTP.Threads)
+
+		httptracker.Init(conf, logger, peerdb)
+		go httptracker.Serve(indexData) // indexData in the routes.go file
 	} else {
 		d := bencoding.NewDict()
 		d.Int64("interval", 432000) // 5 days
@@ -103,8 +108,9 @@ func Run() {
 	// UDP tracker
 	if conf.Tracker.UDP.Enabled {
 		logger.Info("udp tracker enabled", zap.Int("port", conf.Tracker.UDP.Port))
-		udptracker = udp.NewUDPTracker(conf, logger, peerdb, conf.Tracker.UDP.Threads)
+		udptracker.Init(conf, logger, peerdb)
+		go udptracker.Serve()
 	}
 
-	publishExpvar(conf, peerdb, httptracker, udptracker)
+	publishExpvar(conf, peerdb, &httptracker, &udptracker)
 }
