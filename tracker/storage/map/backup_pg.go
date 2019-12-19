@@ -75,7 +75,7 @@ func (bck PgBackup) save() error {
 		return errors.New("postgres insert failed")
 	}
 
-	bck.db.conf.Logger.Info("Saved database to pg", zap.ByteString("hash", data[:20]))
+	bck.db.conf.Logger.Info("Saved database to pg", zap.Any("hash", data[:20]))
 
 	return nil
 }
@@ -104,7 +104,7 @@ attemptLoad:
 	if time.Now().Sub(ts) > backupRecentWindow && firstTry == true {
 		firstTry = false
 
-		bck.db.conf.Logger.Info("Failed to detect a pg backup, waiting...", zap.Duration("window", backupRecentWindow), zap.Duration("wait", backupRecentWait))
+		bck.db.conf.Logger.Info("Failed to detect a pg backup within window, waiting...", zap.Duration("window", backupRecentWindow), zap.Duration("wait", backupRecentWait))
 		time.Sleep(backupRecentWait)
 		goto attemptLoad
 	}
@@ -116,7 +116,7 @@ attemptLoad:
 		return err
 	}
 
-	bck.db.conf.Logger.Info("Loaded stored database from pg", zap.Int("size", len(bytes)), zap.ByteString("hash", bytes[:20]), zap.Int("peers", peers), zap.Int("hashes", hashes))
+	bck.db.conf.Logger.Info("Loaded stored database from pg", zap.Int("size", len(bytes)), zap.Any("hash", bytes[:20]), zap.Int("peers", peers), zap.Int("hashes", hashes))
 
 	return nil
 }
