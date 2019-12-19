@@ -63,6 +63,7 @@ func (bck *PgBackup) Init(db storage.Database) error {
 func (bck PgBackup) save() error {
 	bck.db.conf.Logger.Info("Saving database to pg")
 
+	start := time.Now()
 	data, err := bck.db.encodeBinaryUnsafeAutoalloc()
 	if err != nil {
 		bck.db.conf.Logger.Error("Failed to encode", zap.Error(err))
@@ -75,7 +76,7 @@ func (bck PgBackup) save() error {
 		return errors.New("postgres insert failed")
 	}
 
-	bck.db.conf.Logger.Info("Saved database to pg", zap.Any("hash", data[:20]))
+	bck.db.conf.Logger.Info("Saved database to pg", zap.Any("hash", data[:20]), zap.Duration("duration", time.Now().Sub(start)))
 
 	return nil
 }
