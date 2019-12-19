@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"expvar"
 	"fmt"
 	"net"
@@ -16,7 +17,10 @@ import (
 )
 
 // max req size before cutoff
-const httpRequestMax = 1800
+const (
+	httpRequestMax = 1800
+	errClosed      = "use of closed network connection"
+)
 
 type HTTPTracker struct {
 	conf    *shared.Config
@@ -53,9 +57,10 @@ func (t *HTTPTracker) Serve(index []byte) {
 			for {
 				conn, err := ln.Accept()
 				if err != nil {
-					if !t.conf.Trakx.Prod {
-						t.logger.Warn("net.Listen()", zap.Error(err))
+					if errors.Unwrap(err).Error() == errClosed { // if socket is closed we're done
+						break
 					}
+					t.logger.Warn("net.Listen()", zap.Error(err))
 					continue
 				}
 
