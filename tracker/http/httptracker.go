@@ -20,6 +20,12 @@ import (
 const (
 	httpRequestMax = 1800
 	errClosed      = "use of closed network connection"
+
+	DMCAData = `
+	<p>tracker@nibba.trade</p>
+	<iframe width="560" height="315" src="https://www.youtube.com/embed/BwSts2s4ba4?controls=0&showinfo=0&autoplay=1" frameborder="0" allowfullscreen></iframe>
+	<p>Trakx does not have the capability to block hashes nor does it store or distribute any content.</p>
+	`
 )
 
 type HTTPTracker struct {
@@ -232,7 +238,7 @@ func (w *workers) work() {
 			case "/":
 				j.writeData(w.index)
 			case "/dmca":
-				j.redir("https://www.youtube.com/watch?v=BwSts2s4ba4")
+				j.writeData(DMCAData)
 			case "/stats":
 				// Serves expvar handler but it's hacky af
 				j.conn.Write([]byte("HTTP/1.1 200\r\nContent-Type: application/json; charset=utf-8\r\n\r\n"))

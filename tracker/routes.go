@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	trakxhttp "github.com/crimist/trakx/tracker/http"
 	"go.uber.org/zap"
 )
 
@@ -24,5 +25,5 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func dmca(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://www.youtube.com/watch?v=BwSts2s4ba4", http.StatusTemporaryRedirect)
+	w.Write([]byte(trakxhttp.DMCAData))
 }
