@@ -1,14 +1,12 @@
 # trakx
 
-Bittorrent tracker generally focused on speed and efficiency.
+The fastest bittorrent tracker.
 
 ![performance](img/performance.png)
 
-HTTP only with extensive metrics enabled. Memory usage was 150MB with this load.
-
 ![flame](img/flame.png)
 
-As you can see basically all the CPU usage is overhead from handling so many TCP connections. For example in this flamegraph the databases save function was only 0.3% of the flamegraphs time.
+As demonstrated here practically all of the CPU usage is from handling the TCP connections. The databases save function made only 0.3% of the flame graphs time in this example.
 
 ## Install
 
@@ -30,18 +28,17 @@ trakx status # "Trakx is not running"
 
 ## Updating
 
-* Running `./setup.sh` will update without overwriting config
+* Running `./setup.sh` will update without overwriting your config
 
 ## Build tags
 
 * `fast` tag will build without IP, seeds, and leeches metrics which will speed up trakx
-* `heroku` tag will build the service for app engines, this means that when executed the binary goes straight to `tracker.Run()` instead of a CLI
+* `heroku` tag will build the service for app engines, this means that when executed the binary will immediatly run the tracker
 
 ## Notes
 
-If you're going to be serving a lot of clients take a look at the sysctl tuning the resources section. This is especially true if you're using the TCP tracker
-
-There's no guarantee that database saves work between go versions - by default I use `unsafe` to read raw memory so if they change `struct` padding or completely change byte slices it could break your save between versions. You can change the encoding method to `encodeBinary()` to avoid this issue but it takes 3x more memory and is 7x slower.
+* If you're going to be serving a lot of clients take a look at the sysctl tuning the resources section. This is especially true if you're using the TCP tracker
+* There's no guarantee that database saves work between go versions - by default I use `unsafe` to read raw memory so if they change `struct` padding or completely change byte slices it could break your save between versions. You can change the encoding method to `encodeBinary()` to avoid this issue but it takes 3x more memory and is 7x slower.
 
 ## Resources
 
