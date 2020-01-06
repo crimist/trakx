@@ -99,7 +99,7 @@ func (db *Memory) PeerListBytes(h *storage.Hash, max int) []byte {
 	size := 6 * max
 	peerlist := make([]byte, size)
 	for _, peer := range peermap.peers {
-		copy(peerlist[pos:pos+4], peer.IP[:]) // TODO should this be in BigEndian?
+		copy(peerlist[pos:pos+4], peer.IP[:])
 		binary.BigEndian.PutUint16(peerlist[pos+4:pos+6], peer.Port)
 
 		pos += 6
