@@ -7,11 +7,12 @@ import (
 // Save writes a peer
 func (db *Memory) Save(peer *storage.Peer, h *storage.Hash, id *storage.PeerID) {
 	var oldpeer *storage.Peer
+	var peerExists bool
 
 	db.mu.RLock()
-	peermap, ok := db.hashmap[*h]
+	peermap, exists := db.hashmap[*h]
 	db.mu.RUnlock()
-	if !ok {
+	if !exists {
 		db.mu.Lock()
 		peermap = db.makePeermap(h)
 		db.mu.Unlock()
@@ -19,13 +20,13 @@ func (db *Memory) Save(peer *storage.Peer, h *storage.Hash, id *storage.PeerID) 
 
 	peermap.Lock()
 	if !fast {
-		oldpeer, ok = peermap.peers[*id]
+		oldpeer, peerExists = peermap.peers[*id]
 	}
 	peermap.peers[*id] = peer
 	peermap.Unlock()
 
 	if !fast {
-		if ok { // Already in db
+		if peerExists {
 			if oldpeer.Complete == false && peer.Complete == true { // They completed
 				storage.AddExpval(&storage.Expvar.Leeches, -1)
 				storage.AddExpval(&storage.Expvar.Seeds, 1)
