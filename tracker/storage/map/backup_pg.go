@@ -26,7 +26,7 @@ const (
 	backupRecentWindow = 10 * time.Minute
 
 	// Time to wait for if backup is older than backupRecentWindow
-	backupRecentWait = 7 * time.Second
+	backupRecentWait = 8 * time.Second
 )
 
 type PgBackup struct {
