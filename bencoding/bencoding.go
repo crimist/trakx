@@ -51,16 +51,14 @@ func dict(dict ...string) string {
 }
 
 type Dict struct {
-	encoded string
-
+	encoded  string
 	finished bool
 }
 
 // NewDict creates a new dictionary
-func NewDict() *Dict {
-	dict := Dict{}
-	dict.encoded += "d"
-	return &dict
+func NewDict() (d Dict) {
+	d.encoded += "d"
+	return
 }
 
 func (d *Dict) String(key string, v string) {

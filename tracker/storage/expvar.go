@@ -9,7 +9,7 @@ import (
 
 const (
 	fast       = false
-	ipmapAlloc = 100000
+	ipmapAlloc = 200_000
 )
 
 var (

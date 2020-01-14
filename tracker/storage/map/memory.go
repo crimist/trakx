@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	hashMapAlloc = 1000000
+	hashMapAlloc = 250_000
 	peerMapAlloc = 1
 )
 
