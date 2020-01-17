@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/crimist/trakx/bencoding"
@@ -12,7 +11,7 @@ import (
 	"github.com/crimist/trakx/tracker/shared"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp"
-	"github.com/honeybadger-io/honeybadger-go"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
 	// import database types so init is called
@@ -32,7 +31,6 @@ func Run() {
 
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 
-	// logger
 	cfg := zap.NewDevelopmentConfig()
 	logger, err = cfg.Build()
 	if err != nil {
@@ -41,24 +39,15 @@ func Run() {
 
 	logger.Info("Starting trakx...")
 
-	honeyAPIKey := os.Getenv("TRAKX_TRACKER_HONEY")
-	if honeyAPIKey != "" && len(honeyAPIKey) >= 10 {
-		logger.Info("honeybadger.io API key detected", zap.String("keysample", honeyAPIKey[:9]))
-		honeybadger.Configure(honeybadger.Configuration{
-			APIKey: honeyAPIKey,
-		})
-		defer honeybadger.Monitor()
-	}
-
 	conf, err = shared.ViperConf(logger)
 	if err != nil || !conf.Loaded() {
-		logger.Panic("Failed to load configuration", zap.Any("config", conf), zap.Error(err))
+		logger.Fatal("Failed to load a configuration", zap.Any("config", conf), zap.Error(errors.WithMessage(err, "Failed to load viper cofig")))
 	}
 
 	// db
 	peerdb, err := storage.Open(conf)
 	if err != nil {
-		logger.Panic("Failed to initialize storage", zap.Error(err))
+		logger.Fatal("Failed to initialize storage", zap.Error(err))
 	}
 
 	// pprof, sigs, expvar

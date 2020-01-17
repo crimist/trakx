@@ -1,12 +1,12 @@
 package shared
 
 import (
-	"errors"
 	"os"
 	"strings"
 	"syscall"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
@@ -65,12 +65,15 @@ type Config struct {
 	} `yaml:"database"`
 }
 
+// Loaded checks if the config is loaded or not
 func (conf *Config) Loaded() bool {
+	// Database.Type is required to run so if it's empty we know that the config isn't loaded
 	return conf.Database.Type != ""
 }
 
-// makes the tild (~) expand out to your home directory
-func (conf *Config) fixFilenames() error {
+func (conf *Config) fixFilepaths() error {
+	// makes the tild (~) expand out to your home directory
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -123,7 +126,7 @@ func ViperConf(logger *zap.Logger) (*Config, error) {
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig()
 	if err != nil {
-		return nil, errors.New("ReadInConfig failed with error: " + err.Error())
+		return nil, errors.Wrap(err, "viper failed to read config from disk")
 	}
 
 	// Env vars override file
@@ -132,28 +135,30 @@ func ViperConf(logger *zap.Logger) (*Config, error) {
 	viper.SetEnvPrefix("trakx")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	if err := viper.Unmarshal(conf); err != nil {
-		return nil, errors.New("Unmarshal failed with error: " + err.Error())
+		return nil, errors.Wrap(err, "viper failed to unmarshal")
 	}
 
-	// If $PORT var set override everything for appengines
+	// If $PORT var set override everything for appengines (heroku)
 	viper.BindEnv("app_port", "PORT")
 	if appenginePort := viper.GetInt("app_port"); appenginePort != 0 {
 		conf.Tracker.HTTP.Port = appenginePort
 	}
 
 	// Add watcher
-	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		conf.Logger.Info("Config changed", zap.String("name", e.Name), zap.Any("op", e.Op))
+
 		if err := viper.Unmarshal(conf); err != nil {
-			conf.Logger.Info("New config invalid", zap.Error(err))
+			conf.Logger.Info("Viper failed to unmarshal new config", zap.Error(err))
 		}
+
 		conf.setLimits()
-		conf.fixFilenames()
+		conf.fixFilepaths()
 	})
+	viper.WatchConfig()
 
 	conf.setLimits()
-	conf.fixFilenames()
+	conf.fixFilepaths()
 
 	return conf, nil
 }

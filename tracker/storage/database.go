@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 
 	"github.com/crimist/trakx/tracker/shared"
 )
@@ -18,11 +18,11 @@ func Open(conf *shared.Config) (Database, error) {
 	}
 
 	if err := driver.db.Init(conf, backup); err != nil {
-		return nil, errors.New("Failed to initialize storage driver: " + err.Error())
+		return nil, errors.Wrap(err, "failed to init storage driver")
 	}
 
 	if err := driver.db.Expvar(); err != nil {
-		return nil, errors.New("Expvar() call failed: " + err.Error())
+		return nil, errors.Wrap(err, "failed to init expvar on storage driver")
 	}
 
 	return driver.db, nil

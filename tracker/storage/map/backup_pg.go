@@ -2,7 +2,6 @@ package gomap
 
 import (
 	"database/sql"
-	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/crimist/trakx/tracker/storage"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -44,36 +44,34 @@ func (bck *PgBackup) Init(db storage.Database) error {
 
 	bck.pg, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
-		return errors.New("Failed to open pg connection: " + err.Error())
+		return errors.Wrap(err, "failed to open pg connection")
 	}
 
 	err = bck.pg.Ping()
 	if err != nil {
-		return errors.New("postgres ping() failed: " + err.Error())
+		return errors.Wrap(err, "failed to ping postgres")
 	}
 
 	_, err = bck.pg.Exec("CREATE TABLE IF NOT EXISTS trakx (ts TIMESTAMP DEFAULT now(), bytes BYTEA)")
 	if err != nil {
-		return errors.New("Failed to CREATE TABLE: " + err.Error())
+		return errors.Wrap(err, "failed to `CREATE TABLE`")
 	}
 
 	return nil
 }
 
-func (bck PgBackup) save() error {
+func (bck PgBackup) Save() error {
 	bck.db.conf.Logger.Info("Saving database to pg")
 
 	start := time.Now()
 	data, err := bck.db.encodeBinaryUnsafeAutoalloc()
 	if err != nil {
-		bck.db.conf.Logger.Error("Failed to encode", zap.Error(err))
-		return err
+		return errors.Wrap(err, "failed to encode binary (w/ encodeBinaryUnsafeAutoalloc)")
 	}
 
 	_, err = bck.pg.Query("INSERT INTO trakx(bytes) VALUES($1)", data)
 	if err != nil {
-		bck.db.conf.Logger.Error("postgres insert failed", zap.Error(err))
-		return errors.New("postgres insert failed")
+		return errors.Wrap(err, "`INSERT` statement failed")
 	}
 
 	bck.db.conf.Logger.Info("Saved database to pg", zap.Any("hash", data[:20]), zap.Duration("duration", time.Now().Sub(start)))
@@ -81,24 +79,26 @@ func (bck PgBackup) save() error {
 	return nil
 }
 
-func (bck PgBackup) load() error {
+func (bck PgBackup) Load() error {
 	firstTry := true
 	var bytes []byte
 	var ts time.Time
 
-attemptLoad:
+	bck.db.conf.Logger.Info("Loading stored database from postgres")
 
-	bck.db.conf.Logger.Info("Attempting to load stored database from pg")
+attemptLoad:
 
 	err := bck.pg.QueryRow("SELECT bytes, ts FROM trakx ORDER BY ts DESC LIMIT 1").Scan(&bytes, &ts)
 	if err != nil {
-		defer bck.db.make()
-
-		if strings.Contains(err.Error(), "no rows in result set") { // empty postgres table
-			bck.db.conf.Logger.Info("No rows found in pg database. Creating empty maps")
+		// if postgres is empty than create an empty database and return success
+		if strings.Contains(err.Error(), "no rows in result set") {
+			bck.db.make()
+			bck.db.conf.Logger.Info("No rows found in postgres, created empty database")
 			return nil
 		}
-		return errors.New("postgres SELECT query failed: " + err.Error())
+
+		// otherwise return failure
+		return errors.Wrap(err, "`SELECT` statement failed")
 	}
 
 	// If backup is older than 20 min wait a sec for a backup to arrive
@@ -107,27 +107,19 @@ attemptLoad:
 
 		bck.db.conf.Logger.Info("Failed to detect a pg backup within window, waiting...", zap.Duration("window", backupRecentWindow), zap.Duration("wait", backupRecentWait))
 		time.Sleep(backupRecentWait)
+		bck.db.conf.Logger.Info("Reattempting load...")
+
 		goto attemptLoad
 	}
 
 	peers, hashes, err := bck.db.decodeBinaryUnsafe(bytes)
 	if err != nil {
-		bck.db.conf.Logger.Error("Error decoding stored database", zap.Error(err))
-		bck.db.make()
-		return err
+		return errors.Wrap(err, "failed to decode saved data")
 	}
 
 	bck.db.conf.Logger.Info("Loaded stored database from pg", zap.Int("size", len(bytes)), zap.Any("hash", bytes[:20]), zap.Int("peers", peers), zap.Int("hashes", hashes))
 
 	return nil
-}
-
-func (bck PgBackup) Save() error {
-	return bck.save()
-}
-
-func (bck PgBackup) Load() error {
-	return bck.load()
 }
 
 func (bck PgBackup) trim() (int64, error) {

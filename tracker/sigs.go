@@ -8,7 +8,6 @@ import (
 	"github.com/crimist/trakx/tracker/http"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp"
-	"github.com/honeybadger-io/honeybadger-go"
 
 	"go.uber.org/zap"
 )
@@ -34,7 +33,7 @@ func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker, httptracker
 			httptracker.Kill()
 
 			if err := peerdb.Backup().Save(); err != nil {
-				honeybadger.Notify(err)
+				logger.Info("Failed to backup the database on exit")
 			}
 
 			udptracker.WriteConns()
@@ -46,7 +45,7 @@ func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker, httptracker
 			logger.Info("Got save signal", zap.Any("sig", sig))
 
 			if err := peerdb.Backup().Save(); err != nil {
-				honeybadger.Notify(err)
+				logger.Info("Failed to backup the database on save")
 			}
 
 			udptracker.WriteConns()

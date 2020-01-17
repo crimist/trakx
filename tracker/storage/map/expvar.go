@@ -1,14 +1,13 @@
 package gomap
 
 import (
-	"errors"
-
 	"github.com/crimist/trakx/tracker/storage"
+	"github.com/pkg/errors"
 )
 
 func (db *Memory) Expvar() error {
 	if ok := db.Check(); !ok {
-		return errors.New("driver not initialized before calling Expvar()")
+		return errors.New("driver not init before calling Expvar()")
 	}
 
 	// Called on main thread before thread/queue dispatch no locking needed

@@ -114,6 +114,7 @@ func (c *Controller) Wipe() error {
 
 // IsRunning checks if trakx is running using bind
 func (c *Controller) IsRunning() (running bool) {
+	// TODO: Update this! Hardcoded port + no HTTP support lmao
 	if conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: 1337, Zone: ""}); err != nil {
 		if strings.Contains(err.Error(), "address already in use") {
 			running = true

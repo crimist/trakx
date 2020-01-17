@@ -1,13 +1,12 @@
 package gomap
 
 import (
-	"errors"
 	"sync"
 	"time"
 
 	"github.com/crimist/trakx/tracker/shared"
 	"github.com/crimist/trakx/tracker/storage"
-	"github.com/honeybadger-io/honeybadger-go"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -36,16 +35,16 @@ func (db *Memory) Init(conf *shared.Config, backup storage.Backup) error {
 	}
 
 	if err := db.backup.Init(db); err != nil {
-		return errors.New("Failed to initialize backup: " + err.Error())
+		return errors.Wrap(err, "failed to initialize backup")
 	}
 	if err := db.backup.Load(); err != nil {
-		return errors.New("Failed to load backup: " + err.Error())
+		return errors.Wrap(err, "failed to load backup")
 	}
 
 	if conf.Database.Peer.Write > 0 {
 		go shared.RunOn(time.Duration(conf.Database.Peer.Write)*time.Second, func() {
 			if err := db.backup.Save(); err != nil {
-				honeybadger.Notify(err)
+				conf.Logger.Info("Failed to backup the database", zap.Error(err))
 			}
 		})
 	}

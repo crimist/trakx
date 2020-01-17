@@ -1,12 +1,12 @@
 package gomap
 
 import (
-	"errors"
 	"io/ioutil"
 	"os"
 	"time"
 
 	"github.com/crimist/trakx/tracker/storage"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -28,63 +28,64 @@ func (bck *FileBackup) Load() error {
 
 	_, err := os.Stat(bck.db.conf.Database.Peer.Filename)
 	if err != nil {
+		// If the file doesn't exist than create an empty database and return success
 		if os.IsNotExist(err) {
 			bck.db.make()
-			bck.db.conf.Logger.Info("Database file not found", zap.Error(err))
+			bck.db.conf.Logger.Info("Database file not found, created empty database", zap.String("filepath", bck.db.conf.Database.Peer.Filename))
 			return nil
 		}
 
-		return errors.New("os.Stat failed: " + err.Error())
+		return errors.Wrap(err, "failed to stat file")
 	}
 
-	if err := bck.db.loadFile(bck.db.conf.Database.Peer.Filename); err != nil {
-		return errors.New("Failed to load file: " + err.Error())
+	peers, hashes, err := bck.db.loadFile(bck.db.conf.Database.Peer.Filename)
+	if err != nil {
+		return errors.Wrap(err, "failed to load file")
 	}
 
-	bck.db.conf.Logger.Info("Loaded database", zap.Int("hashes", bck.db.Hashes()), zap.Duration("took", time.Now().Sub(start)))
+	bck.db.conf.Logger.Info("Loaded database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("took", time.Now().Sub(start)))
 
 	return nil
 }
 
-func (db *Memory) loadFile(filename string) error {
+func (db *Memory) loadFile(filename string) (int, int, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return err
+		return 0, 0, errors.Wrap(err, "failed to read file from disk")
 	}
 
-	if _, _, err := db.decodeBinaryUnsafe(data); err != nil {
-		return err
+	peers, hashes, err := db.decodeBinaryUnsafe(data)
+	if err != nil {
+		return 0, 0, errors.Wrap(err, "failed to decode saved data")
 	}
 
-	return nil
+	return peers, hashes, nil
 }
 
-// like trim() this uses costly locking but it's worth it to prevent blocking
-func (bck *FileBackup) writeFile() (float32, error) {
-	filename := bck.db.conf.Database.Peer.Filename
-
+func (bck *FileBackup) writeFile() (int, error) {
 	encoded, err := bck.db.encodeBinaryUnsafeAutoalloc()
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "failed to encode data (encodeBinaryUnsafeAutoalloc)")
 	}
 
-	size := float32(len(encoded) / 1024.0 / 1024.0)
-	if err := ioutil.WriteFile(filename, encoded, 0644); err != nil {
-		return 0, errors.New("Failed to write file: " + err.Error())
+	if err := ioutil.WriteFile(bck.db.conf.Database.Peer.Filename, encoded, 0644); err != nil {
+		return 0, errors.Wrap(err, "failed to write file to disk")
 	}
-	return size, nil
+
+	return len(encoded), nil
 }
 
+// Save encodes and writes the database to a file
 func (bck *FileBackup) Save() error {
 	bck.db.conf.Logger.Info("Writing database to file")
 	start := time.Now()
-	size, err := bck.writeFile()
 
+	size, err := bck.writeFile()
 	if err != nil {
-		bck.db.conf.Logger.Info("Failed to write database", zap.Duration("duration", time.Now().Sub(start)))
-	} else {
-		bck.db.conf.Logger.Info("Wrote database", zap.Float32("size (MB)", size), zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
+		return errors.Wrap(err, "failed to save database")
 	}
 
-	return err
+	bck.db.conf.Logger.Info("Wrote database", zap.Int("size (bytes)", size), zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
+
+	return nil
 }

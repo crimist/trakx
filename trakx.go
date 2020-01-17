@@ -18,20 +18,19 @@ const (
 	trakxPerms = 0740
 )
 
-func printHelp(arg string) {
-	if arg != "" {
-		fmt.Fprintf(os.Stderr, "Invalid argument: \"%s\"\n\n", arg)
-	}
-	help := "Trakx commands:\n"
+func printHelp() {
+	help := "Commands:\n"
 	help += fmt.Sprintf("  %-12s Checks if Trakx is running\n", "status")
-	help += fmt.Sprintf("  %-12s Runs Trakx if it exits\n", "watcher")
+	help += fmt.Sprintf("  %-12s Watches if Trakx stops running and reruns it (doesn't returns)\n", "watcher")
 	help += fmt.Sprintf("  %-12s Runs Trakx (doesn't return)\n", "run")
 	help += fmt.Sprintf("  %-12s Starts Trakx as a service\n", "start")
 	help += fmt.Sprintf("  %-12s Stops Trakx service\n", "stop")
 	help += fmt.Sprintf("  %-12s Restarts Trakx service\n", "restart")
 	help += fmt.Sprintf("  %-12s Wipes trakx pid file\n", "wipe")
+
 	help += "Usage:\n"
 	help += fmt.Sprintf("  %s <command>\n", os.Args[0])
+
 	help += "Example:\n"
 	help += fmt.Sprintf("  %s run\n", os.Args[0])
 
@@ -40,7 +39,7 @@ func printHelp(arg string) {
 
 func main() {
 	if len(os.Args) < 2 {
-		printHelp("")
+		printHelp()
 		return
 	}
 
@@ -64,8 +63,9 @@ func main() {
 					fmt.Fprintf(os.Stderr, err.Error()+"\n")
 					os.Exit(-1)
 				}
-				// Wait 20 seconds to let it set up
-				time.Sleep(20 * time.Second)
+
+				// Wait to let it set up
+				time.Sleep(10 * time.Second)
 			}
 			time.Sleep(3 * time.Second)
 		}
@@ -100,6 +100,7 @@ func main() {
 		}
 		fmt.Println("wiped...")
 	default:
-		printHelp(os.Args[1])
+		fmt.Fprintf(os.Stderr, "Invalid argument: \"%s\"\n\n", os.Args[1])
+		printHelp()
 	}
 }
