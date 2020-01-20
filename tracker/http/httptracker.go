@@ -16,9 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// max req size before cutoff
 const (
-	httpRequestMax = 1800
+	httpRequestMax = 2100 // slight buffer over 2000
 	errClosed      = "use of closed network connection"
 
 	DMCAData = `
@@ -211,7 +210,7 @@ func (w *workers) work() {
 				if forwarded {
 					// Appeng (heroku)
 					if forwardedIP == nil {
-						w.tracker.clientError(j.conn, "Bad IP - might be heroku issue")
+						w.tracker.clientError(j.conn, "Bad IP, potentially heroku issue")
 						break
 					}
 					ipStr = *(*string)(unsafe.Pointer(&forwardedIP))
@@ -221,7 +220,7 @@ func (w *workers) work() {
 				}
 				parsedIP := net.ParseIP(ipStr).To4()
 				if parsedIP == nil {
-					w.tracker.clientError(j.conn, "ipv6 unsupported")
+					w.tracker.clientError(j.conn, "IPv6 unsupported")
 					break
 				}
 				copy(ip[:], parsedIP)

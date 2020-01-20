@@ -39,7 +39,7 @@ func Run() {
 
 	logger.Info("Starting trakx...")
 
-	conf, err = shared.ViperConf(logger)
+	conf, err = shared.LoadConf(logger)
 	if err != nil || !conf.Loaded() {
 		logger.Fatal("Failed to load a configuration", zap.Any("config", conf), zap.Error(errors.WithMessage(err, "Failed to load viper cofig")))
 	}

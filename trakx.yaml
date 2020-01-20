@@ -1,81 +1,70 @@
 #########################################################
 # Trakx YAML config
 #   All time is measured in seconds
-#   Time can be set to 0 to not execute
 # All values in this can be overridden with env vars
-#   Ex: export TRAKX_TRAKX_HONEY=<insert api key>
+#   For example: `export TRAKX_TRAKX_PROD=FALSE`
 
 trakx:
-  honey: "use env var TRAKX_TRACKER_HONEY"
   prod: true
   index: "/usr/local/trakx/index.html"
-  # Expvar is served on /stats over the set http port
   expvar:
     # How often to update expvar vals
     every: 1
   pprof:
-    # Set port to 0 to disable expvar
+    # Port to serve pprof over, 0 to disable
     port: 1338
-  # nofile limit: 0 for default
-  # high value used here so that we can queue connections for processing
-  # trakx will automatically drop connections based on read/write timeout seen below
+  # Essentially max socket limit, use 0 for default
   ulimit: 99999
 
 tracker:
   http:
-    # HTTP will still bind and listen if this is false but
-    # /announce and /scrape will return emprt responses
+    # If disabled the tracker will still run and index and DMCA page
     enabled: true
-    # Port here also serves expvar, index, ect.
+    # HTTP port to serve, also serves index ect.
     port: 1337
-    # Timeout in seconds for TCP connections
+    # TCP timeouts
     readtimeout: 3
     writetimeout: 10
-    # Max size of connection queue
+    # Maximum size of connection queue
     qsize: 100000
-    # Number of goroutines accept()ing tcp conns
+    # Number of TCP accept() goroutines
     accepters: 5
-    # Number of worker goroutines that process conns
+    # Number of worker goroutines that the connection queue
     threads: 2048
   udp:
     enabled: true
     port: 1337
-    # Check if valid connection ID. Disabling this
-    # turns trakx into a DDoS udp amp so be careful
+    # Validate connection IDS, if disabled tracker can be abused as UDP amplification
     checkconnid: true
     threads: 1024
   numwant:
-    # Default numwant if none specified
+    # Default maximum number of peers if none specified
     default: 75
-    # If max exceeded numwant set to default
-    max: 300
-  # message for stopping clients
-  stoppedmsg: "See you space cowboy..."
+    # Maximum number of requested peers, if exceeded the request is set to the default
+    limit: 300
   # Announce interval for clients
-  announce: 1800 # 30m
+  announce: 1800 # 30 min
 
 database:
-  # Options
+  # Database type options
   # gomap - in memory database using golang maps
   type: "gomap"
-  # Backup options for "gomap":
+  # Backup type options for gomap database
   # file - backup to file
   # pg - backup to postgres
   backup: "file"
   
   peer:
     filename: "/usr/local/trakx/peers.db"
-    # How often to check for expired peers
-    trim: 600 # 10m
-    # How often to write temp db in case of crash
-    # On graceful exit database is written
-    write: 960 # 16m
-    # Peer max TTL
-    timeout: 2400 # 40m
+    # How often to check and remove expired peers
+    trim: 600 # 10 min
+    # How often to backup database in case of crash, 0 to disable
+    write: 0
+    # Maximum peer age before removal
+    timeout: 2400 # 40 min
   conn:
     filename: "/usr/local/trakx/conn.db"
-    # A connection that has expired could still be used if it hasn't been purged yet
-    # How often to check for expired conns
-    trim: 600 # 10m
-    # Conn max TTL
-    timeout: 1800 # 30m
+    # How often to check and remove expired UDP connection IDs
+    trim: 600 # 10 min
+    # Maximum UDP connection ID age before removal
+    timeout: 1800 # 30 min

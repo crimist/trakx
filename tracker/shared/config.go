@@ -26,9 +26,8 @@ type Config struct {
 		Ulimit uint64 `yaml:"ulimit"`
 	} `yaml:"trakx"`
 	Tracker struct {
-		Announce   int32  `yaml:"announce"`
-		StoppedMsg string `yaml:"stoppedmsg"`
-		HTTP       struct {
+		Announce int32 `yaml:"announce"`
+		HTTP     struct {
 			Enabled      bool `yaml:"enabled"`
 			Port         int  `yaml:"port"`
 			ReadTimeout  int  `yaml:"readtimeout"`
@@ -45,7 +44,7 @@ type Config struct {
 		} `yaml:"udp"`
 		Numwant struct {
 			Default int32 `yaml:"default"`
-			Max     int32 `yaml:"max"`
+			Limit   int32 `yaml:"limit"`
 		} `yaml:"numwant"`
 	} `yaml:"tracker"`
 	Database struct {
@@ -114,7 +113,7 @@ func (conf *Config) setLimits() error {
 	return nil
 }
 
-func ViperConf(logger *zap.Logger) (*Config, error) {
+func LoadConf(logger *zap.Logger) (*Config, error) {
 	conf := new(Config)
 	conf.Logger = logger
 
@@ -129,8 +128,7 @@ func ViperConf(logger *zap.Logger) (*Config, error) {
 		return nil, errors.Wrap(err, "viper failed to read config from disk")
 	}
 
-	// Env vars override file
-	// Thanks https://github.com/spf13/viper/issues/188#issuecomment-413368673
+	// Load all env vars and override file - https://github.com/spf13/viper/issues/188#issuecomment-413368673
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("trakx")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))

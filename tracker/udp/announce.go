@@ -89,17 +89,14 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	if announce.Event == completed || announce.Left == 0 {
 		peer.Complete = true
 	}
-	if announce.NumWant < 1 || announce.NumWant > u.conf.Tracker.Numwant.Max {
+	if announce.NumWant < 1 || announce.NumWant > u.conf.Tracker.Numwant.Limit {
 		announce.NumWant = u.conf.Tracker.Numwant.Default
 	}
 
 	if announce.Event == stopped {
 		u.peerdb.Drop(&announce.InfoHash, &announce.PeerID)
-
 		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
-		if u.conf.Tracker.StoppedMsg != "" {
-			u.sock.WriteToUDP([]byte(u.conf.Tracker.StoppedMsg), remote)
-		}
+		// TODO: Should we respond?
 		return
 	}
 
