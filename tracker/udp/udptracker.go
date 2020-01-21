@@ -6,6 +6,7 @@ import (
 	"net"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/crimist/trakx/tracker/shared"
 	"github.com/crimist/trakx/tracker/storage"
@@ -97,13 +98,18 @@ func (u *UDPTracker) WriteConns() {
 	if u == nil || u.conndb == nil {
 		return
 	}
-	u.conndb.write()
+	if err := u.conndb.write(); err != nil {
+		u.logger.Fatal("Failed to write connection database", zap.Error(err))
+	}
 }
 
 func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
-	var addr [4]byte
+	var cAddr connAddr
 	ip := remote.IP.To4()
-	copy(addr[:], ip)
+
+	copy(cAddr[0:4], ip)
+	binary.LittleEndian.PutUint16(cAddr[4:6], uint16(remote.Port))
+	addr := *(*[4]byte)(unsafe.Pointer(&cAddr))
 
 	action := data[11]
 	txid := int32(binary.BigEndian.Uint32(data[12:16]))
@@ -126,12 +132,12 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 			msg := u.newServerError("base.unmarshall()", err, txid)
 			u.sock.WriteToUDP(msg, remote)
 		}
-		u.connect(&c, remote, addr)
+		u.connect(&c, remote, cAddr)
 		return
 	}
 
 	connid := int64(binary.BigEndian.Uint64(data[0:8]))
-	if ok := u.conndb.check(connid, addr); !ok && u.conf.Tracker.UDP.CheckConnID {
+	if ok := u.conndb.check(connid, cAddr); !ok && u.conf.Tracker.UDP.CheckConnID {
 		msg := u.newClientError("bad connid", txid, cerrFields{"clientID": connid, "ip": ip})
 		u.sock.WriteToUDP(msg, remote)
 		return

@@ -1,21 +1,21 @@
 package udp
 
 import (
-	"bytes"
-	"encoding/gob"
 	"io/ioutil"
-	"os"
 	"sync"
 	"time"
+	"unsafe"
 
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
 const (
-	conndbCap = 50000
+	conndbAlloc = 50000
+	connIDSize  = int(unsafe.Sizeof(connID{}))
 )
 
+type connAddr [6]byte
 type connID struct {
 	ID int64
 	ts int64
@@ -23,7 +23,7 @@ type connID struct {
 
 type connectionDatabase struct {
 	mu sync.RWMutex
-	db map[storage.PeerIP]connID
+	db map[connAddr]connID
 
 	timeout  int64
 	filename string
@@ -37,7 +37,8 @@ func newConnectionDatabase(timeout int64, filename string, logger *zap.Logger) *
 		logger:   logger,
 	}
 
-	if success := db.load(); !success {
+	if err := db.load(); err != nil {
+		logger.Error("Failed to load connection database, creating empty db", zap.Error(err))
 		db.make()
 	}
 
@@ -51,7 +52,7 @@ func (db *connectionDatabase) conns() (count int) {
 	return
 }
 
-func (db *connectionDatabase) add(id int64, addr storage.PeerIP) {
+func (db *connectionDatabase) add(id int64, addr connAddr) {
 	db.mu.Lock()
 	db.db[addr] = connID{
 		ID: id,
@@ -60,7 +61,7 @@ func (db *connectionDatabase) add(id int64, addr storage.PeerIP) {
 	db.mu.Unlock()
 }
 
-func (db *connectionDatabase) check(id int64, addr storage.PeerIP) bool {
+func (db *connectionDatabase) check(id int64, addr connAddr) bool {
 	db.mu.RLock()
 	cid, ok := db.db[addr]
 	db.mu.RUnlock()
@@ -91,53 +92,68 @@ func (db *connectionDatabase) trim() {
 	db.logger.Info("Trimmed connection database", zap.Int("removed", trimmed), zap.Int("left", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
 }
 
-func (db *connectionDatabase) write() {
+func (db *connectionDatabase) write() (err error) {
 	db.logger.Info("Writing connection database")
-
 	start := time.Now()
-	buff := new(bytes.Buffer)
-	encoder := gob.NewEncoder(buff)
 
-	db.trim()
+	defer func() {
+		// recover any oob slice panics
+		if tmp := recover(); tmp != nil {
+			err = errors.Wrap(tmp.(error), "oob slice panic caught")
+		}
+	}()
 
-	db.mu.RLock()
-	err := encoder.Encode(&db.db)
-	db.mu.RUnlock()
-	if err != nil {
-		db.logger.Error("conndb gob encoder", zap.Error(err))
+	var pos int
+	buff := make([]byte, len(db.db)*22)
+
+	db.mu.Lock()
+	for addr, id := range db.db {
+		copy(buff[pos:pos+6], addr[:])
+		copy(buff[pos+6:pos+22], (*(*[connIDSize]byte)(unsafe.Pointer(&id)))[:])
+		pos += 22
 	}
+	db.mu.Unlock()
 
-	if err := ioutil.WriteFile(db.filename, buff.Bytes(), 0644); err != nil {
-		db.logger.Error("conndb writefile", zap.Error(err))
+	if err := ioutil.WriteFile(db.filename, buff, 0644); err != nil {
+		return errors.Wrap(err, "Failed to write connection database to file")
 	}
 
 	db.logger.Info("Wrote connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
+	return nil
 }
 
-func (db *connectionDatabase) load() bool {
+func (db *connectionDatabase) load() (err error) {
 	db.logger.Info("Loading connection database")
 	start := time.Now()
 
-	file, err := os.Open(db.filename)
-	if err != nil {
-		db.logger.Error("conndb open", zap.Error(err))
-		return false
-	}
-	defer file.Close()
+	defer func() {
+		// recover any oob slice panics
+		if tmp := recover(); tmp != nil {
+			err = errors.Wrap(tmp.(error), "oob slice panic caught")
+		}
+	}()
 
-	decoder := gob.NewDecoder(file)
-	db.mu.Lock()
-	err = decoder.Decode(&db.db)
-	db.mu.Unlock()
+	data, err := ioutil.ReadFile(db.filename)
 	if err != nil {
-		db.logger.Error("conndb decode", zap.Error(err))
-		return false
+		return errors.Wrap(err, "failed to read connection database file from disk")
+	}
+
+	db.make()
+
+	for pos := 0; pos < len(data); pos += 22 {
+		var addr connAddr
+		var id connID
+
+		copy(addr[:], data[pos:pos+6])
+		copy((*(*[connIDSize]byte)(unsafe.Pointer(&id)))[:], data[pos+6:pos+22])
+
+		db.db[addr] = id
 	}
 
 	db.logger.Info("Loaded connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
-	return true
+	return nil
 }
 
 func (db *connectionDatabase) make() {
-	db.db = make(map[storage.PeerIP]connID, conndbCap)
+	db.db = make(map[connAddr]connID, conndbAlloc)
 }

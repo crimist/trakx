@@ -31,7 +31,7 @@ func (cr *connectResp) marshall() ([]byte, error) {
 	return buff.Bytes(), err
 }
 
-func (u *UDPTracker) connect(connect *connect, remote *net.UDPAddr, addr [4]byte) {
+func (u *UDPTracker) connect(connect *connect, remote *net.UDPAddr, addr connAddr) {
 	storage.AddExpval(&storage.Expvar.Connects, 1)
 
 	id := rand.Int63()
