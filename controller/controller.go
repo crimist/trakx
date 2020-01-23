@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -11,52 +11,49 @@ import (
 	"time"
 
 	"github.com/crimist/trakx/tracker"
+	"github.com/crimist/trakx/tracker/shared"
+	"github.com/pkg/errors"
 )
 
-type Controller struct {
-	rootPerms uint
-	pID       *pID
-	logPath   string
+const (
+	perms   = 0740
+	pidFile = shared.TrakxRoot + "trakx.pid"
+	logFile = shared.TrakxRoot + "trakx.log"
+)
+
+type controller struct {
+	permissions uint
+	pID         *pID
+	logPath     string
 }
 
-// NewController creates a controller with root at given dir
-func NewController(root string, perms os.FileMode) (*Controller, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
+func NewController() *controller {
+	c := &controller{
+		permissions: perms,
+		pID:         newPID(pidFile, perms),
+		logPath:     logFile,
 	}
-	root = strings.Replace(root, "~", home, 1)
 
-	c := &Controller{}
-	c.pID = newpID(root+"trakx.pid", perms)
-	c.logPath = root + "trakx.log"
-
-	oldMask := syscall.Umask(0)
-	if err := os.MkdirAll(root, 0740); err != nil {
-		panic(err)
-	}
-	syscall.Umask(oldMask)
-
-	return c, nil
+	return c
 }
 
 // Run runs trakx
-func (c *Controller) Run() {
+func (c *controller) Run() {
 	fmt.Println("Running...")
 	tracker.Run()
 	fmt.Println("Ran!")
 }
 
 // Start starts trakx as a service
-func (c *Controller) Start() error {
+func (c *controller) Start() error {
 	fmt.Println("starting...")
-	if c.IsRunning() {
+	if c.Running() {
 		return errors.New("Trakx is already running")
 	}
 
-	logFile, err := os.OpenFile(c.logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.FileMode(c.rootPerms))
+	logFile, err := os.OpenFile(c.logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.FileMode(c.permissions))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to open log file")
 	}
 	defer logFile.Close()
 
@@ -64,15 +61,19 @@ func (c *Controller) Start() error {
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 	if err := cmd.Start(); err != nil {
-		return err
+		return errors.Wrap(err, "failed to start process")
+	}
+
+	if err := c.pID.write(cmd.Process.Pid); err != nil {
+		return errors.Wrap(err, "failed to write pid to file")
 	}
 
 	fmt.Println("started!")
-	return c.pID.write(cmd.Process.Pid)
+	return nil
 }
 
 // Stop stops the trakx service
-func (c *Controller) Stop() error {
+func (c *controller) Stop() error {
 	fmt.Println("stopping...")
 
 	process, err := c.pID.Process()
@@ -108,21 +109,34 @@ func (c *Controller) Stop() error {
 }
 
 // Wipe clears the trakx pid file
-func (c *Controller) Wipe() error {
+func (c *controller) Wipe() error {
 	return c.pID.clear()
 }
 
-// IsRunning checks if trakx is running using bind
-func (c *Controller) IsRunning() (running bool) {
-	// TODO: Update this! Hardcoded port + no HTTP support lmao
-	if conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: 1337, Zone: ""}); err != nil {
-		if strings.Contains(err.Error(), "address already in use") {
-			running = true
-		} else {
-			panic(err)
-		}
-	} else {
-		conn.Close()
+// Running checks if trakx is running using bind
+func (c *controller) Running() bool {
+	config, err := shared.LoadConf(nil)
+	if err != nil {
+		panic(err) // TODO: handle
 	}
-	return
+
+	if config.Tracker.UDP.Enabled {
+		conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: config.Tracker.UDP.Port, Zone: ""})
+		if err != nil {
+			if strings.Contains(err.Error(), "address already in use") {
+				return true
+			}
+		} else {
+			conn.Close()
+		}
+	}
+
+	if config.Tracker.HTTP.Enabled {
+		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/announce", config.Tracker.HTTP.Port))
+		if err == nil && resp.StatusCode == 200 {
+			return true
+		}
+	}
+
+	return false
 }

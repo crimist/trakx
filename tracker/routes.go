@@ -14,7 +14,7 @@ var indexData []byte
 func initRoutes() {
 	var err error
 	if indexData, err = ioutil.ReadFile(conf.Trakx.Index); err != nil {
-		logger.Panic("Failed to read index", zap.Error(err))
+		logger.Fatal("Failed to read index", zap.Error(err))
 	}
 	indexData = bytes.ReplaceAll(indexData, []byte("\t"), nil)
 	indexData = bytes.ReplaceAll(indexData, []byte("\n"), nil)

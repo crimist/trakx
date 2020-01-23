@@ -14,7 +14,8 @@ Go 1.13+ recommended for `sync.Pool` and `sync.RMutex` optimizations.
 
 ```sh
 git clone github.com/crimist/trakx
-./trakx/setup.sh
+cd trakx/install
+./install.sh
 trakx status # "Trakx is not running"
 ```
 

@@ -120,9 +120,9 @@ func LoadConf(logger *zap.Logger) (*Config, error) {
 	// Load from file
 	viper.SetConfigType("yaml")
 	viper.SetConfigName("trakx")
-	viper.AddConfigPath("/usr/local/trakx/")
-	viper.AddConfigPath("/app/")
 	viper.AddConfigPath(".")
+	viper.AddConfigPath("/app/")
+	viper.AddConfigPath("/usr/local/etc/trakx/")
 	err := viper.ReadInConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "viper failed to read config from disk")

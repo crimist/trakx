@@ -38,7 +38,7 @@ func newConnectionDatabase(timeout int64, filename string, logger *zap.Logger) *
 	}
 
 	if err := db.load(); err != nil {
-		logger.Error("Failed to load connection database, creating empty db", zap.Error(err))
+		logger.Warn("Failed to load connection database, creating empty db", zap.Error(err))
 		db.make()
 	}
 

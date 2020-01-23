@@ -1,7 +1,5 @@
 // +build !heroku
-
 // Trakx controller
-// For VPS use ect.
 
 package main
 
@@ -11,11 +9,6 @@ import (
 	"time"
 
 	"github.com/crimist/trakx/controller"
-)
-
-const (
-	trakxRoot  = "/usr/local/trakx/"
-	trakxPerms = 0740
 )
 
 func printHelp() {
@@ -43,22 +36,18 @@ func main() {
 		return
 	}
 
-	c, err := controller.NewController(trakxRoot, trakxPerms)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error()+"\n")
-		os.Exit(-1)
-	}
+	c := controller.NewController()
 
 	switch os.Args[1] {
 	case "status":
-		if c.IsRunning() {
+		if c.Running() {
 			fmt.Println("Trakx is running")
 		} else {
 			fmt.Println("Trakx is not running")
 		}
 	case "watcher":
 		for {
-			if !c.IsRunning() {
+			if !c.Running() {
 				if err := c.Start(); err != nil {
 					fmt.Fprintf(os.Stderr, err.Error()+"\n")
 					os.Exit(-1)

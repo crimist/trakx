@@ -1,7 +1,5 @@
 // +build heroku
-
-// Trakx runner
-// For use with appengines
+// Trakx direct run for use with appengines
 
 package main
 
