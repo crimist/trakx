@@ -11,57 +11,61 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	TrakxRoot    = "/usr/local/etc/trakx/"
+	nofileIgnore = 0
+)
+
 type Config struct {
 	Logger *zap.Logger
 	Trakx  struct {
-		Honey  string `yaml:"honey"`
-		Prod   bool   `yaml:"prod"`
-		Index  string `yaml:"index"`
+		Prod   bool
+		Index  string
 		Expvar struct {
-			Every int `yaml:"every"`
-		} `yaml:"expvar"`
+			Every int
+		}
 		Pprof struct {
-			Port int `yaml:"port"`
-		} `yaml:"pprof"`
-		Ulimit uint64 `yaml:"ulimit"`
-	} `yaml:"trakx"`
+			Port int
+		}
+		Ulimit uint64
+	}
 	Tracker struct {
-		Announce int32 `yaml:"announce"`
+		Announce int32
 		HTTP     struct {
-			Enabled      bool `yaml:"enabled"`
-			Port         int  `yaml:"port"`
-			ReadTimeout  int  `yaml:"readtimeout"`
-			WriteTimeout int  `yaml:"writetimeout"`
-			Qsize        int  `yaml:"qsize"`
-			Accepters    int  `yaml:"accepters"`
-			Threads      int  `yaml:"threads"`
-		} `yaml:"http"`
+			Enabled      bool
+			Port         int
+			ReadTimeout  int
+			WriteTimeout int
+			Qsize        int
+			Accepters    int
+			Threads      int
+		}
 		UDP struct {
-			Enabled     bool `yaml:"enabled"`
-			Port        int  `yaml:"port"`
-			CheckConnID bool `yaml:"checkconnid"`
-			Threads     int  `yaml:"threads"`
-		} `yaml:"udp"`
+			Enabled     bool
+			Port        int
+			CheckConnID bool
+			Threads     int
+		}
 		Numwant struct {
-			Default int32 `yaml:"default"`
-			Limit   int32 `yaml:"limit"`
-		} `yaml:"numwant"`
-	} `yaml:"tracker"`
+			Default int32
+			Limit   int32
+		}
+	}
 	Database struct {
-		Type   string `yaml:"type"`
-		Backup string `yaml:"backup"`
+		Type   string
+		Backup string
 		Peer   struct {
-			Filename string `yaml:"filename"`
-			Trim     int    `yaml:"trim"`
-			Write    int    `yaml:"write"`
-			Timeout  int64  `yaml:"timeout"`
-		} `yaml:"peer"`
+			Filename string
+			Trim     int
+			Write    int
+			Timeout  int64
+		}
 		Conn struct {
-			Filename string `yaml:"filename"`
-			Trim     int    `yaml:"trim"`
-			Timeout  int64  `yaml:"timeout"`
-		} `yaml:"conn"`
-	} `yaml:"database"`
+			Filename string
+			Trim     int
+			Timeout  int64
+		}
+	}
 }
 
 // Loaded checks if the config is loaded or not
@@ -70,32 +74,26 @@ func (conf *Config) Loaded() bool {
 	return conf.Database.Type != ""
 }
 
-func (conf *Config) fixFilepaths() error {
-	// makes the tild (~) expand out to your home directory
-
+func (conf *Config) update() error {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to find home directory")
 	}
 
+	// update tild (~) with the actual home directory
 	conf.Database.Conn.Filename = strings.ReplaceAll(conf.Database.Conn.Filename, "~", home)
 	conf.Database.Peer.Filename = strings.ReplaceAll(conf.Database.Peer.Filename, "~", home)
 	conf.Trakx.Index = strings.ReplaceAll(conf.Trakx.Index, "~", home)
 
-	return nil
-}
-
-// sets the limits loaded in the conf
-func (conf *Config) setLimits() error {
-	var rLimit syscall.Rlimit
-
-	if conf.Trakx.Ulimit == 0 {
+	// limits
+	if conf.Trakx.Ulimit == nofileIgnore {
 		return nil
 	}
 
-	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	var rLimit syscall.Rlimit
+	err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to get the NOFILE limit")
 	}
 
 	// Bugged on OSX & WSL
@@ -108,8 +106,9 @@ func (conf *Config) setLimits() error {
 	}
 	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to set the NOFILE limit")
 	}
+
 	return nil
 }
 
@@ -150,13 +149,9 @@ func LoadConf(logger *zap.Logger) (*Config, error) {
 			conf.Logger.Info("Viper failed to unmarshal new config", zap.Error(err))
 		}
 
-		conf.setLimits()
-		conf.fixFilepaths()
+		conf.update()
 	})
 	viper.WatchConfig()
 
-	conf.setLimits()
-	conf.fixFilepaths()
-
-	return conf, nil
+	return conf, conf.update()
 }
