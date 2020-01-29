@@ -3,6 +3,7 @@ package udp
 import (
 	"bytes"
 	"encoding/binary"
+	"math/rand"
 	"net"
 	"time"
 
@@ -107,7 +108,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	resp := announceResp{
 		Action:        1,
 		TransactionID: announce.TransactionID,
-		Interval:      u.conf.Tracker.Announce,
+		Interval:      u.conf.Tracker.Announce + rand.Int31n(u.conf.Tracker.AnnounceFuzz),
 		Leechers:      incomplete,
 		Seeders:       complete,
 		Peers:         u.peerdb.PeerListBytes(&announce.InfoHash, int(announce.NumWant)),

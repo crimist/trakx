@@ -30,8 +30,9 @@ type Config struct {
 		Ulimit uint64
 	}
 	Tracker struct {
-		Announce int32
-		HTTP     struct {
+		Announce     int32
+		AnnounceFuzz int32
+		HTTP         struct {
 			Enabled      bool
 			Port         int
 			ReadTimeout  int

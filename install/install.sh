@@ -9,22 +9,32 @@ cp -n $config $root/$config
 cp -n $index $root/$index
 go install -v -gcflags='-l=4' ../
 
+updateConf() {
+    cp $config $root/$config
+    echo "Updated config file"
+}
+
+updateIndex() {
+    cp $index $root/$index
+    echo "Updated index file"
+}
+
 if ! cmp $config $root/$config >/dev/null 2>&1; then
     read -p "Config file differs, overwrite? (y/n): " -n 1 -r; echo
     if [[ $REPLY =~ ^[Yy]$ ]]
     then
-        cp $config $root/$config
+        updateConf
     fi
 else
-    cp $config $root/$config
+    updateConf
 fi
 
 if ! cmp $index $root/$index >/dev/null 2>&1; then
     read -p "Index file differs, overwrite? (y/n): " -n 1 -r; echo
     if [[ $REPLY =~ ^[Yy]$ ]]
     then
-        cp $index $root/$index
+        updateIndex
     fi
 else
-    cp $index $root/$index
+    updateIndex
 fi

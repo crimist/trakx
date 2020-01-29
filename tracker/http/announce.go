@@ -1,6 +1,7 @@
 package http
 
 import (
+	"math/rand"
 	"net"
 	"strconv"
 	"time"
@@ -81,7 +82,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	complete, incomplete := t.peerdb.HashStats(&hash)
 
 	d := bencoding.NewDict()
-	d.Int64("interval", int64(t.conf.Tracker.Announce))
+	d.Int64("interval", int64(t.conf.Tracker.Announce+rand.Int31n(t.conf.Tracker.AnnounceFuzz)))
 	d.Int64("complete", int64(complete))
 	d.Int64("incomplete", int64(incomplete))
 	if vals.compact {

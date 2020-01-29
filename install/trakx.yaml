@@ -44,6 +44,8 @@ tracker:
     limit: 300
   # Announce interval for clients
   announce: 1800 # 30 min
+  # Announce fuzz will add between this and 0 to the announce to smooth out announce spikes
+  announcefuzz: 300 # 5 min
 
 database:
   # Database type options
