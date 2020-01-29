@@ -121,7 +121,8 @@ func LoadConf(logger *zap.Logger) (*Config, error) {
 	viper.SetConfigType("yaml")
 	viper.SetConfigName("trakx")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("/app/")
+	viper.AddConfigPath("./install/")
+	viper.AddConfigPath("/app/install/")
 	viper.AddConfigPath("/usr/local/etc/trakx/")
 	err := viper.ReadInConfig()
 	if err != nil {
