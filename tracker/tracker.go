@@ -40,8 +40,11 @@ func Run() {
 	logger.Info("Starting trakx...")
 
 	conf, err = shared.LoadConf(logger)
-	if err != nil || !conf.Loaded() {
-		logger.Fatal("Failed to load a configuration", zap.Any("config", conf), zap.Error(errors.WithMessage(err, "Failed to load viper cofig")))
+	if err != nil {
+		logger.Warn("Failed to load a configuration", zap.Any("config", conf), zap.Error(errors.WithMessage(err, "Failed to load viper cofig")))
+	}
+	if !conf.Loaded() {
+		logger.Fatal("Config failed to load critical values")
 	}
 
 	// db
