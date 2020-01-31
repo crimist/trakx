@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	// TrakxRoot is the root diretory where all files will be stored
 	TrakxRoot    = "/usr/local/etc/trakx/"
 	nofileIgnore = 0
 )
@@ -69,7 +70,7 @@ type Config struct {
 	}
 }
 
-// Loaded checks if the config is loaded or not
+// Loaded returns true if the config was successfully loaded
 func (conf *Config) Loaded() bool {
 	// Database.Type is required to run so if it's empty we know that the config isn't loaded
 	return conf.Database.Type != ""
@@ -113,6 +114,7 @@ func (conf *Config) update() error {
 	return nil
 }
 
+// LoadConf attemps to load the config from the disk or environment
 func LoadConf(logger *zap.Logger) (*Config, error) {
 	conf := new(Config)
 	conf.Logger = logger

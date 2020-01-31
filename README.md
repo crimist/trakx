@@ -1,9 +1,8 @@
-# trakx
+# trakx [![Go Report Card](https://godoc.org/github.com/crimist/trakx?status.svg)](https://godoc.org/github.com/crimist/trakx) [![Go Report Card](https://goreportcard.com/badge/github.com/crimist/trakx)](https://goreportcard.com/report/github.com/crimist/trakx)
 
-The fastest bittorrent tracker.
+Fast bittorrent tracker
 
 ![performance](img/performance.png)
-
 ![flame](img/flame.png)
 
 As demonstrated here practically all of the CPU usage is from handling the TCP connections. The databases save function made only 0.3% of the flame graphs time in this example.
