@@ -81,15 +81,6 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		return
 	}
 
-	peer := storage.Peer{
-		IP:       addr,
-		Port:     announce.Port,
-		LastSeen: time.Now().Unix(),
-	}
-
-	if announce.Event == completed || announce.Left == 0 {
-		peer.Complete = true
-	}
 	if announce.NumWant < 1 || announce.NumWant > u.conf.Tracker.Numwant.Limit {
 		announce.NumWant = u.conf.Tracker.Numwant.Default
 	}
@@ -101,8 +92,15 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		return
 	}
 
-	u.peerdb.Save(&peer, &announce.InfoHash, &announce.PeerID)
+	peer := storage.GetPeer()
+	peer.IP = addr
+	peer.Port = announce.Port
+	peer.LastSeen = time.Now().Unix()
+	if announce.Event == completed || announce.Left == 0 {
+		peer.Complete = true
+	}
 
+	u.peerdb.Save(peer, &announce.InfoHash, &announce.PeerID)
 	complete, incomplete := u.peerdb.HashStats(&announce.InfoHash)
 
 	resp := announceResp{

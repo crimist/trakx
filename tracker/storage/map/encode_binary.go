@@ -69,12 +69,12 @@ func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
 			if err = binary.Read(w, binary.LittleEndian, &id); err != nil {
 				return
 			}
-			var peer storage.Peer
-			if err = binary.Read(w, binary.LittleEndian, &peer); err != nil {
+			peer := storage.GetPeer()
+			if err = binary.Read(w, binary.LittleEndian, peer); err != nil {
 				return
 			}
 
-			peermap.peers[id] = &peer
+			peermap.peers[id] = peer
 			peers++
 		}
 

@@ -28,7 +28,6 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	// get vars
 	var hash storage.Hash
 	var peerid storage.PeerID
-	peer := storage.Peer{LastSeen: time.Now().Unix(), IP: ip}
 	numwant := int(t.conf.Tracker.Numwant.Default)
 
 	// hash
@@ -45,7 +44,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	}
 	copy(peerid[:], vals.peerid)
 
-	// Get if stop before continuing
+	// get if stop before continuing
 	if vals.event == "stopped" {
 		t.peerdb.Drop(&hash, &peerid)
 		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
@@ -53,17 +52,11 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 		return
 	}
 
-	// Port
+	// port
 	portInt, err := strconv.Atoi(vals.port)
 	if err != nil || (portInt > 65535 || portInt < 1) {
 		t.clientError(conn, "Invalid port")
 		return
-	}
-	peer.Port = uint16(portInt)
-
-	// Complete
-	if vals.event == "completed" || vals.noneleft {
-		peer.Complete = true
 	}
 
 	// numwant
@@ -78,7 +71,15 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 		}
 	}
 
-	t.peerdb.Save(&peer, &hash, &peerid)
+	peer := storage.GetPeer()
+	peer.Port = uint16(portInt)
+	peer.IP = ip
+	peer.LastSeen = time.Now().Unix()
+	if vals.event == "completed" || vals.noneleft {
+		peer.Complete = true
+	}
+
+	t.peerdb.Save(peer, &hash, &peerid)
 	complete, incomplete := t.peerdb.HashStats(&hash)
 
 	d := bencoding.NewDict()

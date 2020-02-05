@@ -9,38 +9,42 @@ func (db *Memory) Save(peer *storage.Peer, h *storage.Hash, id *storage.PeerID) 
 	var oldpeer *storage.Peer
 	var peerExists bool
 
+	// get/create the map
 	db.mu.RLock()
-	peermap, exists := db.hashmap[*h]
+	peermap, mapExists := db.hashmap[*h]
 	db.mu.RUnlock()
-	if !exists {
+	if !mapExists {
 		db.mu.Lock()
 		peermap = db.makePeermap(h)
 		db.mu.Unlock()
 	}
 
+	// assign the peer
 	peermap.Lock()
-	if !fast {
-		oldpeer, peerExists = peermap.peers[*id]
-	}
+	oldpeer, peerExists = peermap.peers[*id]
 	peermap.peers[*id] = peer
 	peermap.Unlock()
 
 	if !fast {
+		// metric calculation
+
 		if peerExists {
-			if oldpeer.Complete == false && peer.Complete == true { // They completed
+			// They completed
+			if oldpeer.Complete == false && peer.Complete == true {
 				storage.AddExpval(&storage.Expvar.Leeches, -1)
 				storage.AddExpval(&storage.Expvar.Seeds, 1)
 			} else if oldpeer.Complete == true && peer.Complete == false { // They uncompleted?
 				storage.AddExpval(&storage.Expvar.Seeds, -1)
 				storage.AddExpval(&storage.Expvar.Leeches, 1)
 			}
-			if oldpeer.IP != peer.IP { // IP changed
+			// IP changed
+			if oldpeer.IP != peer.IP {
 				storage.Expvar.IPs.Lock()
 				storage.Expvar.IPs.Remove(oldpeer.IP)
 				storage.Expvar.IPs.Inc(peer.IP)
 				storage.Expvar.IPs.Unlock()
 			}
-		} else { // New
+		} else {
 			storage.Expvar.IPs.Lock()
 			storage.Expvar.IPs.Inc(peer.IP)
 			storage.Expvar.IPs.Unlock()
@@ -51,6 +55,11 @@ func (db *Memory) Save(peer *storage.Peer, h *storage.Hash, id *storage.PeerID) 
 				storage.AddExpval(&storage.Expvar.Leeches, 1)
 			}
 		}
+	}
+
+	// put back the old peer if it exists
+	if peerExists {
+		storage.PutPeer(oldpeer)
 	}
 }
 
@@ -69,12 +78,15 @@ func (db *Memory) delete(peer *storage.Peer, pmap *subPeerMap, id *storage.PeerI
 		storage.Expvar.IPs.Remove(peer.IP)
 		storage.Expvar.IPs.Unlock()
 	}
+
+	storage.PutPeer(peer)
 }
 
 // Drop deletes peer
 func (db *Memory) Drop(h *storage.Hash, id *storage.PeerID) {
 	var peer *storage.Peer
 
+	// get the peermap
 	db.mu.RLock()
 	peermap, ok := db.hashmap[*h]
 	db.mu.RUnlock()
@@ -82,13 +94,12 @@ func (db *Memory) Drop(h *storage.Hash, id *storage.PeerID) {
 		return
 	}
 
+	// get the peer and remove it
 	peermap.Lock()
-	if !fast {
-		peer, ok = peermap.peers[*id]
-		if !ok {
-			peermap.Unlock()
-			return
-		}
+	peer, ok = peermap.peers[*id]
+	if !ok {
+		peermap.Unlock()
+		return
 	}
 	delete(peermap.peers, *id)
 	peermap.Unlock()
@@ -104,4 +115,7 @@ func (db *Memory) Drop(h *storage.Hash, id *storage.PeerID) {
 		storage.Expvar.IPs.Remove(peer.IP)
 		storage.Expvar.IPs.Unlock()
 	}
+
+	// free the peer back to the pool
+	storage.PutPeer(peer)
 }

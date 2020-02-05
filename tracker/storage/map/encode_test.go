@@ -14,26 +14,6 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestEncodeDecode(t *testing.T) {
-	db := dbWithHashesAndPeers(1000, 5)
-
-	data, err := db.encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	peers, hashes, err := db.decode(data)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if peers != 5000 {
-		t.Fatal("peers != 5000")
-	}
-	if hashes != 1000 {
-		t.Fatal("hashes != 1000")
-	}
-}
-
 func TestEncodeBinary(t *testing.T) {
 	var err error
 	var db Memory
@@ -119,15 +99,6 @@ func TestEncodeBinaryUnsafe(t *testing.T) {
 
 // encode benches
 
-func BenchmarkEncode(b *testing.B) {
-	db := dbWithHashesAndPeers(benchHashes, benchPeers)
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		db.encode()
-	}
-}
-
 func BenchmarkEncodeBinary(b *testing.B) {
 	db := dbWithHashesAndPeers(benchHashes, benchPeers)
 
@@ -157,22 +128,9 @@ func BenchmarkEncodeBinaryUnsafeAutoalloc(b *testing.B) {
 
 // decode benches
 
-func BenchmarkDecode(b *testing.B) {
-	db := dbWithHashesAndPeers(benchHashes, benchPeers)
-	buff, err := db.encode()
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		db.decode(buff)
-	}
-}
-
 func BenchmarkDecodeBinary(b *testing.B) {
 	db := dbWithHashesAndPeers(benchHashes, benchPeers)
-	buff, err := db.encode()
+	buff, err := db.encodeBinary()
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -208,11 +166,6 @@ func benchmarkMemuse(function encoder, b *testing.B) {
 	}
 
 	debug.SetGCPercent(gcp)
-}
-
-func BenchmarkEncodeMemuse(b *testing.B) {
-	peerdb := dbWithHashesAndPeers(benchHashes, benchPeers)
-	benchmarkMemuse(peerdb.encode, b)
 }
 
 func BenchmarkEncodeBinaryMemuse(b *testing.B) {
