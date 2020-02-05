@@ -74,7 +74,7 @@ func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
 				return
 			}
 
-			peermap.peers[id] = &peer
+			peermap.peers[id] = peer
 			peers++
 		}
 
@@ -103,7 +103,7 @@ func (db *Memory) encodeBinaryUnsafe() ([]byte, error) {
 		submap.RLock()
 		for id, peer := range submap.peers {
 			buff = append(buff, id[:]...)
-			buff = append(buff, (*(*[peersz]byte)(unsafe.Pointer(peer)))[:]...)
+			buff = append(buff, (*(*[peersz]byte)(unsafe.Pointer(&peer)))[:]...)
 		}
 		submap.RUnlock()
 
@@ -135,7 +135,7 @@ func (db *Memory) encodeBinaryUnsafeAutoalloc() (buff []byte, err error) {
 
 		for id, peer := range submap.peers {
 			copy(buff[pos:pos+20], id[:])
-			copy(buff[pos+20:pos+36], (*(*[peersz]byte)(unsafe.Pointer(peer)))[:])
+			copy(buff[pos+20:pos+36], (*(*[peersz]byte)(unsafe.Pointer(&peer)))[:])
 			pos += 36
 		}
 	}
@@ -177,7 +177,7 @@ func (db *Memory) decodeBinaryUnsafe(data []byte) (peers, hashes int, err error)
 			copy((*(*[peersz]byte)(unsafe.Pointer(&peer)))[:], data[pos+20:pos+36])
 			pos += 36
 
-			peermap.peers[id] = &peer
+			peermap.peers[id] = peer
 			peers++
 		}
 
