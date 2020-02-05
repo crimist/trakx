@@ -26,7 +26,7 @@ require (
 	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
 	golang.org/x/mod v0.2.0 // indirect
 	golang.org/x/sys v0.0.0-20200202164722-d101bd2416d5 // indirect
-	golang.org/x/tools v0.0.0-20200204230316-67a4523381ef // indirect
+	golang.org/x/tools v0.0.0-20200205141839-4abfd4a1628e // indirect
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/ini.v1 v1.52.0 // indirect

@@ -6,9 +6,6 @@ import (
 
 // Save writes a peer
 func (db *Memory) Save(peer *storage.Peer, h *storage.Hash, id *storage.PeerID) {
-	var oldpeer *storage.Peer
-	var peerExists bool
-
 	// get/create the map
 	db.mu.RLock()
 	peermap, mapExists := db.hashmap[*h]
@@ -21,7 +18,7 @@ func (db *Memory) Save(peer *storage.Peer, h *storage.Hash, id *storage.PeerID) 
 
 	// assign the peer
 	peermap.Lock()
-	oldpeer, peerExists = peermap.peers[*id]
+	oldpeer, peerExists := peermap.peers[*id]
 	peermap.peers[*id] = peer
 	peermap.Unlock()
 
