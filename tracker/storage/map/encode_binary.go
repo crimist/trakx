@@ -171,13 +171,13 @@ func (db *Memory) decodeBinaryUnsafe(data []byte) (peers, hashes int, err error)
 
 		for ; count > 0; count-- {
 			var id storage.PeerID
-			var peer storage.Peer
+			peer := storage.GetPeer()
 
 			copy(id[:], data[pos:pos+20])
-			copy((*(*[peersz]byte)(unsafe.Pointer(&peer)))[:], data[pos+20:pos+36])
+			copy((*(*[peersz]byte)(unsafe.Pointer(peer)))[:], data[pos+20:pos+36])
 			pos += 36
 
-			peermap.peers[id] = &peer
+			peermap.peers[id] = peer
 			peers++
 		}
 

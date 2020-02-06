@@ -15,14 +15,14 @@ const (
 	peerMapAlloc = 1
 )
 
-type subPeerMap struct {
+type PeerMap struct {
 	sync.RWMutex
 	peers map[storage.PeerID]*storage.Peer
 }
 
 type Memory struct {
 	mu      sync.RWMutex
-	hashmap map[storage.Hash]*subPeerMap
+	hashmap map[storage.Hash]*PeerMap
 
 	backup storage.Backup
 	conf   *shared.Config
@@ -56,12 +56,12 @@ func (db *Memory) Init(conf *shared.Config, backup storage.Backup) error {
 }
 
 func (db *Memory) make() {
-	db.hashmap = make(map[storage.Hash]*subPeerMap, hashMapAlloc)
+	db.hashmap = make(map[storage.Hash]*PeerMap, hashMapAlloc)
 }
 
-func (db *Memory) makePeermap(h *storage.Hash) (peermap *subPeerMap) {
+func (db *Memory) makePeermap(h *storage.Hash) (peermap *PeerMap) {
 	// build struct and assign
-	peermap = new(subPeerMap)
+	peermap = new(PeerMap)
 	peermap.peers = make(map[storage.PeerID]*storage.Peer, peerMapAlloc)
 	db.hashmap[*h] = peermap
 	return

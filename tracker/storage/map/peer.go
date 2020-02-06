@@ -61,7 +61,7 @@ func (db *Memory) Save(peer *storage.Peer, h *storage.Hash, id *storage.PeerID) 
 }
 
 // delete is similar to drop but doesn't lock
-func (db *Memory) delete(peer *storage.Peer, pmap *subPeerMap, id *storage.PeerID) {
+func (db *Memory) delete(peer *storage.Peer, pmap *PeerMap, id *storage.PeerID) {
 	delete(pmap.peers, *id)
 
 	if !fast {
