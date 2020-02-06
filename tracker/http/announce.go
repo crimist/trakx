@@ -62,7 +62,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	// numwant
 	if vals.numwant != "" {
 		numwantInt, err := strconv.Atoi(vals.numwant)
-		if err != nil {
+		if err != nil || numwantInt < 0 {
 			t.clientError(conn, "Invalid numwant")
 			return
 		}
