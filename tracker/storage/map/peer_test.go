@@ -22,7 +22,7 @@ func TestSaveDrop(t *testing.T) {
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
-	db.Save(&savePeer, &hash, &peerid)
+	db.Save(&savePeer, hash, peerid)
 
 	getPeer, ok := db.hashmap[hash].peers[peerid]
 	if !ok {
@@ -41,12 +41,12 @@ func TestSaveDrop(t *testing.T) {
 		t.Error("LastSeen not equal")
 	}
 
-	db.Drop(&hash, &peerid)
+	db.Drop(hash, peerid)
 }
 
 func benchmarkSave(b *testing.B, db *Memory, peer storage.Peer, hash storage.Hash, peerid storage.PeerID) {
 	for n := 0; n < b.N; n++ {
-		db.Save(&peer, &hash, &peerid)
+		db.Save(&peer, hash, peerid)
 	}
 }
 
@@ -71,7 +71,7 @@ func BenchmarkSave(b *testing.B) {
 
 func benchmarkDrop(b *testing.B, db *Memory, hash storage.Hash, peerid storage.PeerID) {
 	for n := 0; n < b.N; n++ {
-		db.Drop(&hash, &peerid)
+		db.Drop(hash, peerid)
 	}
 }
 
@@ -90,8 +90,8 @@ func BenchmarkDrop(b *testing.B) {
 
 func benchmarkSaveDrop(b *testing.B, db *Memory, peer storage.Peer, hash storage.Hash, peerid storage.PeerID) {
 	for n := 0; n < b.N; n++ {
-		db.Save(&peer, &hash, &peerid)
-		db.Drop(&hash, &peerid)
+		db.Save(&peer, hash, peerid)
+		db.Drop(hash, peerid)
 	}
 }
 
@@ -133,8 +133,8 @@ func benchmarkSaveDropParallel(b *testing.B, routines int) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			db.Save(&peer, &hash, &peerid)
-			db.Drop(&hash, &peerid)
+			db.Save(&peer, hash, peerid)
+			db.Drop(hash, peerid)
 		}
 	})
 }
