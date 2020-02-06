@@ -33,7 +33,7 @@ func TestEncodeBinary(t *testing.T) {
 		Port:     0x4f50,                                 // PO
 		LastSeen: 0x4e4545535453414c,                     // LASTSEEN
 	}
-	db.Save(&peer, &hash, &peerid)
+	db.Save(&peer, hash, peerid)
 
 	data, _ := db.encodeBinary()
 
@@ -69,7 +69,7 @@ func TestEncodeBinaryUnsafe(t *testing.T) {
 		Port:     0x4f50,                                 // PO
 		LastSeen: 0x4e4545535453414c,                     // LASTSEEN
 	}
-	db.Save(&peer, &hash, &peerid)
+	db.Save(&peer, hash, peerid)
 
 	data, _ := db.encodeBinaryUnsafe()
 	data2, _ := db.encodeBinaryUnsafeAutoalloc()

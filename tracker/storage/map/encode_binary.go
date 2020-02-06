@@ -57,7 +57,7 @@ func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
 			return
 		}
 
-		peermap := db.makePeermap(&hash)
+		peermap := db.makePeermap(hash)
 
 		var count uint32
 		if err = binary.Read(w, binary.LittleEndian, &count); err != nil {
@@ -167,7 +167,7 @@ func (db *Memory) decodeBinaryUnsafe(data []byte) (peers, hashes int, err error)
 		copy((*(*[4]byte)(unsafe.Pointer(&count)))[:], data[pos+20:pos+24])
 		pos += 24
 
-		peermap := db.makePeermap(&hash)
+		peermap := db.makePeermap(hash)
 
 		for ; count > 0; count-- {
 			var id storage.PeerID

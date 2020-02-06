@@ -31,7 +31,7 @@ func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
 		var hash storage.Hash
 		copy(hash[:], infohash)
 
-		complete, incomplete := t.peerdb.HashStats(&hash)
+		complete, incomplete := t.peerdb.HashStats(hash)
 
 		nestedDict[infohash]["complete"] = complete
 		nestedDict[infohash]["incomplete"] = incomplete

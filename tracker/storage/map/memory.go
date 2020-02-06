@@ -59,11 +59,11 @@ func (db *Memory) make() {
 	db.hashmap = make(map[storage.Hash]*PeerMap, hashMapAlloc)
 }
 
-func (db *Memory) makePeermap(h *storage.Hash) (peermap *PeerMap) {
+func (db *Memory) makePeermap(h storage.Hash) (peermap *PeerMap) {
 	// build struct and assign
 	peermap = new(PeerMap)
 	peermap.peers = make(map[storage.PeerID]*storage.Peer, peerMapAlloc)
-	db.hashmap[*h] = peermap
+	db.hashmap[h] = peermap
 	return
 }
 
@@ -96,7 +96,7 @@ func (db *Memory) trim() (peers, hashes int) {
 		peermap.Lock()
 		for id, peer := range peermap.peers {
 			if now-peer.LastSeen > db.conf.Database.Peer.Timeout {
-				db.delete(peer, peermap, &id)
+				db.delete(peer, peermap, id)
 				peers++
 			}
 		}

@@ -86,7 +86,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	}
 
 	if announce.Event == stopped {
-		u.peerdb.Drop(&announce.InfoHash, &announce.PeerID)
+		u.peerdb.Drop(announce.InfoHash, announce.PeerID)
 		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
 		// TODO: Should we respond?
 		return
@@ -100,8 +100,8 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		peer.Complete = true
 	}
 
-	u.peerdb.Save(peer, &announce.InfoHash, &announce.PeerID)
-	complete, incomplete := u.peerdb.HashStats(&announce.InfoHash)
+	u.peerdb.Save(peer, announce.InfoHash, announce.PeerID)
+	complete, incomplete := u.peerdb.HashStats(announce.InfoHash)
 
 	resp := announceResp{
 		Action:        1,
@@ -109,7 +109,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		Interval:      u.conf.Tracker.Announce + rand.Int31n(u.conf.Tracker.AnnounceFuzz),
 		Leechers:      incomplete,
 		Seeders:       complete,
-		Peers:         u.peerdb.PeerListBytes(&announce.InfoHash, int(announce.NumWant)),
+		Peers:         u.peerdb.PeerListBytes(announce.InfoHash, int(announce.NumWant)),
 	}
 	respBytes, err := resp.marshall()
 	if err != nil {

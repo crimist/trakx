@@ -40,7 +40,7 @@ func dbWithHashesAndPeers(hashes, peers int) *Memory {
 
 		for i := 0; i < peers; i++ {
 			rand.Read(peerid[:])
-			db.Save(&peer, &h, &peerid)
+			db.Save(&peer, h, peerid)
 		}
 	}
 
@@ -66,7 +66,7 @@ func dbWithHashes(count int) *Memory {
 		rand.Read(hash)
 		copy(h[:], hash)
 
-		db.Save(&peer, &h, &peerid)
+		db.Save(&peer, h, peerid)
 	}
 
 	return &db
@@ -92,7 +92,7 @@ func dbWithPeers(count int) (*Memory, storage.Hash) {
 		rand.Read(peerid)
 		copy(p[:], peerid)
 
-		db.Save(&peer, &hash, &p)
+		db.Save(&peer, hash, p)
 	}
 
 	return &db, hash
@@ -106,7 +106,7 @@ func TestPeerList(t *testing.T) {
 	hash := storage.Hash(xd)
 
 	d := bencoding.NewDict()
-	peerlist := db.PeerListBytes(&hash, 0)
+	peerlist := db.PeerListBytes(hash, 0)
 	d.String("peers", *(*string)(unsafe.Pointer(&peerlist)))
 }
 
@@ -132,7 +132,7 @@ func benchmarkPeerList(b *testing.B, cap int) {
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		db.PeerList(&hash, cap, false)
+		db.PeerList(hash, cap, false)
 	}
 }
 
@@ -146,7 +146,7 @@ func benchmarkPeerListNopeerid(b *testing.B, cap int) {
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		db.PeerList(&hash, cap, true)
+		db.PeerList(hash, cap, true)
 	}
 }
 
@@ -160,7 +160,7 @@ func benchmarkPeerListBytes(b *testing.B, cap int) {
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		db.PeerListBytes(&hash, cap)
+		db.PeerListBytes(hash, cap)
 	}
 }
 
@@ -174,7 +174,7 @@ func benchmarkHashStats(b *testing.B, peers int) {
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		db.HashStats(&hash)
+		db.HashStats(hash)
 	}
 }
 

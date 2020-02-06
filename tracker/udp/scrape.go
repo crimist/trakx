@@ -69,7 +69,7 @@ func (u *UDPTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
 			return
 		}
 
-		complete, incomplete := u.peerdb.HashStats(&hash)
+		complete, incomplete := u.peerdb.HashStats(hash)
 		info := scrapeInfo{
 			Complete:   complete,
 			Downloaded: -1,
