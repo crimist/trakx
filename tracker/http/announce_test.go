@@ -2,6 +2,7 @@ package http
 
 import (
 	"net"
+	"runtime/debug"
 	"testing"
 
 	"github.com/crimist/trakx/tracker/shared"
@@ -50,8 +51,12 @@ func BenchmarkAnnounce(b *testing.B) {
 	}
 	ip := storage.PeerIP{1, 2, 3, 4}
 
+	gcp := debug.SetGCPercent(-1)
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		tracker.announce(conn, &params, ip)
 	}
+
+	debug.SetGCPercent(gcp)
 }
