@@ -38,20 +38,20 @@ func BenchmarkAnnounce(b *testing.B) {
 	}
 	tracker.peerdb = db
 
+	params := announceParams{
+		compact:  true,
+		nopeerid: true,
+		noneleft: false,
+		event:    "started",
+		port:     "6969",
+		hash:     "01234567890123456789",
+		peerid:   "01234567890123456789",
+		numwant:  "20",
+	}
 	ip := storage.PeerIP{1, 2, 3, 4}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		params := announceParams{
-			compact:  true,
-			nopeerid: true,
-			noneleft: false,
-			event:    "started",
-			port:     "6969",
-			hash:     "01234567890123456789",
-			peerid:   "01234567890123456789",
-			numwant:  "20",
-		}
 		tracker.announce(conn, &params, ip)
 	}
 }
