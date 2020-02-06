@@ -2,6 +2,7 @@ package http
 
 import (
 	"net"
+	"runtime"
 	"runtime/debug"
 	"testing"
 
@@ -57,6 +58,13 @@ func BenchmarkAnnounce(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		tracker.announce(conn, &params, ip)
 	}
+	b.StopTimer()
 
+	runtime.GC()
 	debug.SetGCPercent(gcp)
+
+	var stats debug.GCStats
+	debug.ReadGCStats(&stats)
+
+	b.Logf("Pause %v\n", stats.Pause[0])
 }
