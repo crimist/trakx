@@ -5,12 +5,12 @@ import (
 )
 
 // Save writes a peer
-func (db *Memory) Save(peer *storage.Peer, h *storage.Hash, id *storage.PeerID) {
+func (db *Memory) Save(peer *storage.Peer, h storage.Hash, id storage.PeerID) {
 	var oldpeer *storage.Peer
 	var peerExists bool
 
 	db.mu.RLock()
-	peermap, exists := db.hashmap[*h]
+	peermap, exists := db.hashmap[h]
 	db.mu.RUnlock()
 	if !exists {
 		db.mu.Lock()
@@ -20,9 +20,9 @@ func (db *Memory) Save(peer *storage.Peer, h *storage.Hash, id *storage.PeerID) 
 
 	peermap.Lock()
 	if !fast {
-		oldpeer, peerExists = peermap.peers[*id]
+		oldpeer, peerExists = peermap.peers[id]
 	}
-	peermap.peers[*id] = peer
+	peermap.peers[id] = peer
 	peermap.Unlock()
 
 	if !fast {
@@ -55,8 +55,8 @@ func (db *Memory) Save(peer *storage.Peer, h *storage.Hash, id *storage.PeerID) 
 }
 
 // delete is similar to drop but doesn't lock
-func (db *Memory) delete(peer *storage.Peer, pmap *subPeerMap, id *storage.PeerID) {
-	delete(pmap.peers, *id)
+func (db *Memory) delete(peer *storage.Peer, pmap *subPeerMap, id storage.PeerID) {
+	delete(pmap.peers, id)
 
 	if !fast {
 		if peer.Complete {
@@ -72,11 +72,11 @@ func (db *Memory) delete(peer *storage.Peer, pmap *subPeerMap, id *storage.PeerI
 }
 
 // Drop deletes peer
-func (db *Memory) Drop(h *storage.Hash, id *storage.PeerID) {
+func (db *Memory) Drop(h storage.Hash, id storage.PeerID) {
 	var peer *storage.Peer
 
 	db.mu.RLock()
-	peermap, ok := db.hashmap[*h]
+	peermap, ok := db.hashmap[h]
 	db.mu.RUnlock()
 	if !ok {
 		return
@@ -84,13 +84,13 @@ func (db *Memory) Drop(h *storage.Hash, id *storage.PeerID) {
 
 	peermap.Lock()
 	if !fast {
-		peer, ok = peermap.peers[*id]
+		peer, ok = peermap.peers[id]
 		if !ok {
 			peermap.Unlock()
 			return
 		}
 	}
-	delete(peermap.peers, *id)
+	delete(peermap.peers, id)
 	peermap.Unlock()
 
 	if !fast {

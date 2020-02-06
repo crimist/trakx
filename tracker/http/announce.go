@@ -47,7 +47,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 
 	// Get if stop before continuing
 	if vals.event == "stopped" {
-		t.peerdb.Drop(&hash, &peerid)
+		t.peerdb.Drop(hash, peerid)
 		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
 		conn.Write([]byte("HTTP/1.1 200\r\n\r\n"))
 		return
@@ -78,18 +78,18 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 		}
 	}
 
-	t.peerdb.Save(&peer, &hash, &peerid)
-	complete, incomplete := t.peerdb.HashStats(&hash)
+	t.peerdb.Save(&peer, hash, peerid)
+	complete, incomplete := t.peerdb.HashStats(hash)
 
 	d := bencoding.NewDict()
 	d.Int64("interval", int64(t.conf.Tracker.Announce+rand.Int31n(t.conf.Tracker.AnnounceFuzz)))
 	d.Int64("complete", int64(complete))
 	d.Int64("incomplete", int64(incomplete))
 	if vals.compact {
-		peerlist := t.peerdb.PeerListBytes(&hash, numwant)
+		peerlist := t.peerdb.PeerListBytes(hash, numwant)
 		d.String("peers", *(*string)(unsafe.Pointer(&peerlist)))
 	} else {
-		d.Any("peers", t.peerdb.PeerList(&hash, numwant, vals.nopeerid))
+		d.Any("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
 	}
 
 	storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)

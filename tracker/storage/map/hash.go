@@ -14,9 +14,9 @@ func (db *Memory) Hashes() int {
 }
 
 // HashStats returns number of complete and incomplete peers associated with the hash
-func (db *Memory) HashStats(h *storage.Hash) (complete, incomplete int32) {
+func (db *Memory) HashStats(h storage.Hash) (complete, incomplete int32) {
 	db.mu.RLock()
-	peermap, ok := db.hashmap[*h]
+	peermap, ok := db.hashmap[h]
 	db.mu.RUnlock()
 	if !ok {
 		return
@@ -35,9 +35,9 @@ func (db *Memory) HashStats(h *storage.Hash) (complete, incomplete int32) {
 }
 
 // PeerList returns a peer list for the given hash capped at max
-func (db *Memory) PeerList(h *storage.Hash, max int, noPeerID bool) []string {
+func (db *Memory) PeerList(h storage.Hash, max int, noPeerID bool) []string {
 	db.mu.RLock()
-	peermap, ok := db.hashmap[*h]
+	peermap, ok := db.hashmap[h]
 	db.mu.RUnlock()
 	if !ok {
 		return []string{}
@@ -76,9 +76,9 @@ func (db *Memory) PeerList(h *storage.Hash, max int, noPeerID bool) []string {
 }
 
 // PeerListBytes returns a byte encoded peer list for the given hash capped at num
-func (db *Memory) PeerListBytes(h *storage.Hash, max int) []byte {
+func (db *Memory) PeerListBytes(h storage.Hash, max int) []byte {
 	db.mu.RLock()
-	peermap, ok := db.hashmap[*h]
+	peermap, ok := db.hashmap[h]
 	db.mu.RUnlock()
 	if !ok {
 		return []byte("")

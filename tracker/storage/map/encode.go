@@ -67,7 +67,7 @@ func (db *Memory) decode(data []byte) (peers, hashes int, err error) {
 	}
 
 	for _, encoded := range encodes {
-		peermap := db.makePeermap(&encoded.Hash)
+		peermap := db.makePeermap(encoded.Hash)
 		for _, peer := range encoded.Peers {
 			peermap.peers[*peer.ID] = peer.Peer
 			peers++
