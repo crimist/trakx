@@ -55,7 +55,7 @@ func (db *Memory) Init(conf *shared.Config, backup storage.Backup) error {
 	}
 
 	db.bpool.New = func() interface{} {
-		println("new bpool in db")
+		println("New bytes from database pool")
 		return make([]byte, 6*conf.Tracker.Numwant.Limit)
 	}
 
