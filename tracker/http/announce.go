@@ -3,6 +3,7 @@ package http
 import (
 	"math/rand"
 	"net"
+	"reflect"
 	"strconv"
 	"time"
 	"unsafe"
@@ -21,6 +22,8 @@ type announceParams struct {
 	peerid   string
 	numwant  string
 }
+
+var httpSuccess = "HTTP/1.1 200\r\n\r\n"
 
 func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.PeerIP) {
 	storage.AddExpval(&storage.Expvar.Announces, 1)
@@ -48,7 +51,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	if vals.event == "stopped" {
 		t.peerdb.Drop(hash, peerid)
 		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
-		conn.Write([]byte("HTTP/1.1 200\r\n\r\n"))
+		conn.Write(*(*[]byte)(unsafe.Pointer((*reflect.SliceHeader)(unsafe.Pointer(&httpSuccess)))))
 		return
 	}
 
@@ -91,10 +94,13 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	if vals.compact {
 		peerlist := t.peerdb.PeerListBytes(hash, numwant)
 		d.String("peers", *(*string)(unsafe.Pointer(&peerlist)))
+		t.peerdb.PutBytes(peerlist)
 	} else {
 		d.Any("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
 	}
 
 	storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
-	conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + d.Get()))
+
+	conn.Write(*(*[]byte)(unsafe.Pointer((*reflect.SliceHeader)(unsafe.Pointer(&httpSuccess)))))
+	conn.Write(d.GetBytes())
 }

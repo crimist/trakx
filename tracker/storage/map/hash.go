@@ -77,11 +77,13 @@ func (db *Memory) PeerList(h storage.Hash, max int, noPeerID bool) []string {
 
 // PeerListBytes returns a byte encoded peer list for the given hash capped at num
 func (db *Memory) PeerListBytes(h storage.Hash, max int) []byte {
+	b := db.bpool.Get().([]byte)
+
 	db.mu.RLock()
 	peermap, ok := db.hashmap[h]
 	db.mu.RUnlock()
 	if !ok {
-		return []byte("")
+		return b
 	}
 
 	var pos int
@@ -93,14 +95,13 @@ func (db *Memory) PeerListBytes(h storage.Hash, max int) []byte {
 
 	if max == 0 {
 		peermap.RUnlock()
-		return []byte("")
+		return b
 	}
 
 	size := 6 * max
-	peerlist := make([]byte, size)
 	for _, peer := range peermap.peers {
-		copy(peerlist[pos:pos+4], peer.IP[:])
-		binary.BigEndian.PutUint16(peerlist[pos+4:pos+6], peer.Port)
+		copy(b[pos:pos+4], peer.IP[:])
+		binary.BigEndian.PutUint16(b[pos+4:pos+6], peer.Port)
 
 		pos += 6
 		if pos == size {
@@ -109,5 +110,5 @@ func (db *Memory) PeerListBytes(h storage.Hash, max int) []byte {
 	}
 	peermap.RUnlock()
 
-	return peerlist
+	return b
 }

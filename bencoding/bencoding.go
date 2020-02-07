@@ -139,3 +139,11 @@ func (d *Dictionary) Get() string {
 	dictionaryPool.Put(d)
 	return s
 }
+
+func (d *Dictionary) GetBytes() []byte {
+	d.write("e")
+	b := d.buf
+	d.reset()
+	dictionaryPool.Put(d)
+	return b
+}

@@ -26,6 +26,8 @@ type Memory struct {
 
 	backup storage.Backup
 	conf   *shared.Config
+
+	bpool sync.Pool
 }
 
 func (db *Memory) Init(conf *shared.Config, backup storage.Backup) error {
@@ -52,7 +54,17 @@ func (db *Memory) Init(conf *shared.Config, backup storage.Backup) error {
 		go shared.RunOn(time.Duration(conf.Database.Peer.Trim)*time.Second, db.Trim)
 	}
 
+	db.bpool.New = func() interface{} {
+		println("new bpool in db")
+		return make([]byte, 6*conf.Tracker.Numwant.Limit)
+	}
+
 	return nil
+}
+
+func (db *Memory) PutBytes(b []byte) {
+	b = b[:0]
+	db.bpool.Put(b)
 }
 
 func (db *Memory) make() {

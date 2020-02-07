@@ -44,6 +44,7 @@ type Database interface {
 	HashStats(Hash) (int32, int32)
 	PeerList(Hash, int, bool) []string
 	PeerListBytes(Hash, int) []byte
+	PutBytes(b []byte)
 
 	// Only used for expvar
 	Hashes() int

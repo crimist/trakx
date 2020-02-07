@@ -105,13 +105,15 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	u.peerdb.Save(peer, announce.InfoHash, announce.PeerID)
 	complete, incomplete := u.peerdb.HashStats(announce.InfoHash)
 
+	peerlist := u.peerdb.PeerListBytes(announce.InfoHash, int(announce.NumWant))
+
 	resp := announceResp{
 		Action:        1,
 		TransactionID: announce.TransactionID,
 		Interval:      u.conf.Tracker.Announce + rand.Int31n(u.conf.Tracker.AnnounceFuzz),
 		Leechers:      incomplete,
 		Seeders:       complete,
-		Peers:         u.peerdb.PeerListBytes(announce.InfoHash, int(announce.NumWant)),
+		Peers:         peerlist,
 	}
 	respBytes, err := resp.marshall()
 	if err != nil {
@@ -122,5 +124,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 
 	storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
 	u.sock.WriteToUDP(respBytes, remote)
+
+	u.peerdb.PutBytes(peerlist)
 	return
 }
