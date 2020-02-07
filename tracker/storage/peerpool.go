@@ -14,6 +14,6 @@ func GetPeer() *Peer {
 	return peerPool.Get().(*Peer)
 }
 
-func PutPeer(p *Peer) {
+func (p *Peer) Put() {
 	peerPool.Put(p)
 }

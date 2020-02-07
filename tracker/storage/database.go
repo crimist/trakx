@@ -25,6 +25,13 @@ func Open(conf *shared.Config) (Database, error) {
 		return nil, errors.Wrap(err, "failed to init expvar on storage driver")
 	}
 
+	peerlistPool.New = func() interface{} {
+		println("New peerlist from pool")
+		p := new(Peerlist)
+		p.Peers = make([]byte, 6*conf.Tracker.Numwant.Limit)
+		return p
+	}
+
 	return driver.db, nil
 }
 
@@ -43,8 +50,7 @@ type Database interface {
 
 	HashStats(Hash) (int32, int32)
 	PeerList(Hash, int, bool) []string
-	PeerListBytes(Hash, int) []byte
-	PutBytes(b []byte)
+	PeerListBytes(Hash, int) *Peerlist
 
 	// Only used for expvar
 	Hashes() int
