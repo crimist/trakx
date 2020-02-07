@@ -70,6 +70,11 @@ func (d *Dictionary) write(s string) {
 }
 
 func (d *Dictionary) reset() {
+	/* TODO: Consider implementing a maximum size check to prevent large allocations from permanently increasing memory
+	if len(d.buf) > 10240 {
+		d.buf = nil
+	}
+	*/
 	d.buf = d.buf[:0]
 }
 
