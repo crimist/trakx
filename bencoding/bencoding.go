@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func str(str string) string {
@@ -51,13 +52,14 @@ func dict(dict ...string) string {
 }
 
 type Dictionary struct {
-	builder  strings.Builder
-	finished bool
+	builder strings.Builder
 }
+
+var dictionaryPool = sync.Pool{New: func() interface{} { return new(Dictionary) }}
 
 // NewDict creates a new dictionary
 func NewDict() (d *Dictionary) {
-	d = new(Dictionary)
+	d = dictionaryPool.Get().(*Dictionary)
 	d.builder.WriteString("d")
 	return
 }
@@ -71,10 +73,6 @@ func (d *Dictionary) Int64(key string, v int64) {
 }
 
 func (d *Dictionary) Any(key string, v interface{}) error {
-	if d.finished {
-		return errors.New("Add after Get")
-	}
-
 	// Add the key
 	d.builder.WriteString(str(key))
 
@@ -121,22 +119,10 @@ func (d *Dictionary) Any(key string, v interface{}) error {
 
 // Get ends the dicts and returns it as a string
 func (d *Dictionary) Get() string {
-	if !d.finished {
-		d.builder.WriteString("e")
-		d.finished = true
-	}
-	return d.builder.String()
-}
+	d.builder.WriteString("e")
+	str := d.builder.String()
 
-func (d *Dictionary) Len() (length int) {
-	length = d.Len()
-	if !d.finished {
-		length++ // for "e"
-	}
-	return
-}
-
-func (d *Dictionary) Zero() {
 	d.builder.Reset()
-	d.finished = false
+	dictionaryPool.Put(d)
+	return str
 }
