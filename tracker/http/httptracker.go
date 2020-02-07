@@ -49,10 +49,7 @@ func (t *HTTPTracker) Serve(index []byte) {
 		index:    string(index),
 	}
 
-	t.workers.pool.New = func() interface{} {
-		println("New bytes from worker pool")
-		return make([]byte, httpRequestMax, httpRequestMax)
-	}
+	t.workers.pool.New = func() interface{} { return make([]byte, httpRequestMax, httpRequestMax) }
 	t.workers.startWorkers(t.conf.Tracker.HTTP.Threads)
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", t.conf.Tracker.HTTP.Port))

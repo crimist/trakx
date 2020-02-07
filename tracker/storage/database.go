@@ -26,7 +26,6 @@ func Open(conf *shared.Config) (Database, error) {
 	}
 
 	peerlistPool.New = func() interface{} {
-		println("New peerlist from pool")
 		p := new(Peerlist)
 		p.Peers = make([]byte, 6*conf.Tracker.Numwant.Limit)
 		return p

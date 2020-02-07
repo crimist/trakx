@@ -56,10 +56,7 @@ type Dictionary struct {
 	buf []byte
 }
 
-var dictionaryPool = sync.Pool{New: func() interface{} {
-	println("New dict from pool")
-	return new(Dictionary)
-}}
+var dictionaryPool = sync.Pool{New: func() interface{} { return new(Dictionary) }}
 
 // NewDict creates a new dictionary
 func NewDict() *Dictionary {
