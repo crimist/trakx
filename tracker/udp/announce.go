@@ -106,7 +106,6 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	complete, incomplete := u.peerdb.HashStats(announce.InfoHash)
 
 	peerlist := u.peerdb.PeerListBytes(announce.InfoHash, int(announce.NumWant))
-	defer peerlist.Put()
 	resp := announceResp{
 		Action:        1,
 		TransactionID: announce.TransactionID,
@@ -116,6 +115,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		Peers:         peerlist.Peers,
 	}
 	respBytes, err := resp.marshall()
+	peerlist.Put()
 	if err != nil {
 		msg := u.newServerError("AnnounceResp.Marshall()", err, announce.TransactionID)
 		u.sock.WriteToUDP(msg, remote)

@@ -93,8 +93,8 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	d.Int64("incomplete", int64(incomplete))
 	if vals.compact {
 		peerlist := t.peerdb.PeerListBytes(hash, numwant)
-		defer peerlist.Put()
 		d.String("peers", *(*string)(unsafe.Pointer(&peerlist.Peers)))
+		peerlist.Put()
 	} else {
 		d.Any("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
 	}
