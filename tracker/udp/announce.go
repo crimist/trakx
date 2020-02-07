@@ -98,6 +98,8 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	peer.LastSeen = time.Now().Unix()
 	if announce.Event == completed || announce.Left == 0 {
 		peer.Complete = true
+	} else {
+		peer.Complete = false
 	}
 
 	u.peerdb.Save(peer, announce.InfoHash, announce.PeerID)

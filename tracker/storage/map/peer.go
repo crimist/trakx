@@ -25,7 +25,6 @@ func (db *Memory) Save(peer *storage.Peer, h storage.Hash, id storage.PeerID) {
 
 	if !fast {
 		// metric calculation
-
 		if peerExists {
 			// They completed
 			if oldpeer.Complete == false && peer.Complete == true {

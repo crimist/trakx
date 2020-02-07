@@ -1,7 +1,6 @@
 package bencoding_test
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/crimist/trakx/bencoding"
@@ -80,23 +79,37 @@ func TestBencodingAny(t *testing.T) {
 	}
 }
 
-func BenchmarkBencode(b *testing.B) {
+func BenchmarkBencodeAnnounceBytes(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		d := bencoding.NewDict()
+		d.Int64("interval", int64(1))
+		d.Int64("complete", int64(1))
+		d.Int64("incomplete", int64(1))
+		d.String("peers", "\x01\x02\x03\x04\x05")
+		_ = d.Get()
+	}
+}
+
+func BenchmarkBencodeString(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		d := bencoding.NewDict()
 		d.String("key", "value")
 		_ = d.Get()
-		d.Zero()
 	}
 }
 
-func BenchmarkBencodePool(b *testing.B) {
-	pool := sync.Pool{New: func() interface{} { return bencoding.NewDict() }}
-
+func BenchmarkBencodeInt64(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		d := pool.Get().(bencoding.Dict)
-		d.String("key", "value")
+		d := bencoding.NewDict()
+		d.Int64("key", 0x1337)
 		_ = d.Get()
-		d.Zero()
-		pool.Put(d)
+	}
+}
+
+func BenchmarkBencodeAnyString(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		d := bencoding.NewDict()
+		d.Any("key", "value")
+		_ = d.Get()
 	}
 }

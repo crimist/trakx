@@ -77,6 +77,8 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	peer.LastSeen = time.Now().Unix()
 	if vals.event == "completed" || vals.noneleft {
 		peer.Complete = true
+	} else {
+		peer.Complete = false
 	}
 
 	t.peerdb.Save(peer, hash, peerid)

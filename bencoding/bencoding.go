@@ -50,67 +50,68 @@ func dict(dict ...string) string {
 	return encoded
 }
 
-type Dict struct {
-	encoded  string
+type Dictionary struct {
+	builder  strings.Builder
 	finished bool
 }
 
 // NewDict creates a new dictionary
-func NewDict() (d Dict) {
-	d.encoded += "d"
+func NewDict() (d *Dictionary) {
+	d = new(Dictionary)
+	d.builder.WriteString("d")
 	return
 }
 
-func (d *Dict) String(key string, v string) {
-	d.encoded += strconv.FormatInt(int64(len(key)), 10) + ":" + key + strconv.FormatInt(int64(len(v)), 10) + ":" + v
+func (d *Dictionary) String(key string, v string) {
+	d.builder.WriteString(strconv.FormatInt(int64(len(key)), 10) + ":" + key + strconv.FormatInt(int64(len(v)), 10) + ":" + v)
 }
 
-func (d *Dict) Int64(key string, v int64) {
-	d.encoded += strconv.FormatInt(int64(len(key)), 10) + ":" + key + "i" + strconv.FormatInt(v, 10) + "e"
+func (d *Dictionary) Int64(key string, v int64) {
+	d.builder.WriteString(strconv.FormatInt(int64(len(key)), 10) + ":" + key + "i" + strconv.FormatInt(v, 10) + "e")
 }
 
-func (d *Dict) Any(key string, v interface{}) error {
+func (d *Dictionary) Any(key string, v interface{}) error {
 	if d.finished {
 		return errors.New("Add after Get")
 	}
 
 	// Add the key
-	d.encoded += str(key)
+	d.builder.WriteString(str(key))
 
 	switch v := v.(type) {
 	case string:
-		d.encoded += str(v)
+		d.builder.WriteString(str(v))
 	case []byte:
-		d.encoded += str(string(v))
+		d.builder.WriteString(str(string(v)))
 	case []string:
 		r := reflect.ValueOf(v)
 		slice := make([]string, r.Len())
 		for i := 0; i < r.Len(); i++ {
 			slice[i] = r.Index(i).String()
 		}
-		d.encoded += list(slice...)
+		d.builder.WriteString(list(slice...))
 	case map[string]interface{}:
 		dict := NewDict()
 		for k, v := range v {
 			dict.Any(k, v)
 		}
-		d.encoded += dict.Get()
+		d.builder.WriteString(dict.Get())
 	case map[string]map[string]int32:
 		dict := NewDict()
 		for k, v := range v {
 			dict.Any(k, v)
 		}
-		d.encoded += dict.Get()
+		d.builder.WriteString(dict.Get())
 	case map[string]int32:
 		dict := NewDict()
 		for k, v := range v {
 			dict.Any(k, v)
 		}
-		d.encoded += dict.Get()
+		d.builder.WriteString(dict.Get())
 	case int, int8, int16, int32, int64:
-		d.encoded += integer(v)
+		d.builder.WriteString(integer(v))
 	case uint, uint8, uint16, uint32, uint64:
-		d.encoded += integer(v)
+		d.builder.WriteString(integer(v))
 	default:
 		return errors.New("Invalid type")
 	}
@@ -119,23 +120,23 @@ func (d *Dict) Any(key string, v interface{}) error {
 }
 
 // Get ends the dicts and returns it as a string
-func (d *Dict) Get() string {
+func (d *Dictionary) Get() string {
 	if !d.finished {
-		d.encoded += "e"
+		d.builder.WriteString("e")
 		d.finished = true
 	}
-	return d.encoded
+	return d.builder.String()
 }
 
-func (d *Dict) Len() (length int) {
-	length = len(d.encoded)
+func (d *Dictionary) Len() (length int) {
+	length = d.Len()
 	if !d.finished {
 		length++ // for "e"
 	}
 	return
 }
 
-func (d *Dict) Zero() {
-	d.encoded = ""
+func (d *Dictionary) Zero() {
+	d.builder.Reset()
 	d.finished = false
 }
