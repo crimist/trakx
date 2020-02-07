@@ -1,6 +1,7 @@
 package bencoding_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/crimist/trakx/bencoding"
@@ -76,5 +77,26 @@ func TestBencodingAny(t *testing.T) {
 				t.Errorf("Bad encode: '%s' should be '%s'", val, c.result)
 			}
 		})
+	}
+}
+
+func BenchmarkBencode(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		d := bencoding.NewDict()
+		d.String("key", "value")
+		_ = d.Get()
+		d.Zero()
+	}
+}
+
+func BenchmarkBencodePool(b *testing.B) {
+	pool := sync.Pool{New: func() interface{} { return bencoding.NewDict() }}
+
+	for i := 0; i < b.N; i++ {
+		d := pool.Get().(bencoding.Dict)
+		d.String("key", "value")
+		_ = d.Get()
+		d.Zero()
+		pool.Put(d)
 	}
 }

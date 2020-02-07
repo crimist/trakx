@@ -134,3 +134,8 @@ func (d *Dict) Len() (length int) {
 	}
 	return
 }
+
+func (d *Dict) Zero() {
+	d.encoded = ""
+	d.finished = false
+}
