@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"net"
 
+	"github.com/crimist/trakx/tracker/shared"
+
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/storage"
 )
@@ -77,13 +79,13 @@ func (db *Memory) PeerList(h storage.Hash, max int, noPeerID bool) []string {
 
 // PeerListBytes returns a byte encoded peer list for the given hash capped at num
 func (db *Memory) PeerListBytes(h storage.Hash, max int) *storage.Peerlist {
-	b := storage.GetPeerList()
+	plist := storage.GetPeerList()
 
 	db.mu.RLock()
 	peermap, ok := db.hashmap[h]
 	db.mu.RUnlock()
 	if !ok {
-		return b
+		return plist
 	}
 
 	var pos int
@@ -95,13 +97,14 @@ func (db *Memory) PeerListBytes(h storage.Hash, max int) *storage.Peerlist {
 
 	if max == 0 {
 		peermap.RUnlock()
-		return b
+		return plist
 	}
 
 	size := 6 * max
+	shared.SetSliceLen(&plist.Data, size)
 	for _, peer := range peermap.peers {
-		copy(b.Peers[pos:pos+4], peer.IP[:])
-		binary.BigEndian.PutUint16(b.Peers[pos+4:pos+6], peer.Port)
+		copy(plist.Data[pos:pos+4], peer.IP[:])
+		binary.BigEndian.PutUint16(plist.Data[pos+4:pos+6], peer.Port)
 
 		pos += 6
 		if pos == size {
@@ -110,5 +113,5 @@ func (db *Memory) PeerListBytes(h storage.Hash, max int) *storage.Peerlist {
 	}
 	peermap.RUnlock()
 
-	return b
+	return plist
 }

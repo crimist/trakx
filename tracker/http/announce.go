@@ -3,10 +3,10 @@ package http
 import (
 	"math/rand"
 	"net"
-	"reflect"
 	"strconv"
 	"time"
-	"unsafe"
+
+	"github.com/crimist/trakx/tracker/shared"
 
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/storage"
@@ -22,8 +22,6 @@ type announceParams struct {
 	peerid   string
 	numwant  string
 }
-
-var httpSuccess = "HTTP/1.1 200\r\n\r\n"
 
 func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.PeerIP) {
 	storage.AddExpval(&storage.Expvar.Announces, 1)
@@ -51,7 +49,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	if vals.event == "stopped" {
 		t.peerdb.Drop(hash, peerid)
 		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
-		conn.Write(*(*[]byte)(unsafe.Pointer((*reflect.SliceHeader)(unsafe.Pointer(&httpSuccess)))))
+		conn.Write(shared.StringToBytes(httpSuccess))
 		return
 	}
 
@@ -93,14 +91,14 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	d.Int64("incomplete", int64(incomplete))
 	if vals.compact {
 		peerlist := t.peerdb.PeerListBytes(hash, numwant)
-		d.String("peers", *(*string)(unsafe.Pointer(&peerlist.Peers)))
+		d.StringBytes("peers", peerlist.Data)
 		peerlist.Put()
 	} else {
+		// Escapes to heap but isn't used in prod much
 		d.Any("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
 	}
 
 	storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
-
-	conn.Write(*(*[]byte)(unsafe.Pointer((*reflect.SliceHeader)(unsafe.Pointer(&httpSuccess)))))
+	conn.Write(shared.StringToBytes(httpSuccess))
 	conn.Write(d.GetBytes())
 }

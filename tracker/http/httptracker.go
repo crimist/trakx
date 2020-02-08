@@ -27,6 +27,8 @@ const (
 	`
 )
 
+var httpSuccess = "HTTP/1.1 200\r\n\r\n"
+
 type HTTPTracker struct {
 	conf    *shared.Config
 	logger  *zap.Logger
@@ -49,7 +51,7 @@ func (t *HTTPTracker) Serve(index []byte) {
 		index:    string(index),
 	}
 
-	t.workers.pool.New = func() interface{} { return make([]byte, httpRequestMax, httpRequestMax) }
+	t.workers.bytePool.New = func() interface{} { return make([]byte, httpRequestMax, httpRequestMax) }
 	t.workers.startWorkers(t.conf.Tracker.HTTP.Threads)
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", t.conf.Tracker.HTTP.Port))
@@ -103,21 +105,21 @@ type job struct {
 }
 
 func (j *job) redir(url string) {
-	j.conn.Write([]byte("HTTP/1.1 303\r\nLocation: " + url + "\r\n\r\n"))
+	j.conn.Write(shared.StringToBytes("HTTP/1.1 303\r\nLocation: " + url + "\r\n\r\n"))
 }
 
 func (j *job) writeData(data string) {
-	j.conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + data))
+	j.conn.Write(shared.StringToBytes("HTTP/1.1 200\r\n\r\n" + data))
 }
 
 func (j *job) writeStatus(status string) {
-	j.conn.Write([]byte("HTTP/1.1 " + status + "\r\n\r\n"))
+	j.conn.Write(shared.StringToBytes("HTTP/1.1 " + status + "\r\n\r\n"))
 }
 
 type workers struct {
 	tracker  *HTTPTracker
 	jobQueue chan job
-	pool     sync.Pool
+	bytePool sync.Pool
 
 	index string
 }
@@ -135,7 +137,7 @@ func (w *workers) work() {
 	maxwrite := time.Duration(w.tracker.conf.Tracker.HTTP.WriteTimeout) * time.Second
 
 	for {
-		data := w.pool.Get().([]byte)
+		data := w.bytePool.Get().([]byte)
 		select {
 		case j = <-w.jobQueue:
 			// Should recv and send data within timeouts or were overloaded
@@ -240,14 +242,14 @@ func (w *workers) work() {
 				j.writeData(DMCAData)
 			case "/stats":
 				// Serves expvar handler but it's hacky af
-				j.conn.Write([]byte("HTTP/1.1 200\r\nContent-Type: application/json; charset=utf-8\r\n\r\n"))
-				expvarHandler.ServeHTTP(&fakeRespWriter{conn: j.conn}, nil)
+				j.conn.Write(shared.StringToBytes("HTTP/1.1 200\r\nContent-Type: application/json; charset=utf-8\r\n\r\n"))
+				expvarHandler.ServeHTTP(fakeRespWriter{conn: j.conn}, nil)
 			default:
 				j.writeStatus("404")
 			}
 		}
 
-		w.pool.Put(data)
+		w.bytePool.Put(data)
 		j.conn.Close()
 	}
 }

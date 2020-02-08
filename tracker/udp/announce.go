@@ -112,7 +112,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		Interval:      u.conf.Tracker.Announce + rand.Int31n(u.conf.Tracker.AnnounceFuzz),
 		Leechers:      incomplete,
 		Seeders:       complete,
-		Peers:         peerlist.Peers,
+		Peers:         peerlist.Data,
 	}
 	respBytes, err := resp.marshall()
 	peerlist.Put()

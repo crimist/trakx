@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/crimist/trakx/bencoding"
+	"github.com/crimist/trakx/tracker/shared"
 	"github.com/crimist/trakx/tracker/storage"
 )
 
@@ -17,8 +18,7 @@ func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
 		return
 	}
 
-	dict := bencoding.NewDict()
-	nestedDict := make(map[string]map[string]int32, len(infohashes))
+	root := bencoding.NewDict()
 
 	for _, infohash := range infohashes {
 		if len(infohash) != 20 {
@@ -26,22 +26,19 @@ func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
 			return
 		}
 
-		nestedDict[infohash] = make(map[string]int32, 2)
-
 		var hash storage.Hash
 		copy(hash[:], infohash)
-
 		complete, incomplete := t.peerdb.HashStats(hash)
 
-		nestedDict[infohash]["complete"] = complete
-		nestedDict[infohash]["incomplete"] = incomplete
+		d := bencoding.NewDict()
+		d.Int64("complete", int64(complete))
+		d.Int64("incomplete", int64(incomplete))
+		root.Dictionary(infohash, d.Get())
 	}
 
-	if err := dict.Any("files", nestedDict); err != nil {
-		t.internalError(conn, "dict.Add()", err)
-		return
-	}
+	tmp := bencoding.NewDict()
+	tmp.Dictionary("files", root.Get())
 
-	conn.Write([]byte("HTTP/1.1 200\r\n\r\n" + dict.Get()))
+	conn.Write(shared.StringToBytes(httpSuccess + tmp.Get()))
 	storage.AddExpval(&storage.Expvar.ScrapesOK, 1)
 }

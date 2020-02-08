@@ -69,6 +69,10 @@ func (d *Dictionary) write(s string) {
 	d.buf = append(d.buf, s...)
 }
 
+func (d *Dictionary) writeBytes(s []byte) {
+	d.buf = append(d.buf, s[:]...)
+}
+
 func (d *Dictionary) reset() {
 	/* TODO: Consider implementing a maximum size check to prevent large allocations from permanently increasing memory
 	if len(d.buf) > 10240 {
@@ -82,8 +86,17 @@ func (d *Dictionary) String(key string, v string) {
 	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + strconv.FormatInt(int64(len(v)), 10) + ":" + v)
 }
 
+func (d *Dictionary) StringBytes(key string, v []byte) {
+	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + strconv.FormatInt(int64(len(v)), 10) + ":")
+	d.writeBytes(v)
+}
+
 func (d *Dictionary) Int64(key string, v int64) {
 	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + "i" + strconv.FormatInt(v, 10) + "e")
+}
+
+func (d *Dictionary) Dictionary(key string, v string) {
+	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + v)
 }
 
 func (d *Dictionary) Any(key string, v interface{}) error {

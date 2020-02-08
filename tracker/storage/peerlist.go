@@ -1,18 +1,27 @@
 package storage
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/crimist/trakx/tracker/shared"
+)
 
 type Peerlist struct {
-	Peers []byte
+	Data []byte
 }
 
-var peerlistPool sync.Pool
+var peerlistMax = new(int)
+var peerlistPool = sync.Pool{New: func() interface{} {
+	p := new(Peerlist)
+	p.Data = make([]byte, *peerlistMax)
+	return p
+}}
 
 func GetPeerList() *Peerlist {
 	return peerlistPool.Get().(*Peerlist)
 }
 
 func (p *Peerlist) Put() {
-	p.Peers = p.Peers[:0]
+	shared.SetSliceLen(&p.Data, *peerlistMax)
 	peerlistPool.Put(p)
 }

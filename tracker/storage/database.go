@@ -25,11 +25,7 @@ func Open(conf *shared.Config) (Database, error) {
 		return nil, errors.Wrap(err, "failed to init expvar on storage driver")
 	}
 
-	peerlistPool.New = func() interface{} {
-		p := new(Peerlist)
-		p.Peers = make([]byte, 6*conf.Tracker.Numwant.Limit)
-		return p
-	}
+	*peerlistMax = 6 * int(conf.Tracker.Numwant.Limit)
 
 	return driver.db, nil
 }
