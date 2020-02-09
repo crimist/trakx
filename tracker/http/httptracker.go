@@ -151,7 +151,7 @@ func (w *workers) work() {
 			}
 
 			p, parseCode, err := parse(data)
-			if parseCode == parseInvalid { // invalid request
+			if parseCode == parseInvalid || p.Method != "GET" { // invalid request
 				j.writeStatus("400")
 				break
 			}

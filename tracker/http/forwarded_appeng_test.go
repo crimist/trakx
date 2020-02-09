@@ -3,9 +3,7 @@
 package http
 
 import (
-	"bufio"
 	"bytes"
-	"net/http"
 	"testing"
 )
 
@@ -29,25 +27,12 @@ func TestForwarded(t *testing.T) {
 	}
 }
 
-const benchForwardRequest = "GET / HTTP/1.1\r\nX-Forwarded-For: 1.2.3.4\r\n\r\n"
-
 func BenchmarkForwarded(b *testing.B) {
-	req := []byte(benchForwardRequest)
+	req := []byte("GET / HTTP/1.1\r\nX-Forwarded-For: 1.2.3.4\r\n\r\n")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, ip := getForwarded(req)
 		_ = ip
-	}
-}
-
-func BenchmarkStdForwarded(b *testing.B) {
-	r := bytes.NewReader([]byte(benchForwardRequest))
-	buf := bufio.NewReader(r)
-
-	for i := 0; i < b.N; i++ {
-		req, _ := http.ReadRequest(buf)
-		_ = req
-		r.Seek(0, 0)
 	}
 }

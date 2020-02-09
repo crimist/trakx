@@ -8,7 +8,7 @@ import (
 	"github.com/crimist/trakx/tracker/storage"
 )
 
-func (t *HTTPTracker) scrape(conn net.Conn, infohashes []string) {
+func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
 	storage.AddExpval(&storage.Expvar.Scrapes, 1)
 
 	if len(infohashes) == 0 {

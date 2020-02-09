@@ -8,7 +8,7 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	req := []byte("GET /test?param=1&test=test%3Ftest HTTP/1.1 bla bla")
+	req := []byte("GET /test?param=1&param2=two&test=test%3Ftest HTTP/1.1 bla bla")
 	p, _, err := parse(req)
 
 	if err != nil {
@@ -19,7 +19,9 @@ func TestParse(t *testing.T) {
 	}
 	for _, param := range p.Params {
 		switch param {
+		case "":
 		case "param=1":
+		case "param2=two":
 		case "test=test?test":
 		default:
 			t.Fatalf("Incorrect params: %v", p.Params)
@@ -27,6 +29,20 @@ func TestParse(t *testing.T) {
 	}
 	if p.Path != "/test" {
 		t.Fatal("Incorrect path")
+	}
+	if p.Method != "GET" {
+		t.Fatalf("Incorrect method")
+	}
+
+	p, _, err = parse([]byte("GET /url?key=value HTTP/1.1"))
+	if err != nil {
+		t.Fatalf("Error when parsing: %v", err)
+	}
+	if p.Params[0] != "key=value" {
+		t.Fatal("Bad params")
+	}
+	if p.Path != "/url" {
+		t.Fatal("Incorrect path", p.Path)
 	}
 	if p.Method != "GET" {
 		t.Fatalf("Incorrect method")

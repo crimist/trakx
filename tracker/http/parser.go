@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"encoding/base64"
 	"net/url"
-	"strings"
 	"unsafe"
 
 	"github.com/pkg/errors"
 )
 
-type parsedCode uint8
+type (
+	parsedCode uint8
+	params     [100]string // hopefully we never get more than 100 params - shouldn't exceed based on `httpRequestMax` anyway
+)
 
 const (
 	parseOk      parsedCode = iota
@@ -19,15 +21,14 @@ const (
 
 type parsed struct {
 	Path      string
-	Params    []string
+	Params    params
 	URLend    int
 	Method    string
 	pathstart int
 	pathend   int
 }
 
-// I wrote a shitty custom parser because the normal url.Parse().Values() reates a map of params which is very expensive with memory
-// parse returns nil on an invalid request and error when there was an internal error
+// Custom HTTP parser - only supports GET request and up to 100 params but uses no heap memory
 func parse(data []byte) (parsed, parsedCode, error) {
 	// uTorrent sometimes encodes scrape req in b64
 	if bytes.HasPrefix(data, []byte("R0VU")) { // R0VUIC9zY3JhcGU/aW5mb19oYXNoPS = GET /scrape?info_hash=
@@ -56,7 +57,7 @@ func parse(data []byte) (parsed, parsedCode, error) {
 		return parsed{}, parseInvalid, nil
 	}
 
-	if p.URLend < 5 || p.Method != "GET" { // less than "GET / HTTP..."
+	if p.URLend < 5 { // less than "GET / HTTP..."
 		return parsed{}, parseInvalid, nil
 	}
 
@@ -66,10 +67,21 @@ func parse(data []byte) (parsed, parsedCode, error) {
 		}
 
 		tmp = data[p.pathend+1 : p.URLend]
-		p.Params = strings.Split(*(*string)(unsafe.Pointer(&tmp)), "&")
+		params := *(*string)(unsafe.Pointer(&tmp))
+
+		var pos, pIndex int
+		for i := 0; i < len(params); i++ {
+			if params[i] == '&' {
+				p.Params[pIndex] = params[pos:i]
+				pIndex++
+				pos = i + 1
+			} else if i == len(params)-1 {
+				p.Params[pIndex] = params[pos : i+1]
+			}
+		}
 
 		var err error
-		for i := 0; i < len(p.Params); i++ {
+		for i := 0; i < pIndex+1; i++ {
 			p.Params[i], err = url.QueryUnescape(p.Params[i])
 			if err != nil {
 				return parsed{}, parseInvalid, nil // failed to escape a param
