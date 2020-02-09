@@ -72,7 +72,7 @@ func parse(data []byte) (parsed, parsedCode, error) {
 		for i := 0; i < len(p.Params); i++ {
 			p.Params[i], err = url.QueryUnescape(p.Params[i])
 			if err != nil {
-				return parsed{}, parseOk, errors.Wrap(err, "Failed to escape parameter")
+				return parsed{}, parseInvalid, nil // failed to escape a param
 			}
 		}
 
