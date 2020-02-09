@@ -11,7 +11,7 @@ import (
 
 type (
 	parsedCode uint8
-	params     [100]string // hopefully we never get more than 100 params - shouldn't exceed based on `httpRequestMax` anyway
+	params     [100]string // TODO: Consider reducing the size of this array - it has a large impact on stack size
 )
 
 const (
