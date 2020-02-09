@@ -10,12 +10,6 @@ import (
 
 func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
 	storage.AddExpval(&storage.Expvar.Scrapes, 1)
-
-	if len(infohashes) == 0 {
-		t.clientError(conn, "no infohashes")
-		return
-	}
-
 	root := bencoding.NewDict()
 
 	for _, infohash := range infohashes {

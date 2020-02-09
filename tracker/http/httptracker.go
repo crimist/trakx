@@ -225,12 +225,18 @@ func (w *workers) work() {
 
 				w.tracker.announce(j.conn, &v, ip)
 			case "/scrape":
+				var count int
 				for i := 0; i < len(p.Params); i++ {
 					if len(p.Params[i]) < 10 || p.Params[i][0:10] != "info_hash=" {
 						p.Params[i] = ""
 					} else {
 						p.Params[i] = p.Params[i][10:]
+						count++
 					}
+				}
+				if count == 0 {
+					w.tracker.clientError(j.conn, "no infohashes")
+					break
 				}
 				w.tracker.scrape(j.conn, p.Params)
 			case "/":
