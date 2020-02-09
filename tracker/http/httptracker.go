@@ -5,7 +5,6 @@ import (
 	"expvar"
 	"fmt"
 	"net"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -44,11 +43,11 @@ func (t *HTTPTracker) Init(conf *shared.Config, logger *zap.Logger, peerdb stora
 	t.kill = make(chan struct{})
 }
 
-func (t *HTTPTracker) Serve(index []byte) {
+func (t *HTTPTracker) Serve(index string) {
 	t.workers = workers{
 		tracker:  t,
 		jobQueue: make(chan job, t.conf.Tracker.HTTP.Qsize),
-		index:    string(index),
+		index:    index,
 	}
 
 	t.workers.bytePool.New = func() interface{} { return make([]byte, httpRequestMax, httpRequestMax) }
@@ -133,6 +132,7 @@ func (w *workers) startWorkers(num int) {
 func (w *workers) work() {
 	var j job
 	expvarHandler := expvar.Handler()
+	statRespWriter := fakeRespWriter{}
 	maxread := time.Duration(w.tracker.conf.Tracker.HTTP.ReadTimeout) * time.Second
 	maxwrite := time.Duration(w.tracker.conf.Tracker.HTTP.WriteTimeout) * time.Second
 
@@ -150,18 +150,14 @@ func (w *workers) work() {
 				break
 			}
 
-			p, err := parse(data)
-			if p == nil { // invalid request
+			p, parseCode, err := parse(data)
+			if parseCode == parseInvalid { // invalid request
 				j.writeStatus("400")
 				break
 			}
 			if err != nil { // error in parse
 				w.tracker.logger.Error("parse()", zap.Error(err), zap.Any("data", data))
 				j.writeStatus("500")
-				break
-			}
-			if p.URLend < 5 || p.Method != "GET" { // less than "GET / HTTP..."
-				j.writeStatus("400")
 				break
 			}
 
@@ -229,21 +225,24 @@ func (w *workers) work() {
 
 				w.tracker.announce(j.conn, &v, ip)
 			case "/scrape":
-				// Custom parsing isn't needed since we aren't hammered with scrapes
-				u, err := url.Parse(string(data[4:p.URLend]))
-				if err != nil {
-					j.writeStatus("400")
-					break
+				for i := 0; i < len(p.Params); i++ {
+					if len(p.Params[i]) < 10 || p.Params[i][0:10] != "info_hash=" {
+						p.Params[i] = ""
+					} else {
+						p.Params[i] = p.Params[i][10:]
+					}
 				}
-				w.tracker.scrape(j.conn, u.Query())
+				w.tracker.scrape(j.conn, p.Params)
 			case "/":
 				j.writeData(w.index)
 			case "/dmca":
 				j.writeData(DMCAData)
 			case "/stats":
 				// Serves expvar handler but it's hacky af
+				statRespWriter.conn = j.conn
+
 				j.conn.Write(shared.StringToBytes("HTTP/1.1 200\r\nContent-Type: application/json; charset=utf-8\r\n\r\n"))
-				expvarHandler.ServeHTTP(fakeRespWriter{conn: j.conn}, nil)
+				expvarHandler.ServeHTTP(statRespWriter, nil)
 			default:
 				j.writeStatus("404")
 			}

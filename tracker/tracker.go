@@ -67,7 +67,7 @@ func Run() {
 		logger.Info("http tracker enabled", zap.Int("port", conf.Tracker.HTTP.Port))
 
 		httptracker.Init(conf, logger, peerdb)
-		go httptracker.Serve(indexData) // indexData in the routes.go file
+		go httptracker.Serve(string(indexData)) // indexData in the routes.go file
 	} else {
 		d := bencoding.NewDict()
 		d.Int64("interval", 432000) // 5 days

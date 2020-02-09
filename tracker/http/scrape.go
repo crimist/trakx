@@ -2,17 +2,15 @@ package http
 
 import (
 	"net"
-	"net/url"
 
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/shared"
 	"github.com/crimist/trakx/tracker/storage"
 )
 
-func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
+func (t *HTTPTracker) scrape(conn net.Conn, infohashes []string) {
 	storage.AddExpval(&storage.Expvar.Scrapes, 1)
 
-	infohashes := vals["info_hash"]
 	if len(infohashes) == 0 {
 		t.clientError(conn, "no infohashes")
 		return
@@ -21,6 +19,9 @@ func (t *HTTPTracker) scrape(conn net.Conn, vals url.Values) {
 	root := bencoding.NewDict()
 
 	for _, infohash := range infohashes {
+		if infohash == "" {
+			continue
+		}
 		if len(infohash) != 20 {
 			t.clientError(conn, "invalid infohash")
 			return
