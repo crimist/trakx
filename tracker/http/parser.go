@@ -11,7 +11,7 @@ import (
 
 type (
 	parsedCode uint8
-	params     [100]string // TODO: Consider reducing the size of this array - it has a large impact on stack size
+	params     [50]string // TODO: Consider reducing the size of this array - it has a large impact on stack size
 )
 
 const (
