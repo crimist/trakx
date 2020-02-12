@@ -145,8 +145,7 @@ func (w *workers) work() {
 			j.conn.SetDeadline(now.Add(maxread))
 			j.conn.SetWriteDeadline(now.Add(maxwrite))
 
-			_, err := j.conn.Read(data)
-			if err != nil {
+			if _, err := j.conn.Read(data); err != nil {
 				break
 			}
 
