@@ -80,7 +80,6 @@ func (t *HTTPTracker) Serve(index string) {
 	case _ = <-t.kill:
 		t.logger.Info("Closing HTTP tracker connection")
 		ln.Close()
-		close(t.workers.jobQueue)
 	}
 }
 

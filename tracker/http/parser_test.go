@@ -51,7 +51,7 @@ func TestParse(t *testing.T) {
 
 const benchRequest = "GET /benchmark HTTP/1.1\r\nHEADER: VALUE\r\n\r\n"
 
-func BenchmarkCustomParse(b *testing.B) {
+func BenchmarkParse(b *testing.B) {
 	req := []byte(benchRequest)
 
 	b.ResetTimer()
@@ -61,7 +61,7 @@ func BenchmarkCustomParse(b *testing.B) {
 	}
 }
 
-func BenchmarkURLParse(b *testing.B) {
+func BenchmarkStdParse(b *testing.B) {
 	req := benchRequest[4:strings.Index(benchRequest, " HTTP/")]
 
 	for i := 0; i < b.N; i++ {
@@ -72,7 +72,7 @@ func BenchmarkURLParse(b *testing.B) {
 
 const benchReqParams = "GET /benchmark?key0=val0&key1=val1&key2=val2&key3=val3 HTTP/1.1\r\nHEADER: VALUE\r\n\r\n"
 
-func BenchmarkCustomParseParams(b *testing.B) {
+func BenchmarkParseParams(b *testing.B) {
 	req := []byte(benchReqParams)
 
 	b.ResetTimer()
@@ -82,7 +82,7 @@ func BenchmarkCustomParseParams(b *testing.B) {
 	}
 }
 
-func BenchmarkCustomParseParamsBase64(b *testing.B) {
+func BenchmarkParseParamsBase64(b *testing.B) {
 	req := make([]byte, base64.StdEncoding.EncodedLen(len(benchReqParams)))
 	base64.StdEncoding.Encode(req, []byte(benchReqParams))
 
@@ -93,7 +93,7 @@ func BenchmarkCustomParseParamsBase64(b *testing.B) {
 	}
 }
 
-func BenchmarkURLParseParams(b *testing.B) {
+func BenchmarkStdParseParams(b *testing.B) {
 	req := benchReqParams[4:strings.Index(benchReqParams, " HTTP/")]
 
 	for i := 0; i < b.N; i++ {

@@ -9,26 +9,26 @@ import (
 	"github.com/pkg/errors"
 )
 
-type (
-	parsedCode uint8
-	params     [50]string // TODO: Consider reducing the size of this array - it has a large impact on stack size
-)
-
 const (
 	parseOk      parsedCode = iota
 	parseInvalid parsedCode = iota
+	maxparams               = 50
 )
 
-type parsed struct {
-	Path      string
-	Params    params
-	URLend    int
-	Method    string
-	pathstart int
-	pathend   int
-}
+type (
+	parsedCode uint8
+	params     [maxparams]string
+	parsed     struct {
+		Path      string
+		Params    params
+		URLend    int
+		Method    string
+		pathstart int
+		pathend   int
+	}
+)
 
-// Custom HTTP parser - only supports GET request and up to 100 params but uses no heap memory
+// Custom HTTP parser - only supports GET request and up to `maxparams` params but uses no heap memory
 func parse(data []byte) (parsed, parsedCode, error) {
 	// uTorrent sometimes encodes scrape req in b64
 	if bytes.HasPrefix(data, []byte("R0VU")) { // R0VUIC9zY3JhcGU/aW5mb19oYXNoPS = GET /scrape?info_hash=
@@ -70,18 +70,22 @@ func parse(data []byte) (parsed, parsedCode, error) {
 		params := *(*string)(unsafe.Pointer(&tmp))
 
 		var pos, pIndex int
-		for i := 0; i < len(params); i++ {
+		for i := 0; i < len(params) && pIndex < maxparams; i++ {
 			if params[i] == '&' {
 				p.Params[pIndex] = params[pos:i]
-				pIndex++
 				pos = i + 1
+				pIndex++
 			} else if i == len(params)-1 {
 				p.Params[pIndex] = params[pos : i+1]
 			}
 		}
 
+		if pIndex == maxparams {
+			pIndex--
+		}
+
 		var err error
-		for i := 0; i < pIndex+1; i++ {
+		for i := 0; i <= pIndex; i++ {
 			p.Params[i], err = url.QueryUnescape(p.Params[i])
 			if err != nil {
 				return parsed{}, parseInvalid, nil // failed to escape a param
