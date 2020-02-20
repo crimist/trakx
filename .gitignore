@@ -2,8 +2,5 @@
 *.DS_Store
 .vscode
 
-# database backup files
-*.db
-
 # dlv debug
 __debug_bin
