@@ -21,6 +21,23 @@ func (db *Memory) Save(peer *storage.Peer, h storage.Hash, id storage.PeerID) {
 	peermap.Lock()
 	oldpeer, peerExists := peermap.peers[id]
 	peermap.peers[id] = peer
+
+	if peerExists {
+		if oldpeer.Complete == false && peer.Complete == true {
+			peermap.incomplete--
+			peermap.complete++
+		} else if oldpeer.Complete == true && peer.Complete == false {
+			peermap.complete--
+			peermap.incomplete++
+		}
+	} else {
+		if peer.Complete == true {
+			peermap.complete++
+		} else {
+			peermap.incomplete++
+		}
+	}
+
 	peermap.Unlock()
 
 	if !fast {
@@ -64,6 +81,12 @@ func (db *Memory) Save(peer *storage.Peer, h storage.Hash, id storage.PeerID) {
 func (db *Memory) delete(peer *storage.Peer, pmap *PeerMap, id storage.PeerID) {
 	delete(pmap.peers, id)
 
+	if peer.Complete == true {
+		pmap.complete--
+	} else {
+		pmap.incomplete--
+	}
+
 	if !fast {
 		if peer.Complete {
 			storage.AddExpval(&storage.Expvar.Seeds, -1)
@@ -97,6 +120,12 @@ func (db *Memory) Drop(h storage.Hash, id storage.PeerID) {
 		return
 	}
 	delete(peermap.peers, id)
+
+	if peer.Complete == true {
+		peermap.complete--
+	} else {
+		peermap.incomplete--
+	}
 	peermap.Unlock()
 
 	if !fast {

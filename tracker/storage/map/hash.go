@@ -16,7 +16,7 @@ func (db *Memory) Hashes() int {
 }
 
 // HashStats returns number of complete and incomplete peers associated with the hash
-func (db *Memory) HashStats(h storage.Hash) (complete, incomplete int32) {
+func (db *Memory) HashStats(h storage.Hash) (complete, incomplete uint16) {
 	db.mu.RLock()
 	peermap, ok := db.hashmap[h]
 	db.mu.RUnlock()
@@ -25,12 +25,8 @@ func (db *Memory) HashStats(h storage.Hash) (complete, incomplete int32) {
 	}
 
 	peermap.RLock()
-	for _, peer := range peermap.peers {
-		if peer.Complete {
-			complete++
-		}
-	}
-	incomplete = int32(len(peermap.peers)) - complete
+	complete = peermap.complete
+	incomplete = peermap.incomplete
 	peermap.RUnlock()
 
 	return

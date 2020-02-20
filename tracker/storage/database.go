@@ -43,7 +43,7 @@ type Database interface {
 	Save(*Peer, Hash, PeerID)
 	Drop(Hash, PeerID)
 
-	HashStats(Hash) (int32, int32)
+	HashStats(Hash) (uint16, uint16)
 	PeerList(Hash, int, bool) []string
 	PeerListBytes(Hash, int) *Peerlist
 

@@ -17,7 +17,9 @@ const (
 
 type PeerMap struct {
 	sync.RWMutex
-	peers map[storage.PeerID]*storage.Peer
+	complete   uint16
+	incomplete uint16
+	peers      map[storage.PeerID]*storage.Peer
 }
 
 type Memory struct {

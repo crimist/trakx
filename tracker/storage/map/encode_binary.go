@@ -178,6 +178,12 @@ func (db *Memory) decodeBinaryUnsafe(data []byte) (peers, hashes int, err error)
 			pos += 36
 
 			peermap.peers[id] = peer
+			if peer.Complete {
+				peermap.complete++
+			} else {
+				peermap.incomplete++
+			}
+
 			peers++
 		}
 

@@ -24,8 +24,8 @@ func (s *scrape) unmarshall(data []byte) error {
 
 type scrapeInfo struct {
 	Complete   int32
-	Downloaded int32
 	Incomplete int32
+	Downloaded int32
 }
 
 type scrapeResp struct {
@@ -71,9 +71,9 @@ func (u *UDPTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
 
 		complete, incomplete := u.peerdb.HashStats(hash)
 		info := scrapeInfo{
-			Complete:   complete,
+			Complete:   int32(complete),
+			Incomplete: int32(incomplete),
 			Downloaded: -1,
-			Incomplete: incomplete,
 		}
 		resp.Info = append(resp.Info, info)
 	}
