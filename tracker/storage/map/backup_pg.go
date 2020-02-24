@@ -68,13 +68,15 @@ func (bck PgBackup) Save() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to encode binary (w/ encodeBinaryUnsafeAutoalloc)")
 	}
+	bck.db.conf.Logger.Info("Encoded binary", zap.Duration("duration", time.Now().Sub(start)))
+	start = time.Now()
 
 	_, err = bck.pg.Query("INSERT INTO trakx(bytes) VALUES($1)", data)
 	if err != nil {
 		return errors.Wrap(err, "`INSERT` statement failed")
 	}
 
-	bck.db.conf.Logger.Info("Saved database to pg", zap.Any("hash", data[:20]), zap.Duration("duration", time.Now().Sub(start)))
+	bck.db.conf.Logger.Info("Saved database to pg", zap.Any("hash", data[:20]), zap.Duration("pg duration", time.Now().Sub(start)))
 
 	return nil
 }
