@@ -250,7 +250,6 @@ func (w *workers) work() {
 			}
 		}
 
-		data = data[:0]
 		j.conn.Close()
 	}
 }
