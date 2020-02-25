@@ -25,3 +25,11 @@ func SetSliceLen(s *[]byte, l int) int {
 
 	return oldlen
 }
+
+func SetStringLen(s *string, l int) int {
+	oldlen := len(*s)
+	header := (*reflect.StringHeader)(unsafe.Pointer(s))
+	header.Len = l
+
+	return oldlen
+}

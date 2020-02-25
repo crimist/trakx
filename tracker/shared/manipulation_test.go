@@ -86,8 +86,36 @@ func TestSetSliceLen(t *testing.T) {
 	}
 }
 
-var benchData = strings.Repeat("String", 1e4)
-var benchByteData = bytes.Repeat([]byte("Bytes"), 1e4)
+func TestSetStringLen(t *testing.T) {
+	var cases = []struct {
+		name     string
+		data     string
+		size     int
+		fullSize int
+	}{
+		{"short", "data", 2, 4},
+		{"long", "lots of stuff in here", 4, 21},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			oldlen := SetStringLen(&c.data, c.size)
+			if len(c.data) != c.size {
+				t.Fatal("Failed to set len")
+			}
+
+			SetStringLen(&c.data, oldlen)
+			if len(c.data) != c.fullSize {
+				t.Fatal("Failed to restore len")
+			}
+		})
+	}
+}
+
+var (
+	benchData     = strings.Repeat("Strxx", 1e4)
+	benchByteData = bytes.Repeat([]byte("Bytex"), 1e4)
+)
 
 func BenchmarkStringToBytes(b *testing.B) {
 	for i := 0; i < b.N; i++ {
@@ -105,5 +133,12 @@ func BenchmarkSetSliceLen(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		oldlen := SetSliceLen(&benchByteData, 20)
 		SetSliceLen(&benchByteData, oldlen)
+	}
+}
+
+func BenchmarkSetStringLen(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		oldlen := SetStringLen(&benchData, 20)
+		SetStringLen(&benchData, oldlen)
 	}
 }

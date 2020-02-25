@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"sync"
 	"time"
 	"unsafe"
 
@@ -50,7 +49,6 @@ func (t *HTTPTracker) Serve(index string) {
 		index:    index,
 	}
 
-	t.workers.bytePool.New = func() interface{} { return make([]byte, httpRequestMax, httpRequestMax) }
 	t.workers.startWorkers(t.conf.Tracker.HTTP.Threads)
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", t.conf.Tracker.HTTP.Port))
@@ -118,7 +116,6 @@ func (j *job) writeStatus(status string) {
 type workers struct {
 	tracker  *HTTPTracker
 	jobQueue chan job
-	bytePool sync.Pool
 
 	index string
 }
@@ -135,9 +132,9 @@ func (w *workers) work() {
 	statRespWriter := fakeRespWriter{}
 	maxread := time.Duration(w.tracker.conf.Tracker.HTTP.ReadTimeout) * time.Second
 	maxwrite := time.Duration(w.tracker.conf.Tracker.HTTP.WriteTimeout) * time.Second
+	data := make([]byte, httpRequestMax, httpRequestMax)
 
 	for {
-		data := w.bytePool.Get().([]byte)
 		select {
 		case j = <-w.jobQueue:
 			// Should recv and send data within timeouts or were overloaded
@@ -253,7 +250,7 @@ func (w *workers) work() {
 			}
 		}
 
-		w.bytePool.Put(data)
+		data = data[:0]
 		j.conn.Close()
 	}
 }
