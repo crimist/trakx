@@ -18,6 +18,7 @@ const (
 	httpRequestMax = 2100 // slight buffer over 2000
 	errClosed      = "use of closed network connection"
 
+	// DMCAData holds the HTML to be sent for the DMCA page
 	DMCAData = `
 	<p>tracker@nibba.trade</p>
 	<iframe width="560" height="315" src="https://www.youtube.com/embed/BwSts2s4ba4?controls=0&showinfo=0&autoplay=1" frameborder="0" allowfullscreen></iframe>
@@ -28,20 +29,22 @@ const (
 var httpSuccess = "HTTP/1.1 200\r\n\r\n"
 
 type HTTPTracker struct {
-	conf    *shared.Config
-	logger  *zap.Logger
-	peerdb  storage.Database
-	workers workers
-	kill    chan struct{}
+	conf     *shared.Config
+	logger   *zap.Logger
+	peerdb   storage.Database
+	workers  workers
+	shutdown chan struct{}
 }
 
+// Init sets the HTTP trackers required values
 func (t *HTTPTracker) Init(conf *shared.Config, logger *zap.Logger, peerdb storage.Database) {
 	t.conf = conf
 	t.logger = logger
 	t.peerdb = peerdb
-	t.kill = make(chan struct{})
+	t.shutdown = make(chan struct{})
 }
 
+// Serve starts the HTTP service and begins to serve clients
 func (t *HTTPTracker) Serve(index string) {
 	t.workers = workers{
 		tracker:  t,
@@ -75,22 +78,23 @@ func (t *HTTPTracker) Serve(index string) {
 	}
 
 	select {
-	case _ = <-t.kill:
+	case _ = <-t.shutdown:
 		t.logger.Info("Closing HTTP tracker connection")
 		ln.Close()
 	}
 }
 
-// Kill kills the HTTP tracker by closing the listening connection
-func (t *HTTPTracker) Kill() {
-	if t == nil || t.kill == nil {
+// Shutdown gracefully closes the HTTP service by closing the listening connection
+func (t *HTTPTracker) Shutdown() {
+	if t == nil || t.shutdown == nil {
 		return
 	}
 	var die struct{}
-	t.kill <- die
+	t.shutdown <- die
 }
 
-func (t *HTTPTracker) QueueLen() int {
+// QLen returns the number of uncompleted jobs in the job queue
+func (t *HTTPTracker) QLen() int {
 	if t == nil || t.workers.jobQueue == nil {
 		return -1
 	}

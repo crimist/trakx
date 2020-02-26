@@ -114,7 +114,7 @@ func (conf *Config) update() error {
 	return nil
 }
 
-// LoadConf attemps to load the config from the disk or environment
+// LoadConf attempts to load the config from the disk or environment
 func LoadConf(logger *zap.Logger) (*Config, error) {
 	conf := new(Config)
 	conf.Logger = logger

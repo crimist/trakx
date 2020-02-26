@@ -52,13 +52,14 @@ func dict(dict ...string) string {
 	return encoded
 }
 
+// Dictionary holds the encoded key value pairs
 type Dictionary struct {
 	buf []byte
 }
 
 var dictionaryPool = sync.Pool{New: func() interface{} { return new(Dictionary) }}
 
-// NewDict creates a new dictionary
+// NewDict returns a new initialized dictionary
 func NewDict() *Dictionary {
 	d := dictionaryPool.Get().(*Dictionary)
 	d.write("d")
@@ -69,8 +70,8 @@ func (d *Dictionary) write(s string) {
 	d.buf = append(d.buf, s...)
 }
 
-func (d *Dictionary) writeBytes(s []byte) {
-	d.buf = append(d.buf, s[:]...)
+func (d *Dictionary) writeBytes(b []byte) {
+	d.buf = append(d.buf, b[:]...)
 }
 
 func (d *Dictionary) reset() {
@@ -82,23 +83,30 @@ func (d *Dictionary) reset() {
 	d.buf = d.buf[:0]
 }
 
+// String writes a string to the dictionary
 func (d *Dictionary) String(key string, v string) {
 	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + strconv.FormatInt(int64(len(v)), 10) + ":" + v)
 }
 
+// StringBytes writes a byte slice to the dictionary
 func (d *Dictionary) StringBytes(key string, v []byte) {
 	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + strconv.FormatInt(int64(len(v)), 10) + ":")
 	d.writeBytes(v)
 }
 
+// Int64 writes an int64 to the dictionary
 func (d *Dictionary) Int64(key string, v int64) {
 	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + "i" + strconv.FormatInt(v, 10) + "e")
 }
 
+// Dictionary writes an encoded dictionary to the dictionary
 func (d *Dictionary) Dictionary(key string, v string) {
 	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + v)
 }
 
+// Any attempts to decode all types and write them to the dictionary
+//
+// This function is far slower than the rest and should be avoided if possible
 func (d *Dictionary) Any(key string, v interface{}) error {
 	// Add the key
 	d.write(str(key))
@@ -144,7 +152,7 @@ func (d *Dictionary) Any(key string, v interface{}) error {
 	return nil
 }
 
-// Get ends the dicts and returns it as a string
+// Get returns the encoded dictionary as a string
 func (d *Dictionary) Get() string {
 	d.write("e")
 	s := *(*string)(unsafe.Pointer(&d.buf))
@@ -153,6 +161,7 @@ func (d *Dictionary) Get() string {
 	return s
 }
 
+// GetBytes returns the encoded dictionary as a byte slice
 func (d *Dictionary) GetBytes() []byte {
 	d.write("e")
 	b := d.buf

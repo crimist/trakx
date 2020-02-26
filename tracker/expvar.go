@@ -55,13 +55,13 @@ func publishExpvar(conf *shared.Config, peerdb storage.Database, httptracker *ht
 
 		// database
 		if udptracker != nil {
-			conns.Set(int64(udptracker.GetConnCount()))
+			conns.Set(int64(udptracker.ConnCount()))
 		}
 		uptime.Set(int64(time.Since(start) / time.Second))
 
 		// performance
 		goroutines.Set(int64(runtime.NumGoroutine()))
-		qlen.Set(int64(httptracker.QueueLen()))
+		qlen.Set(int64(httptracker.QLen()))
 
 		announcesSec.Set(atomic.LoadInt64(&storage.Expvar.Announces))
 		atomic.StoreInt64(&storage.Expvar.Announces, 0)

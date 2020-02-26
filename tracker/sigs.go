@@ -13,6 +13,7 @@ import (
 )
 
 var (
+	// SigStop is the signal which Trakx uses to shutdwn gracefully
 	SigStop     = os.Interrupt
 	exitSuccess = 0
 )
@@ -29,8 +30,8 @@ func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker, httptracker
 			// Exit
 			logger.Info("Got exit signal", zap.Any("sig", sig))
 
-			udptracker.Kill()
-			httptracker.Kill()
+			udptracker.Shutdown()
+			httptracker.Shutdown()
 
 			if err := peerdb.Backup().Save(); err != nil {
 				logger.Info("Failed to backup the database on exit")

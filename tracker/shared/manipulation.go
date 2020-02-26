@@ -1,3 +1,6 @@
+/*
+	All byte slice and string manipulation functions in this package use unsafe to modify the values. Use these functions with caution.
+*/
 package shared
 
 import (
@@ -7,25 +10,25 @@ import (
 
 // StringToBytes converts string to byte slice without escaping to the heap
 func StringToBytes(s string) []byte {
-	sh := reflect.SliceHeader{Data: 0, Len: len(s), Cap: len(s)}
-	sh = *(*reflect.SliceHeader)(unsafe.Pointer(&s))
-	sh.Cap = len(s)
-	return *(*[]byte)(unsafe.Pointer(&sh))
+	hdr := *(*reflect.SliceHeader)(unsafe.Pointer(&s))
+	hdr.Cap = len(s)
+	return *(*[]byte)(unsafe.Pointer(&hdr))
 }
 
-// StringToBytesFast converts string to byte slice without escaping to the heap but isn't guaranteed to set the cap properly
+// StringToBytesFast converts string to byte slice without escaping to the heap but doesn't the cap properly
 func StringToBytesFast(s *string) []byte {
 	return *(*[]byte)(unsafe.Pointer((*reflect.SliceHeader)(unsafe.Pointer(s))))
 }
 
-func SetSliceLen(s *[]byte, l int) int {
-	oldlen := len(*s)
+// SetSliceLen sets a byte slices length value
+func SetSliceLen(s *[]byte, l int) (old int) {
+	old = len(*s)
 	header := (*reflect.SliceHeader)(unsafe.Pointer(s))
 	header.Len = l
-
-	return oldlen
+	return
 }
 
+// SetStringLen sets a strings length value
 func SetStringLen(s *string, l int) int {
 	oldlen := len(*s)
 	header := (*reflect.StringHeader)(unsafe.Pointer(s))

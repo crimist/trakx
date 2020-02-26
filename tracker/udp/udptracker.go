@@ -16,25 +16,26 @@ import (
 const errClosed = "use of closed network connection"
 
 type UDPTracker struct {
-	sock   *net.UDPConn
-	conndb *connectionDatabase
-	conf   *shared.Config
-	logger *zap.Logger
-	peerdb storage.Database
-	kill   chan struct{}
+	sock     *net.UDPConn
+	conndb   *connectionDatabase
+	conf     *shared.Config
+	logger   *zap.Logger
+	peerdb   storage.Database
+	shutdown chan struct{}
 }
 
-// Init creates are runs the UDP tracker
+// Init sets the UDP trackers required values
 func (u *UDPTracker) Init(conf *shared.Config, logger *zap.Logger, peerdb storage.Database) {
 	u.conndb = newConnectionDatabase(conf.Database.Conn.Timeout, conf.Database.Conn.Filename, logger)
 	u.conf = conf
 	u.logger = logger
 	u.peerdb = peerdb
-	u.kill = make(chan struct{})
+	u.shutdown = make(chan struct{})
 
 	go shared.RunOn(time.Duration(conf.Database.Conn.Trim)*time.Second, u.conndb.trim)
 }
 
+// Serve starts the UDP service and begins to serve clients
 func (u *UDPTracker) Serve() {
 	var err error
 
@@ -71,29 +72,30 @@ func (u *UDPTracker) Serve() {
 	}
 
 	select {
-	case _ = <-u.kill:
+	case _ = <-u.shutdown:
 		u.logger.Info("Closing UDP tracker socket")
 		u.sock.Close()
 	}
 }
 
-func (u *UDPTracker) Kill() {
-	if u == nil || u.kill == nil {
+// Shutdown gracefully closes the UDP service by closing the listening connection
+func (u *UDPTracker) Shutdown() {
+	if u == nil || u.shutdown == nil {
 		return
 	}
 	var die struct{}
-	u.kill <- die
+	u.shutdown <- die
 }
 
-// GetConnCount get the number of connections in the connection database
-func (u *UDPTracker) GetConnCount() int {
+// ConnCount get the number of UDP connections in the UDP connection database
+func (u *UDPTracker) ConnCount() int {
 	if u == nil || u.conndb == nil {
 		return -1
 	}
 	return u.conndb.conns()
 }
 
-// WriteConns writes the connection database to file
+// WriteConns writes the connection database to the disk
 func (u *UDPTracker) WriteConns() {
 	if u == nil || u.conndb == nil {
 		return
