@@ -17,6 +17,10 @@ func init() {
 				Name: "pg",
 				Back: &PgBackup{},
 			},
+			{
+				Name: "none",
+				Back: &NoneBackup{},
+			},
 		},
 	})
 }
