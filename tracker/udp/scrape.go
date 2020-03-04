@@ -49,7 +49,7 @@ func (sr *scrapeResp) marshall() ([]byte, error) {
 }
 
 func (u *UDPTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
-	storage.AddExpval(&storage.Expvar.Scrapes, 1)
+	storage.Expvar.Scrapes.Add(1)
 
 	if len(scrape.InfoHash) > 74 {
 		msg := u.newClientError("74 hashes max", scrape.Base.TransactionID)
@@ -86,6 +86,6 @@ func (u *UDPTracker) scrape(scrape *scrape, remote *net.UDPAddr) {
 	}
 
 	u.sock.WriteToUDP(respBytes, remote)
-	storage.AddExpval(&storage.Expvar.ScrapesOK, 1)
+	storage.Expvar.ScrapesOK.Add(1)
 	return
 }

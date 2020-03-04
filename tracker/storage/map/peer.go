@@ -45,11 +45,11 @@ func (db *Memory) Save(peer *storage.Peer, h storage.Hash, id storage.PeerID) {
 		if peerExists {
 			// They completed
 			if oldpeer.Complete == false && peer.Complete == true {
-				storage.AddExpval(&storage.Expvar.Leeches, -1)
-				storage.AddExpval(&storage.Expvar.Seeds, 1)
+				storage.Expvar.Leeches.Add(-1)
+				storage.Expvar.Seeds.Add(1)
 			} else if oldpeer.Complete == true && peer.Complete == false { // They uncompleted?
-				storage.AddExpval(&storage.Expvar.Seeds, -1)
-				storage.AddExpval(&storage.Expvar.Leeches, 1)
+				storage.Expvar.Seeds.Add(-1)
+				storage.Expvar.Leeches.Add(1)
 			}
 			// IP changed
 			if oldpeer.IP != peer.IP {
@@ -64,9 +64,9 @@ func (db *Memory) Save(peer *storage.Peer, h storage.Hash, id storage.PeerID) {
 			storage.Expvar.IPs.Unlock()
 
 			if peer.Complete {
-				storage.AddExpval(&storage.Expvar.Seeds, 1)
+				storage.Expvar.Seeds.Add(1)
 			} else {
-				storage.AddExpval(&storage.Expvar.Leeches, 1)
+				storage.Expvar.Leeches.Add(1)
 			}
 		}
 	}
@@ -89,9 +89,9 @@ func (db *Memory) delete(peer *storage.Peer, pmap *PeerMap, id storage.PeerID) {
 
 	if !fast {
 		if peer.Complete {
-			storage.AddExpval(&storage.Expvar.Seeds, -1)
+			storage.Expvar.Seeds.Add(-1)
 		} else {
-			storage.AddExpval(&storage.Expvar.Leeches, -1)
+			storage.Expvar.Leeches.Add(-1)
 		}
 
 		storage.Expvar.IPs.Lock()
@@ -130,9 +130,9 @@ func (db *Memory) Drop(h storage.Hash, id storage.PeerID) {
 
 	if !fast {
 		if peer.Complete {
-			storage.AddExpval(&storage.Expvar.Seeds, -1)
+			storage.Expvar.Seeds.Add(-1)
 		} else {
-			storage.AddExpval(&storage.Expvar.Leeches, -1)
+			storage.Expvar.Leeches.Add(-1)
 		}
 
 		storage.Expvar.IPs.Lock()

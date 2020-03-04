@@ -24,7 +24,7 @@ type announceParams struct {
 }
 
 func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.PeerIP) {
-	storage.AddExpval(&storage.Expvar.Announces, 1)
+	storage.Expvar.Announces.Add(1)
 
 	// get vars
 	var hash storage.Hash
@@ -48,7 +48,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	// get if stop before continuing
 	if vals.event == "stopped" {
 		t.peerdb.Drop(hash, peerid)
-		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
+		storage.Expvar.AnnouncesOK.Add(1)
 		conn.Write(shared.StringToBytes(httpSuccess))
 		return
 	}
@@ -98,7 +98,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 		d.Any("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
 	}
 
-	storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
+	storage.Expvar.AnnouncesOK.Add(1)
 	conn.Write(shared.StringToBytes(httpSuccess))
 	conn.Write(d.GetBytes())
 }

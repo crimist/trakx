@@ -9,7 +9,9 @@ import (
 )
 
 func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
-	storage.AddExpval(&storage.Expvar.Scrapes, 1)
+	storage.Expvar.Scrapes.Add(1)
+	defer storage.Expvar.ScrapesOK.Add(1)
+
 	root := bencoding.NewDict()
 
 	for _, infohash := range infohashes {
@@ -35,5 +37,4 @@ func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
 	tmp.Dictionary("files", root.Get())
 
 	conn.Write(shared.StringToBytes(httpSuccess + tmp.Get()))
-	storage.AddExpval(&storage.Expvar.ScrapesOK, 1)
 }

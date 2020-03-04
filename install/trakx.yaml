@@ -48,13 +48,15 @@ tracker:
   announcefuzz: 300 # 5 min
 
 database:
-  # Database type options
-  # gomap - in memory database using golang maps
+  # Database type options:
+  #   gomap - In memory database using golang maps
   type: "gomap"
-  # Backup type options for gomap database
-  # file - backup to file
-  # pg - backup to postgres
-  backup: "file"
+  
+  # Backup type options for gomap database:
+  #   file  - Writes databse to file
+  #   pg    - Write databse to postgres
+  #   none  - Doesn't backup database
+  backup: "none"
   
   peer:
     filename: "/usr/local/etc/trakx/peers.db"

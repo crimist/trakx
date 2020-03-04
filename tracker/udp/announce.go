@@ -73,7 +73,7 @@ func (ar *announceResp) marshall() ([]byte, error) {
 }
 
 func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]byte) {
-	storage.AddExpval(&storage.Expvar.Announces, 1)
+	storage.Expvar.Announces.Add(1)
 
 	if announce.Port == 0 {
 		msg := u.newClientError("bad port", announce.TransactionID, cerrFields{"addr": addr, "port": announce.Port})
@@ -87,7 +87,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 
 	if announce.Event == stopped {
 		u.peerdb.Drop(announce.InfoHash, announce.PeerID)
-		storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
+		storage.Expvar.AnnouncesOK.Add(1)
 		// TODO: Should we respond?
 		return
 	}
@@ -122,7 +122,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		return
 	}
 
-	storage.AddExpval(&storage.Expvar.AnnouncesOK, 1)
+	storage.Expvar.AnnouncesOK.Add(1)
 	u.sock.WriteToUDP(respBytes, remote)
 	return
 }

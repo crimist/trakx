@@ -32,7 +32,7 @@ func (cr *connectResp) marshall() ([]byte, error) {
 }
 
 func (u *UDPTracker) connect(connect *connect, remote *net.UDPAddr, addr connAddr) {
-	storage.AddExpval(&storage.Expvar.Connects, 1)
+	storage.Expvar.Connects.Add(1)
 
 	id := rand.Int63()
 	u.conndb.add(id, addr)
@@ -50,7 +50,7 @@ func (u *UDPTracker) connect(connect *connect, remote *net.UDPAddr, addr connAdd
 		return
 	}
 
-	storage.AddExpval(&storage.Expvar.ConnectsOK, 1)
+	storage.Expvar.ConnectsOK.Add(1)
 	u.sock.WriteToUDP(respBytes, remote)
 	return
 }

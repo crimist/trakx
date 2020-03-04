@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"unsafe"
+
+	"github.com/crimist/trakx/tracker/storage"
 )
 
 func str(str string) string {
@@ -57,7 +59,10 @@ type Dictionary struct {
 	buf []byte
 }
 
-var dictionaryPool = sync.Pool{New: func() interface{} { return new(Dictionary) }}
+var dictionaryPool = sync.Pool{New: func() interface{} {
+	storage.Expvar.Pools.Dict.Add(1)
+	return new(Dictionary)
+}}
 
 // NewDict returns a new initialized dictionary
 func NewDict() *Dictionary {

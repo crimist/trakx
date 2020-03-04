@@ -3,8 +3,8 @@
 package storage
 
 import (
+	"expvar"
 	"sync"
-	"sync/atomic"
 )
 
 const (
@@ -12,55 +12,71 @@ const (
 	ipmapAlloc = 200_000
 )
 
+type expvals struct {
+	IPs          expvarIPMap
+	Connects     *expvar.Int
+	ConnectsOK   *expvar.Int
+	Announces    *expvar.Int
+	AnnouncesOK  *expvar.Int
+	Scrapes      *expvar.Int
+	ScrapesOK    *expvar.Int
+	Errors       *expvar.Int
+	ClientErrors *expvar.Int
+	Seeds        *expvar.Int
+	Leeches      *expvar.Int
+	Pools        struct {
+		Dict     *expvar.Int
+		Peerlist *expvar.Int
+		Peer     *expvar.Int
+	}
+}
+
 var (
 	Expvar expvals
 )
 
-func init() { Expvar.IPs.submap = make(map[PeerIP]int16, ipmapAlloc) }
+func init() {
+	Expvar.IPs.submap = make(map[PeerIP]int16, ipmapAlloc)
+	Expvar.Connects = expvar.NewInt("trakx.performance.connects")
+	Expvar.ConnectsOK = expvar.NewInt("trakx.performance.connectsok")
+	Expvar.Announces = expvar.NewInt("trakx.performance.announces")
+	Expvar.AnnouncesOK = expvar.NewInt("trakx.performance.announcesok")
+	Expvar.Scrapes = expvar.NewInt("trakx.performance.scrapes")
+	Expvar.ScrapesOK = expvar.NewInt("trakx.performance.scrapesok")
+	Expvar.Errors = expvar.NewInt("trakx.performance.errors")
+	Expvar.ClientErrors = expvar.NewInt("trakx.performance.clienterrors")
+	Expvar.Seeds = expvar.NewInt("trakx.database.seeds")
+	Expvar.Leeches = expvar.NewInt("trakx.database.leeches")
+	Expvar.Pools.Dict = expvar.NewInt("trakx.pools.dict")
+	Expvar.Pools.Peerlist = expvar.NewInt("trakx.pools.peerlist")
+	Expvar.Pools.Peer = expvar.NewInt("trakx.pools.peer")
+}
 
-type expvarIPmap struct {
+type expvarIPMap struct {
 	sync.Mutex
 	submap map[PeerIP]int16
 }
 
-func (e *expvarIPmap) Len() int {
-	return len(e.submap)
+func (ipmap *expvarIPMap) Len() int {
+	return len(ipmap.submap)
 }
 
-func (e *expvarIPmap) Delete(ip PeerIP) {
-	delete(e.submap, ip)
+func (ipmap *expvarIPMap) Delete(ip PeerIP) {
+	delete(ipmap.submap, ip)
 }
 
-func (e *expvarIPmap) Inc(ip PeerIP) {
-	e.submap[ip]++
+func (ipmap *expvarIPMap) Inc(ip PeerIP) {
+	ipmap.submap[ip]++
 }
 
-func (e *expvarIPmap) Dec(ip PeerIP) {
-	e.submap[ip]--
+func (ipmap *expvarIPMap) Dec(ip PeerIP) {
+	ipmap.submap[ip]--
 }
 
 // Remove decrements the IP and removes it if it's dead
-func (e *expvarIPmap) Remove(ip PeerIP) {
-	e.submap[ip]--
-	if e.submap[ip] < 1 {
-		delete(e.submap, ip)
+func (ipmap *expvarIPMap) Remove(ip PeerIP) {
+	ipmap.submap[ip]--
+	if ipmap.submap[ip] < 1 {
+		delete(ipmap.submap, ip)
 	}
-}
-
-type expvals struct {
-	Connects    int64
-	ConnectsOK  int64
-	Announces   int64
-	AnnouncesOK int64
-	Scrapes     int64
-	ScrapesOK   int64
-	Errs        int64
-	Clienterrs  int64
-	Seeds       int64
-	Leeches     int64
-	IPs         expvarIPmap
-}
-
-func AddExpval(num *int64, inc int64) {
-	atomic.AddInt64(num, inc)
 }

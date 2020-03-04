@@ -126,7 +126,7 @@ func (db *Memory) encodeBinaryUnsafeAutoalloc() (buff []byte, err error) {
 	var pos int
 
 	db.mu.Lock()
-	buff = make([]byte, len(db.hashmap)*24+int(storage.Expvar.Seeds+storage.Expvar.Leeches)*36)
+	buff = make([]byte, len(db.hashmap)*24+int(storage.Expvar.Seeds.Value()+storage.Expvar.Leeches.Value())*36)
 
 	for hash, submap := range db.hashmap {
 		copy(buff[pos:pos+20], hash[:])

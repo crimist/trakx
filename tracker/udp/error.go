@@ -33,7 +33,7 @@ func (e *udperror) marshall() ([]byte, error) {
 type cerrFields map[string]interface{}
 
 func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ...cerrFields) []byte {
-	storage.AddExpval(&storage.Expvar.Clienterrs, 1)
+	storage.Expvar.ClientErrors.Add(1)
 
 	if !u.conf.Trakx.Prod {
 		fields := []zap.Field{zap.String("msg", msg)}
@@ -60,7 +60,7 @@ func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ..
 }
 
 func (u *UDPTracker) newServerError(msg string, err error, TransactionID int32) []byte {
-	storage.AddExpval(&storage.Expvar.Errs, 1)
+	storage.Expvar.Errors.Add(1)
 
 	e := udperror{
 		Action:        3,
