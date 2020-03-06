@@ -73,7 +73,7 @@ func (db *Memory) Save(peer *storage.Peer, h storage.Hash, id storage.PeerID) {
 
 	// put back the old peer if it exists
 	if peerExists {
-		oldpeer.Put()
+		storage.PeerChan.Put(oldpeer)
 	}
 }
 
@@ -99,7 +99,7 @@ func (db *Memory) delete(peer *storage.Peer, pmap *PeerMap, id storage.PeerID) {
 		storage.Expvar.IPs.Unlock()
 	}
 
-	peer.Put()
+	storage.PeerChan.Put(peer)
 }
 
 // Drop deletes peer
@@ -141,5 +141,5 @@ func (db *Memory) Drop(h storage.Hash, id storage.PeerID) {
 	}
 
 	// free the peer back to the pool
-	peer.Put()
+	storage.PeerChan.Put(peer)
 }

@@ -72,7 +72,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 		}
 	}
 
-	peer := storage.GetPeer()
+	peer := storage.PeerChan.Get()
 	peer.Port = uint16(portInt)
 	peer.IP = ip
 	peer.LastSeen = time.Now().Unix()

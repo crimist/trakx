@@ -69,7 +69,7 @@ func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
 			if err = binary.Read(w, binary.LittleEndian, &id); err != nil {
 				return
 			}
-			peer := storage.GetPeer()
+			peer := storage.PeerChan.Get()
 			if err = binary.Read(w, binary.LittleEndian, peer); err != nil {
 				return
 			}
@@ -171,7 +171,7 @@ func (db *Memory) decodeBinaryUnsafe(data []byte) (peers, hashes int, err error)
 
 		for ; count > 0; count-- {
 			var id storage.PeerID
-			peer := storage.GetPeer()
+			peer := storage.PeerChan.Get()
 
 			copy(id[:], data[pos:pos+20])
 			copy((*(*[peersz]byte)(unsafe.Pointer(peer)))[:], data[pos+20:pos+36])

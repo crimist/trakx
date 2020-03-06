@@ -92,7 +92,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		return
 	}
 
-	peer := storage.GetPeer()
+	peer := storage.PeerChan.Get()
 	peer.IP = addr
 	peer.Port = announce.Port
 	peer.LastSeen = time.Now().Unix()
