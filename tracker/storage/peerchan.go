@@ -12,8 +12,7 @@ type peerChan struct {
 }
 
 func (pc *peerChan) create() {
-	// needs to be big enough to prevent us from ever blocking on `put`
-	const chanSize = 1_000_000
+	const chanSize = 1e6
 
 	pc.channel = make(chan *Peer, chanSize)
 }
@@ -36,5 +35,9 @@ func (pc *peerChan) Get() *Peer {
 }
 
 func (pc *peerChan) Put(peer *Peer) {
+	// if the length is approaching the cap drop the peer
+	if len(pc.channel)+500 > cap(pc.channel) {
+		return
+	}
 	pc.channel <- peer
 }
