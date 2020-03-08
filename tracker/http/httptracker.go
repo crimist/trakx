@@ -146,11 +146,12 @@ func (w *workers) work() {
 			j.conn.SetDeadline(now.Add(maxread))
 			j.conn.SetWriteDeadline(now.Add(maxwrite))
 
-			if _, err := j.conn.Read(data); err != nil {
+			size, err := j.conn.Read(data)
+			if err != nil {
 				break
 			}
 
-			p, parseCode, err := parse(data)
+			p, parseCode, err := parse(data, size)
 			if parseCode == parseInvalid || p.Method != "GET" { // invalid request
 				j.writeStatus("400")
 				break

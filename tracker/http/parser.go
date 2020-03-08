@@ -29,14 +29,14 @@ type (
 )
 
 // Custom HTTP parser - only supports GET request and up to `maxparams` params but uses no heap memory
-func parse(data []byte) (parsed, parsedCode, error) {
+func parse(data []byte, size int) (parsed, parsedCode, error) {
 	// uTorrent sometimes encodes scrape req in b64
 	if bytes.HasPrefix(data, []byte("R0VU")) { // R0VUIC9zY3JhcGU/aW5mb19oYXNoPS = GET /scrape?info_hash=
-		decoded, err := base64.StdEncoding.Decode(data, data)
+		decoded, err := base64.StdEncoding.Decode(data, data[:size])
 		if err != nil {
 			return parsed{}, parseOk, errors.New("Failed to decode base64 encoded payload")
 		}
-		data = data[:decoded]
+		data = data[:decoded] // this only modifies the local copy since `len int` vs `data uintptr`
 	}
 
 	p := parsed{
