@@ -157,6 +157,7 @@ func (w *workers) work() {
 				break
 			}
 			if err != nil { // error in parse
+				storage.Expvar.Errors.Add(1)
 				w.tracker.logger.Error("parse()", zap.Error(err), zap.Any("data", data))
 				j.writeStatus("500")
 				break
