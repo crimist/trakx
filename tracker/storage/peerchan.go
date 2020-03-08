@@ -12,8 +12,9 @@ type peerChan struct {
 }
 
 func (pc *peerChan) create() {
-	// needs to be big enough to prevent us from ever blocking on `put`
-	const chanSize = 1_000_000
+	// worth the 8MB cost as it will stabilize @ the maximum number of peers
+	// once the tracker has experiance a 24hr cycle
+	const chanSize = 1e6
 
 	pc.channel = make(chan *Peer, chanSize)
 }
@@ -36,5 +37,10 @@ func (pc *peerChan) Get() *Peer {
 }
 
 func (pc *peerChan) Put(peer *Peer) {
+	// if the channel is full than drop the peer
+	if len(pc.channel) == cap(pc.channel) {
+		return
+	}
+
 	pc.channel <- peer
 }
