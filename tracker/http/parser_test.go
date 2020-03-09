@@ -9,7 +9,7 @@ import (
 
 func TestParse(t *testing.T) {
 	req := []byte("GET /test?param=1&param2=two&test=test%3Ftest HTTP/1.1 bla bla")
-	p, _, err := parse(req)
+	p, _, err := parse(req, len(req))
 
 	if err != nil {
 		t.Fatalf("Error when parsing: %v", err)
@@ -34,7 +34,8 @@ func TestParse(t *testing.T) {
 		t.Fatalf("Incorrect method")
 	}
 
-	p, _, err = parse([]byte("GET /url?key=value HTTP/1.1"))
+	req = []byte("GET /url?key=value HTTP/1.1")
+	p, _, err = parse(req, len(req))
 	if err != nil {
 		t.Fatalf("Error when parsing: %v", err)
 	}
@@ -56,7 +57,7 @@ func BenchmarkParse(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		p, _, _ := parse(req)
+		p, _, _ := parse(req, len(req))
 		_ = p
 	}
 }
@@ -77,7 +78,7 @@ func BenchmarkParseParams(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		p, _, _ := parse(req)
+		p, _, _ := parse(req, len(req))
 		_ = p
 	}
 }
@@ -88,7 +89,7 @@ func BenchmarkParseParamsBase64(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		p, _, _ := parse(req)
+		p, _, _ := parse(req, len(req))
 		_ = p
 	}
 }

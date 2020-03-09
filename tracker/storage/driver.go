@@ -1,13 +1,9 @@
 package storage
 
-import "sync"
-
 type DatabaseDriver struct {
 	db      Database
 	backups map[string]Backup
 }
-
-var drivers map[string]DatabaseDriver
 
 type BackupInfo struct {
 	Name string
@@ -20,13 +16,12 @@ type DatabaseInfo struct {
 	Backups []BackupInfo
 }
 
-var initDrivers sync.Once
+var drivers map[string]DatabaseDriver
 
+func init() { drivers = make(map[string]DatabaseDriver) }
+
+// Register adds the given `databaseinfo` into the map of available drivers
 func Register(dbnfo DatabaseInfo) {
-	initDrivers.Do(func() {
-		drivers = make(map[string]DatabaseDriver)
-	})
-
 	drivers[dbnfo.Name] = DatabaseDriver{
 		db:      dbnfo.DB,
 		backups: make(map[string]Backup),

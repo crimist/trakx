@@ -25,10 +25,6 @@ tracker:
     # TCP timeouts
     readtimeout: 3
     writetimeout: 10
-    # Maximum size of connection queue
-    qsize: 100000
-    # Number of TCP accept() goroutines
-    accepters: 5
     # Number of worker goroutines that the connection queue
     threads: 2048
   udp:

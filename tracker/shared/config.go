@@ -38,8 +38,6 @@ type Config struct {
 			Port         int
 			ReadTimeout  int
 			WriteTimeout int
-			Qsize        int
-			Accepters    int
 			Threads      int
 		}
 		UDP struct {

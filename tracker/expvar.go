@@ -11,9 +11,7 @@ import (
 	"github.com/crimist/trakx/tracker/udp"
 )
 
-var start time.Time
-
-func init() { start = time.Now() }
+var start = time.Now()
 
 func publishExpvar(conf *shared.Config, peerdb storage.Database, httptracker *http.HTTPTracker, udptracker *udp.UDPTracker) {
 
@@ -25,7 +23,6 @@ func publishExpvar(conf *shared.Config, peerdb storage.Database, httptracker *ht
 	// stats
 	connections := expvar.NewInt("trakx.stats.udpconnections")
 	goroutines := expvar.NewInt("trakx.stats.goroutines")
-	qlen := expvar.NewInt("trakx.stats.httpqlen")
 	uptime := expvar.NewInt("trakx.stats.uptime")
 
 	shared.RunOn(time.Duration(conf.Trakx.Expvar.Every)*time.Second, func() {
@@ -41,7 +38,6 @@ func publishExpvar(conf *shared.Config, peerdb storage.Database, httptracker *ht
 		}
 		uptime.Set(int64(time.Since(start) / time.Second))
 		goroutines.Set(int64(runtime.NumGoroutine()))
-		qlen.Set(int64(httptracker.QLen()))
 
 		// reset per second values
 		storage.Expvar.Announces.Set(0)

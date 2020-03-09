@@ -14,7 +14,7 @@ func dbWithHashesAndPeers(hashes, peers int) *Memory {
 	var db Memory
 	db.conf = new(shared.Config)
 
-	storage.Expvar.Seeds = int64(hashes * peers)
+	storage.Expvar.Seeds.Set(int64(hashes * peers))
 
 	db.make()
 	db.Expvar()
