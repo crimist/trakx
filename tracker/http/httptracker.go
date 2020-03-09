@@ -124,19 +124,23 @@ func (w *workers) work(ln net.Listener) {
 
 		size, err := conn.Read(data)
 		if err != nil {
-			break
+			conn.Close()
+			continue
 		}
 
 		p, parseCode, err := parse(data, size)
 		if parseCode == parseInvalid || p.Method != "GET" { // invalid request
 			writeStatus(conn, "400")
-			break
+			conn.Close()
+			continue
 		}
 		if err != nil { // error in parse
 			storage.Expvar.Errors.Add(1)
 			w.tracker.logger.Error("parse()", zap.Error(err), zap.Any("data", data))
 			writeStatus(conn, "500")
-			break
+
+			conn.Close()
+			continue
 		}
 
 		switch p.Path {
@@ -233,5 +237,4 @@ func (w *workers) work(ln net.Listener) {
 
 		conn.Close()
 	}
-
 }
