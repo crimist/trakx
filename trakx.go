@@ -14,18 +14,18 @@ import (
 func printHelp() {
 	help := "Commands:\n"
 	help += fmt.Sprintf("  %-12s Checks if Trakx is running\n", "status")
-	help += fmt.Sprintf("  %-12s Watches if Trakx stops running and reruns it (doesn't returns)\n", "watcher")
+	help += fmt.Sprintf("  %-12s Watches if Trakx stops and starts it again if it does (doesn't return)\n", "watch")
 	help += fmt.Sprintf("  %-12s Runs Trakx (doesn't return)\n", "run")
 	help += fmt.Sprintf("  %-12s Starts Trakx as a service\n", "start")
 	help += fmt.Sprintf("  %-12s Stops Trakx service\n", "stop")
 	help += fmt.Sprintf("  %-12s Restarts Trakx service\n", "restart")
-	help += fmt.Sprintf("  %-12s Wipes trakx pid file\n", "wipe")
+	help += fmt.Sprintf("  %-12s Wipes trakx pid file\n", "clean")
 
 	help += "Usage:\n"
 	help += fmt.Sprintf("  %s <command>\n", os.Args[0])
 
 	help += "Example:\n"
-	help += fmt.Sprintf("  %s run\n", os.Args[0])
+	help += fmt.Sprintf("  %s status # \"Trakx is not running\"\n", os.Args[0])
 
 	fmt.Print(help)
 }
@@ -45,7 +45,7 @@ func main() {
 		} else {
 			fmt.Println("Trakx is not running")
 		}
-	case "watcher":
+	case "watch":
 		for {
 			if !c.Running() {
 				if err := c.Start(); err != nil {
@@ -54,7 +54,7 @@ func main() {
 				}
 
 				// Wait to let it set up
-				time.Sleep(10 * time.Second)
+				time.Sleep(5 * time.Second)
 			}
 			time.Sleep(3 * time.Second)
 		}
@@ -81,13 +81,13 @@ func main() {
 			os.Exit(-1)
 		}
 		fmt.Println("rebooted!")
-	case "wipe":
-		fmt.Println("wiping...")
+	case "clean":
+		fmt.Println("cleaning pid file...")
 		if err := c.Wipe(); err != nil {
 			fmt.Fprintf(os.Stderr, err.Error()+"\n")
 			os.Exit(-1)
 		}
-		fmt.Println("wiped...")
+		fmt.Println("cleaned!")
 	default:
 		fmt.Fprintf(os.Stderr, "Invalid argument: \"%s\"\n\n", os.Args[1])
 		printHelp()
