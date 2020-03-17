@@ -29,7 +29,6 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	// get vars
 	var hash storage.Hash
 	var peerid storage.PeerID
-	numwant := int(t.conf.Tracker.Numwant.Default)
 
 	// hash
 	if len(vals.hash) != 20 {
@@ -61,13 +60,17 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	}
 
 	// numwant
+	numwant := int(t.conf.Tracker.Numwant.Default)
+
 	if vals.numwant != "" {
 		numwantInt, err := strconv.Atoi(vals.numwant)
 		if err != nil || numwantInt < 0 {
 			t.clientError(conn, "Invalid numwant")
 			return
 		}
-		if numwantInt < int(t.conf.Tracker.Numwant.Limit) || numwantInt > 0 {
+
+		// if numwant is within our limit than listen to the client
+		if numwantInt <= int(t.conf.Tracker.Numwant.Limit) {
 			numwant = numwantInt
 		}
 	}

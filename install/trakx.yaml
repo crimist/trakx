@@ -37,7 +37,7 @@ tracker:
     # Default maximum number of peers if none specified
     default: 75
     # Maximum number of requested peers, if exceeded the request is set to the default
-    limit: 300
+    limit: 200
   # Announce interval for clients
   announce: 1800 # 30 min
   # Announce fuzz will add between this and 0 to the announce to smooth out announce spikes
