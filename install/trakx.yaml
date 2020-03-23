@@ -14,7 +14,7 @@ trakx:
     # Port to serve pprof over, 0 to disable
     port: 1338
   # Essentially max socket limit, use 0 for default
-  ulimit: 99999
+  ulimit: 0
 
 tracker:
   http:
