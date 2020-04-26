@@ -14,6 +14,7 @@ const (
 
 type expvals struct {
 	IPs          expvarIPMap
+	Hits         *expvar.Int
 	Connects     *expvar.Int
 	ConnectsOK   *expvar.Int
 	Announces    *expvar.Int
@@ -37,6 +38,7 @@ var (
 
 func init() {
 	Expvar.IPs.submap = make(map[PeerIP]int16, ipmapAlloc)
+	Expvar.Hits = expvar.NewInt("trakx.performance.hits")
 	Expvar.Connects = expvar.NewInt("trakx.performance.connects")
 	Expvar.ConnectsOK = expvar.NewInt("trakx.performance.connectsok")
 	Expvar.Announces = expvar.NewInt("trakx.performance.announces")

@@ -87,8 +87,24 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 
 	if announce.Event == stopped {
 		u.peerdb.Drop(announce.InfoHash, announce.PeerID)
+
+		resp := announceResp{
+			Action:        1,
+			TransactionID: announce.TransactionID,
+			Interval:      u.conf.Tracker.Announce + rand.Int31n(u.conf.Tracker.AnnounceFuzz),
+			Leechers:      0,
+			Seeders:       0,
+			Peers:         []byte{},
+		}
+		respBytes, err := resp.marshall()
+		if err != nil {
+			msg := u.newServerError("AnnounceResp.Marshall()", err, announce.TransactionID)
+			u.sock.WriteToUDP(msg, remote)
+			return
+		}
+
 		storage.Expvar.AnnouncesOK.Add(1)
-		// TODO: Should we respond?
+		u.sock.WriteToUDP(respBytes, remote)
 		return
 	}
 

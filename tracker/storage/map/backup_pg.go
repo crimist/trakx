@@ -62,11 +62,18 @@ func (bck *PgBackup) Init(db storage.Database) error {
 
 func (bck PgBackup) Save() error {
 	bck.db.conf.Logger.Info("Saving database to pg")
-
+	var data []byte
+	var err error
 	start := time.Now()
-	data, err := bck.db.encodeBinaryUnsafeAutoalloc()
+
+	if fast {
+		data, err = bck.db.encodeBinaryUnsafe()
+	} else {
+		data, err = bck.db.encodeBinaryUnsafeAutoalloc()
+	}
+
 	if err != nil {
-		return errors.Wrap(err, "failed to encode binary (w/ encodeBinaryUnsafeAutoalloc)")
+		return errors.Wrap(err, "failed to encode binary")
 	}
 	bck.db.conf.Logger.Info("Encoded binary", zap.Duration("duration", time.Now().Sub(start)))
 	start = time.Now()

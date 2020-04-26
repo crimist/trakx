@@ -127,6 +127,7 @@ func (w *workers) work(ln net.Listener) {
 			conn.Close()
 			continue
 		}
+		storage.Expvar.Hits.Add(1)
 
 		p, parseCode, err := parse(data, size)
 		if parseCode == parseInvalid || p.Method != "GET" { // invalid request

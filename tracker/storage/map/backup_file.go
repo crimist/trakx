@@ -63,9 +63,17 @@ func (db *Memory) loadFile(filename string) (int, int, error) {
 }
 
 func (bck *FileBackup) writeFile() (int, error) {
-	encoded, err := bck.db.encodeBinaryUnsafeAutoalloc()
+	var encoded []byte
+	var err error
+
+	if fast {
+		encoded, err = bck.db.encodeBinaryUnsafe()
+	} else {
+		encoded, err = bck.db.encodeBinaryUnsafeAutoalloc()
+	}
+
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to encode data (encodeBinaryUnsafeAutoalloc)")
+		return 0, errors.Wrap(err, "failed to encode data")
 	}
 
 	if err := ioutil.WriteFile(bck.db.conf.Database.Peer.Filename, encoded, 0644); err != nil {

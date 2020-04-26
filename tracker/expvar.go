@@ -13,8 +13,8 @@ import (
 
 var start = time.Now()
 
+// TODO: Adhere to `fast` tag
 func publishExpvar(conf *shared.Config, peerdb storage.Database, httptracker *http.HTTPTracker, udptracker *udp.UDPTracker) {
-
 	// database
 	ips := expvar.NewInt("trakx.database.ips")
 	hashes := expvar.NewInt("trakx.database.hashes")
@@ -40,6 +40,7 @@ func publishExpvar(conf *shared.Config, peerdb storage.Database, httptracker *ht
 		goroutines.Set(int64(runtime.NumGoroutine()))
 
 		// reset per second values
+		storage.Expvar.Hits.Set(0)
 		storage.Expvar.Announces.Set(0)
 		storage.Expvar.AnnouncesOK.Set(0)
 		storage.Expvar.Scrapes.Set(0)

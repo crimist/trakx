@@ -106,6 +106,7 @@ func (u *UDPTracker) WriteConns() {
 }
 
 func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
+	storage.Expvar.Hits.Add(1)
 	var cAddr connAddr
 	ip := remote.IP.To4()
 

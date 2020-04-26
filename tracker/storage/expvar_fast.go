@@ -3,40 +3,48 @@
 package storage
 
 import (
-	"sync/atomic"
+	"sync"
 )
 
 const fast = true
+
+type fakeExpvarInt struct{}
+
+func (e fakeExpvarInt) Set(n int64)  {}
+func (e fakeExpvarInt) Add(n int64)  {}
+func (e fakeExpvarInt) Value() int64 { return -1 }
+
+type expvals struct {
+	IPs          expvarIPMap
+	Hits         fakeExpvarInt
+	Connects     fakeExpvarInt
+	ConnectsOK   fakeExpvarInt
+	Announces    fakeExpvarInt
+	AnnouncesOK  fakeExpvarInt
+	Scrapes      fakeExpvarInt
+	ScrapesOK    fakeExpvarInt
+	Errors       fakeExpvarInt
+	ClientErrors fakeExpvarInt
+	Seeds        fakeExpvarInt
+	Leeches      fakeExpvarInt
+	Pools        struct {
+		Dict     fakeExpvarInt
+		Peerlist fakeExpvarInt
+		Peer     fakeExpvarInt
+	}
+}
 
 var (
 	Expvar expvals
 )
 
-type expvarIPmap struct {
+type expvarIPMap struct {
+	sync.Mutex
 	submap map[PeerIP]int16
 }
 
-func (e *expvarIPmap) Lock()            {}
-func (e *expvarIPmap) Unlock()          {}
-func (e *expvarIPmap) Delete(ip PeerIP) {}
-func (e *expvarIPmap) Inc(ip PeerIP)    {}
-func (e *expvarIPmap) Dec(ip PeerIP)    {}
-func (e *expvarIPmap) Remove(ip PeerIP) {}
-
-type expvals struct {
-	Connects    int64
-	ConnectsOK  int64
-	Announces   int64
-	AnnouncesOK int64
-	Scrapes     int64
-	ScrapesOK   int64
-	Errs        int64
-	Clienterrs  int64
-	Seeds       int64
-	Leeches     int64
-	IPs         expvarIPmap
-}
-
-func AddExpval(num *int64, inc int64) {
-	atomic.AddInt64(num, inc)
-}
+func (ipmap *expvarIPMap) Len() int         { return -1 }
+func (ipmap *expvarIPMap) Delete(ip PeerIP) {}
+func (ipmap *expvarIPMap) Inc(ip PeerIP)    {}
+func (ipmap *expvarIPMap) Dec(ip PeerIP)    {}
+func (ipmap *expvarIPMap) Remove(ip PeerIP) {}
