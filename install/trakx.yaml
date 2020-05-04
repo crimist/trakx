@@ -2,45 +2,44 @@
 # Trakx YAML config
 #   All time is measured in seconds
 # All values in this can be overridden with env vars
-#   For example: `export TRAKX_TRAKX_PROD=FALSE`
+#   For example: `export TRAKX_TRACKER_HTTP_ENABLED=FALSE`
 
 trakx:
   prod: true
   index: "/usr/local/etc/trakx/trakx.html"
   expvar:
-    # How often to update expvar vals
+    # how often to update expvar vals
     every: 1
   pprof:
-    # Port to serve pprof over, 0 to disable
+    # port to serve pprof over, 0 to disable
     port: 1338
-  # Essentially max socket limit, use 0 for default
+  # `ulimit -n` - essentially max socket limit, 0 for default
   ulimit: 0
 
 tracker:
   http:
-    # If disabled the tracker will still run and index and DMCA page
+    # if disabled the tracker will still run an http server on the port that serves the index and DMCA page
     enabled: true
-    # HTTP port to serve, also serves index ect.
     port: 1337
-    # TCP timeouts
+    # tcp timeouts for http tracker
     readtimeout: 3
     writetimeout: 10
-    # Number of worker goroutines that the connection queue
+    # num of goroutines for http tracker
     threads: 2048
   udp:
     enabled: true
     port: 1337
-    # Validate connection IDS, if disabled tracker can be abused as UDP amplification
+    # validate connection IDs - if disabled tracker can be abused for UDP amplification
     checkconnid: true
     threads: 1024
   numwant:
-    # Default maximum number of peers if none specified
+    # default number of peers in response if none specified
     default: 75
-    # Maximum number of requested peers, if exceeded the request is set to the default
+    # max number of peers in response
     limit: 200
-  # Announce interval for clients
+  # announce interval for clients
   announce: 1800 # 30 min
-  # Announce fuzz will add between this and 0 to the announce to smooth out announce spikes
+  # 0->announcefuzz seconds will randomly be added to the announce interval every request to smooth out request frequency
   announcefuzz: 300 # 5 min
 
 database:

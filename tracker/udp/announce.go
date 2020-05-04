@@ -81,8 +81,10 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		return
 	}
 
-	if announce.NumWant < 1 || announce.NumWant > u.conf.Tracker.Numwant.Limit {
+	if announce.NumWant < 1 {
 		announce.NumWant = u.conf.Tracker.Numwant.Default
+	} else if announce.NumWant > u.conf.Tracker.Numwant.Limit {
+		announce.NumWant = u.conf.Tracker.Numwant.Limit
 	}
 
 	if announce.Event == stopped {

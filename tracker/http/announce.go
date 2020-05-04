@@ -72,6 +72,8 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 		// if numwant is within our limit than listen to the client
 		if numwantInt <= int(t.conf.Tracker.Numwant.Limit) {
 			numwant = numwantInt
+		} else {
+			numwant = int(t.conf.Tracker.Numwant.Limit)
 		}
 	}
 
