@@ -41,7 +41,7 @@ func Run() {
 
 	conf, err = shared.LoadConf(logger)
 	if err != nil {
-		logger.Warn("Failed to load a configuration", zap.Any("config", conf), zap.Error(errors.WithMessage(err, "Failed to load viper cofig")))
+		logger.Warn("Failed to load a configuration", zap.Any("config", conf), zap.Error(errors.WithMessage(err, "Failed to load config")))
 	}
 	if !conf.Loaded() {
 		logger.Fatal("Config failed to load critical values")

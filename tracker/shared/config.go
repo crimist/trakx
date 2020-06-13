@@ -2,12 +2,12 @@ package shared
 
 import (
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 
-	"github.com/fsnotify/fsnotify"
+	"github.com/kkyr/fig"
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
@@ -117,43 +117,24 @@ func LoadConf(logger *zap.Logger) (*Config, error) {
 	conf := new(Config)
 	conf.Logger = logger
 
-	// Load from file
-	viper.SetConfigType("yaml")
-	viper.SetConfigName("trakx")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("./install/")
-	viper.AddConfigPath("/app/install/")
-	viper.AddConfigPath("/usr/local/etc/trakx/")
-	err := viper.ReadInConfig()
+	err := fig.Load(conf,
+		fig.File("trakx.yaml"),
+		fig.UseEnv("trakx"),
+		fig.Dirs(".", "./install", "/app/install", "/usr/local/etc/trakx"),
+	)
 	if err != nil {
-		return nil, errors.Wrap(err, "viper failed to read config from disk")
+		return nil, errors.Wrap(err, "fig failed to load a config")
 	}
 
-	// Load all env vars and override file - https://github.com/spf13/viper/issues/188#issuecomment-413368673
-	viper.AutomaticEnv()
-	viper.SetEnvPrefix("trakx")
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	if err := viper.Unmarshal(conf); err != nil {
-		return nil, errors.Wrap(err, "viper failed to unmarshal")
-	}
-
-	// If $PORT var set override everything for appengines (heroku)
-	viper.BindEnv("app_port", "PORT")
-	if appenginePort := viper.GetInt("app_port"); appenginePort != 0 {
-		conf.Tracker.HTTP.Port = appenginePort
-	}
-
-	// Add watcher
-	viper.OnConfigChange(func(e fsnotify.Event) {
-		conf.Logger.Info("Config changed", zap.String("name", e.Name), zap.Any("op", e.Op))
-
-		if err := viper.Unmarshal(conf); err != nil {
-			conf.Logger.Info("Viper failed to unmarshal new config", zap.Error(err))
+	// If $PORT var set override port for appengines (like heroku)
+	if appenginePort := os.Getenv("PORT"); appenginePort != "" {
+		appPort, err := strconv.Atoi(appenginePort)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse $PORT env variable as int")
 		}
 
-		conf.update()
-	})
-	viper.WatchConfig()
+		conf.Tracker.HTTP.Port = appPort
+	}
 
 	return conf, conf.update()
 }
