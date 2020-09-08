@@ -26,7 +26,7 @@ type UDPTracker struct {
 
 // Init sets the UDP trackers required values
 func (u *UDPTracker) Init(conf *shared.Config, logger *zap.Logger, peerdb storage.Database) {
-	u.conndb = newConnectionDatabase(conf.Database.Conn.Timeout, conf.Database.Conn.Filename, logger)
+	u.conndb = newConnectionDatabase(conf.Database.Conn.Timeout, logger)
 	u.conf = conf
 	u.logger = logger
 	u.peerdb = peerdb

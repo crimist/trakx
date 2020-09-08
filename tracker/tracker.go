@@ -39,6 +39,8 @@ func Run() {
 
 	logger.Info("Starting trakx...")
 
+	shared.LoadEmbed(logger)
+
 	conf, err = shared.LoadConf(logger)
 	if err != nil {
 		logger.Warn("Failed to load a configuration", zap.Any("config", conf), zap.Error(errors.WithMessage(err, "Failed to load config")))
@@ -60,14 +62,11 @@ func Run() {
 		initpprof()
 	}
 
-	// routes
-	initRoutes()
-
 	if conf.Tracker.HTTP.Enabled {
 		logger.Info("http tracker enabled", zap.Int("port", conf.Tracker.HTTP.Port))
 
 		httptracker.Init(conf, logger, peerdb)
-		go httptracker.Serve(string(indexData)) // indexData in the routes.go file
+		go httptracker.Serve()
 	} else {
 		d := bencoding.NewDict()
 		d.Int64("interval", 432000) // 5 days

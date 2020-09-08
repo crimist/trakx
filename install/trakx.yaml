@@ -6,7 +6,6 @@
 
 trakx:
   prod: true
-  index: "/usr/local/etc/trakx/trakx.html"
   expvar:
     # how often to update expvar vals
     every: 1
@@ -54,7 +53,6 @@ database:
   backup: "none"
   
   peer:
-    filename: "/usr/local/etc/trakx/peers.db"
     # How often to check and remove expired peers
     trim: 600 # 10 min
     # How often to backup database in case of crash, 0 to disable
@@ -62,7 +60,6 @@ database:
     # Maximum peer age before removal
     timeout: 2400 # 40 min
   conn:
-    filename: "/usr/local/etc/trakx/conn.db"
     # How often to check and remove expired UDP connection IDs
     trim: 600 # 10 min
     # Maximum UDP connection ID age before removal

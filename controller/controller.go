@@ -16,10 +16,19 @@ import (
 )
 
 const (
-	perms   = 0740
-	pidFile = shared.TrakxRoot + "trakx.pid"
-	logFile = shared.TrakxRoot + "trakx.log"
+	perms = 0644
 )
+
+var (
+	pidFile = "~/.cache/trakx/trakx.pid"
+	logFile = "~/.cache/trakx/trakx.log"
+)
+
+func init() {
+	home, _ := os.UserHomeDir() // todo: handle err
+	pidFile = strings.ReplaceAll(pidFile, "~", home)
+	logFile = strings.ReplaceAll(logFile, "~", home)
+}
 
 type controller struct {
 	permissions uint

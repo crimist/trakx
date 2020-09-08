@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/crimist/trakx/tracker/shared"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -25,20 +26,21 @@ func (bck *FileBackup) Init(db storage.Database) error {
 func (bck *FileBackup) Load() error {
 	bck.db.conf.Logger.Info("Loading database from file")
 	start := time.Now()
+	path := shared.CacheDir + "peers.db"
 
-	_, err := os.Stat(bck.db.conf.Database.Peer.Filename)
+	_, err := os.Stat(path)
 	if err != nil {
 		// If the file doesn't exist than create an empty database and return success
 		if os.IsNotExist(err) {
 			bck.db.make()
-			bck.db.conf.Logger.Info("Database file not found, created empty database", zap.String("filepath", bck.db.conf.Database.Peer.Filename))
+			bck.db.conf.Logger.Info("Database file not found, created empty database", zap.String("filepath", path))
 			return nil
 		}
 
 		return errors.Wrap(err, "failed to stat file")
 	}
 
-	peers, hashes, err := bck.db.loadFile(bck.db.conf.Database.Peer.Filename)
+	peers, hashes, err := bck.db.loadFile(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to load file")
 	}
@@ -76,7 +78,7 @@ func (bck *FileBackup) writeFile() (int, error) {
 		return 0, errors.Wrap(err, "failed to encode data")
 	}
 
-	if err := ioutil.WriteFile(bck.db.conf.Database.Peer.Filename, encoded, 0644); err != nil {
+	if err := ioutil.WriteFile(shared.CacheDir+"peers.db", encoded, 0644); err != nil {
 		return 0, errors.Wrap(err, "failed to write file to disk")
 	}
 

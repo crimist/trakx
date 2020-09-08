@@ -6,6 +6,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/crimist/trakx/tracker/shared"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -25,16 +26,14 @@ type connectionDatabase struct {
 	mu sync.RWMutex
 	db map[connAddr]connID
 
-	timeout  int64
-	filename string
-	logger   *zap.Logger
+	timeout int64
+	logger  *zap.Logger
 }
 
-func newConnectionDatabase(timeout int64, filename string, logger *zap.Logger) *connectionDatabase {
+func newConnectionDatabase(timeout int64, logger *zap.Logger) *connectionDatabase {
 	db := connectionDatabase{
-		timeout:  timeout,
-		filename: filename,
-		logger:   logger,
+		timeout: timeout,
+		logger:  logger,
 	}
 
 	if err := db.load(); err != nil {
@@ -114,7 +113,7 @@ func (db *connectionDatabase) write() (err error) {
 	}
 	db.mu.Unlock()
 
-	if err := ioutil.WriteFile(db.filename, buff, 0644); err != nil {
+	if err := ioutil.WriteFile(shared.CacheDir+"conn.db", buff, 0644); err != nil {
 		return errors.Wrap(err, "Failed to write connection database to file")
 	}
 
@@ -133,7 +132,7 @@ func (db *connectionDatabase) load() (err error) {
 		}
 	}()
 
-	data, err := ioutil.ReadFile(db.filename)
+	data, err := ioutil.ReadFile(shared.CacheDir + "conn.db")
 	if err != nil {
 		return errors.Wrap(err, "failed to read connection database file from disk")
 	}

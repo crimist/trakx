@@ -3,7 +3,6 @@ package shared
 import (
 	"os"
 	"strconv"
-	"strings"
 	"syscall"
 
 	"github.com/kkyr/fig"
@@ -12,8 +11,6 @@ import (
 )
 
 const (
-	// TrakxRoot is the root diretory where all files will be stored
-	TrakxRoot    = "/usr/local/etc/trakx/"
 	nofileIgnore = 0
 )
 
@@ -21,7 +18,6 @@ type Config struct {
 	Logger *zap.Logger
 	Trakx  struct {
 		Prod   bool
-		Index  string
 		Expvar struct {
 			Every int
 		}
@@ -55,15 +51,13 @@ type Config struct {
 		Type   string
 		Backup string
 		Peer   struct {
-			Filename string
-			Trim     int
-			Write    int
-			Timeout  int64
+			Trim    int
+			Write   int
+			Timeout int64
 		}
 		Conn struct {
-			Filename string
-			Trim     int
-			Timeout  int64
+			Trim    int
+			Timeout int64
 		}
 	}
 }
@@ -75,23 +69,13 @@ func (conf *Config) Loaded() bool {
 }
 
 func (conf *Config) update() error {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return errors.Wrap(err, "failed to find home directory")
-	}
-
-	// update tild (~) with the actual home directory
-	conf.Database.Conn.Filename = strings.ReplaceAll(conf.Database.Conn.Filename, "~", home)
-	conf.Database.Peer.Filename = strings.ReplaceAll(conf.Database.Peer.Filename, "~", home)
-	conf.Trakx.Index = strings.ReplaceAll(conf.Trakx.Index, "~", home)
-
 	// limits
 	if conf.Trakx.Ulimit == nofileIgnore {
 		return nil
 	}
 
 	var rLimit syscall.Rlimit
-	err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
 		return errors.Wrap(err, "failed to get the NOFILE limit")
 	}
@@ -117,10 +101,15 @@ func LoadConf(logger *zap.Logger) (*Config, error) {
 	conf := new(Config)
 	conf.Logger = logger
 
-	err := fig.Load(conf,
+	home, err := os.UserHomeDir()
+	if err != nil {
+		logger.Error("failed to get user home dir", zap.Error(err))
+	}
+
+	err = fig.Load(conf,
 		fig.File("trakx.yaml"),
 		fig.UseEnv("trakx"),
-		fig.Dirs(".", "./install", "/app/install", "/usr/local/etc/trakx"),
+		fig.Dirs(".", home+"/.config/trakx", "./install", "/app/install"),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "fig failed to load a config")

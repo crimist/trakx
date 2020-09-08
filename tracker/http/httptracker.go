@@ -15,15 +15,8 @@ import (
 )
 
 const (
-	httpRequestMax = 2100 // slight buffer over 2000
-	errClosed      = "use of closed network connection"
-
-	// DMCAData holds the HTML to be sent for the DMCA page
-	DMCAData = `
-	<p>dmca@nibba.trade</p>
-	<iframe width="560" height="315" src="https://www.youtube.com/embed/BwSts2s4ba4?controls=0&showinfo=0&autoplay=1" frameborder="0" allowfullscreen></iframe>
-	<p>Trakx does not have the capability to block hashes nor does it store or distribute any content.</p>
-	`
+	httpRequestMax = 2100                               // slight buffer over 2000
+	errClosed      = "use of closed network connection" // go 1.16: "net.ErrClosed" (https://github.com/golang/go/issues/4373)
 )
 
 var httpSuccess = "HTTP/1.1 200\r\n\r\n"
@@ -45,10 +38,9 @@ func (t *HTTPTracker) Init(conf *shared.Config, logger *zap.Logger, peerdb stora
 }
 
 // Serve starts the HTTP service and begins to serve clients
-func (t *HTTPTracker) Serve(index string) {
+func (t *HTTPTracker) Serve() {
 	t.workers = workers{
 		tracker: t,
-		index:   index,
 	}
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", t.conf.Tracker.HTTP.Port))
@@ -82,13 +74,16 @@ func writeData(c net.Conn, data string) {
 	c.Write(shared.StringToBytes("HTTP/1.1 200\r\n\r\n" + data))
 }
 
+func writeDataBytes(c net.Conn, data []byte) {
+	c.Write(append([]byte("HTTP/1.1 200\r\n\r\n"), data...))
+}
+
 func writeStatus(c net.Conn, status string) {
 	c.Write(shared.StringToBytes("HTTP/1.1 " + status + "\r\n\r\n"))
 }
 
 type workers struct {
 	tracker *HTTPTracker
-	index   string
 }
 
 func (w *workers) startWorkers(num int, ln net.Listener) {
@@ -223,9 +218,9 @@ func (w *workers) work(ln net.Listener) {
 			}
 			w.tracker.scrape(conn, p.Params)
 		case "/":
-			writeData(conn, w.index)
+			writeData(conn, shared.IndexData)
 		case "/dmca":
-			writeData(conn, DMCAData)
+			writeData(conn, shared.DMCAData)
 		case "/stats":
 			// Serves expvar handler but it's hacky af
 			statRespWriter.conn = conn
