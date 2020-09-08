@@ -13,19 +13,19 @@ import (
 
 func printHelp() {
 	help := "Commands:\n"
-	help += fmt.Sprintf("  %-12s Checks if Trakx is running\n", "status")
-	help += fmt.Sprintf("  %-12s Watches if Trakx stops and starts it again if it does (doesn't return)\n", "watch")
-	help += fmt.Sprintf("  %-12s Runs Trakx (doesn't return)\n", "run")
-	help += fmt.Sprintf("  %-12s Starts Trakx as a service\n", "start")
-	help += fmt.Sprintf("  %-12s Stops Trakx service\n", "stop")
-	help += fmt.Sprintf("  %-12s Restarts Trakx service\n", "restart")
-	help += fmt.Sprintf("  %-12s Wipes trakx pid file\n", "clean")
+	help += fmt.Sprintf("   %-12s returns the status of trakx\n", "status")
+	help += fmt.Sprintf("   %-12s starts trakx as a service\n", "start")
+	help += fmt.Sprintf("   %-12s stops trakx service\n", "stop")
+	help += fmt.Sprintf("   %-12s restarts trakx service\n", "restart")
+	help += fmt.Sprintf("   %-12s automatically starts trakx if it stops (doesn't return)\n", "watch")
+	help += fmt.Sprintf("   %-12s runs trakx in shell (doesn't return)\n", "run")
+	help += fmt.Sprintf("   %-12s wipes trakx pid file - use if you encounter errors with start/stop/restart commands\n", "reset")
 
 	help += "Usage:\n"
-	help += fmt.Sprintf("  %s <command>\n", os.Args[0])
+	help += fmt.Sprintf("   %s <command>\n", os.Args[0])
 
 	help += "Example:\n"
-	help += fmt.Sprintf("  %s status # \"Trakx is not running\"\n", os.Args[0])
+	help += fmt.Sprintf("   %s status # 'trakx is not running'\n", os.Args[0])
 
 	fmt.Print(help)
 }
@@ -41,9 +41,9 @@ func main() {
 	switch os.Args[1] {
 	case "status":
 		if c.Running() {
-			fmt.Println("Trakx is running")
+			fmt.Println("trakx is running")
 		} else {
-			fmt.Println("Trakx is not running")
+			fmt.Println("trakx is not running")
 		}
 	case "watch":
 		for {
@@ -81,15 +81,15 @@ func main() {
 			os.Exit(-1)
 		}
 		fmt.Println("rebooted!")
-	case "clean":
-		fmt.Println("cleaning pid file...")
+	case "reset":
+		fmt.Println("wiping pid file...")
 		if err := c.Wipe(); err != nil {
 			fmt.Fprintf(os.Stderr, err.Error()+"\n")
 			os.Exit(-1)
 		}
-		fmt.Println("cleaned!")
+		fmt.Println("wiped!")
 	default:
-		fmt.Fprintf(os.Stderr, "Invalid argument: \"%s\"\n\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "invalid command: '%s'\n\n", os.Args[1])
 		printHelp()
 	}
 }
