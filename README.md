@@ -33,29 +33,25 @@ go build .
 ./trakx start # starting...
 ```
 
-### Modifying Config & HTML
+### Modifying Config
 
-The config can be updated at `~/.config/trakx/trakx.yaml`. Note you'll have to run trakx at least once to generate this file.
+The config can be modified at `~/.config/trakx/trakx.yaml`. You'll have to run trakx at least once to generate this file.
 
-If you want to change the index or dmca HTML pages you can change the files in the `install/` folder and than rebuild / reinstall.
-
-### Updating
-
-You can simply pull and build / install to update:
+You can also override config settings with environemnt variables:
 
 ```sh
-git pull
-go install .
-trakx restart
+# config file
+tracker:
+  http:
+    enabled: true
+
+# command line
+> TRAKX_TRACKER_HTTP_ENABLED=false ./trakx run
 ```
 
-### Netdata graph install
+### Modifying HTML pages
 
-**Warning:** `install.sh` will overwrite `go_expvar.conf`. If you have other expvar programs in netdata you can manually merge the two files.
-
-* Run `/etc/netdata/edit-config python.d.conf` and change the `go_expvar` setting to to `yes`
-* Customize the url in `netdata/expvar.conf` if needed
-* Install netdata plugins with `cd netdata; ./install.sh`
+If you want to change the index or dmca HTML pages you can change the files in the repos `install/` folder and than rebuild / reinstall.
 
 ### Build Tags
 
@@ -63,6 +59,14 @@ You can build with different tags by using `go build/install -tags <tag> .`
 
 * `fast` tag will build without IP, seeds, and leeches metrics which will reduce cpu and memory usage
 * `heroku` tag will build the service for app engines, this means that when executed the binary will immediately run the tracker rather than the controller
+
+### Netdata graph install
+
+**Warning:** the `install.sh` script will overwrite `go_expvar.conf`. If you are using other expvar programs with netdata you can manually merge the two files.
+
+* Run `/etc/netdata/edit-config python.d.conf` and change the `go_expvar` setting to to `yes`
+* Customize the url in `netdata/expvar.conf` if needed
+* Install netdata plugins with `cd netdata; ./install.sh`
 
 ## Notes
 
