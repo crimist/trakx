@@ -13,7 +13,7 @@ type peerChan struct {
 
 func (pc *peerChan) create() {
 	// worth the 8MB cost as it will stabilize @ the maximum number of peers
-	// once the tracker has experiance a 24hr cycle
+	// once the tracker has experience a 24hr cycle
 	const chanSize = 1e6
 
 	pc.channel = make(chan *Peer, chanSize)
