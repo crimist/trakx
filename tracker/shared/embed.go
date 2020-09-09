@@ -4,9 +4,9 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-	"syscall"
 
 	_ "github.com/crimist/trakx/statik"
+	"github.com/crimist/trakx/tracker/paths"
 	"github.com/rakyll/statik/fs"
 	"go.uber.org/zap"
 )
@@ -14,11 +14,6 @@ import (
 // generate with `statik -src ./install -include "*.html,*.yaml"`
 
 const (
-	// FolderPerm is the default permission mask for folders
-	FolderPerm = 0700
-	// FilePerm is the default permission mask for files
-	FilePerm = 0644
-
 	uninit = "uninitialized, you should never see this"
 )
 
@@ -27,9 +22,6 @@ var (
 	IndexDataBytes = []byte(uninit)
 	DMCAData       = uninit
 	DMCADataBytes  = []byte(uninit)
-
-	ConfigDir string
-	CacheDir  string
 )
 
 // LoadEmbed loads all the embedded files in the exe and sets up crutial filesystem
@@ -39,33 +31,14 @@ func LoadEmbed(logger *zap.Logger) {
 		logger.Panic("failed to open statik fs", zap.Error(err))
 	}
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		logger.Error("failed to get user home dir", zap.Error(err))
-	}
-
-	ConfigDir = home + "/.config/trakx/"
-	CacheDir = home + "/.cache/trakx/"
-
-	oldmask := syscall.Umask(0)
-	err = os.MkdirAll(CacheDir, FolderPerm)
-	if err != nil {
-		logger.Error("failed to create cache dir", zap.Error(err))
-	}
-	err = os.MkdirAll(ConfigDir, FolderPerm)
-	if err != nil {
-		logger.Error("failed to create config dir", zap.Error(err))
-	}
-	syscall.Umask(oldmask)
-
 	// add config if it doesn't exist
-	_, err = os.Stat(ConfigDir + "trakx.yaml")
+	_, err = os.Stat(paths.ConfigDir + "trakx.yaml")
 	if os.IsNotExist(err) {
 		cfgData, err := fs.ReadFile(fileSys, "/trakx.yaml")
 		if err != nil {
 			logger.Error("failed to read embedded config", zap.Error(err))
 		}
-		err = ioutil.WriteFile(ConfigDir+"trakx.yaml", cfgData, FilePerm)
+		err = ioutil.WriteFile(paths.ConfigDir+"trakx.yaml", cfgData, paths.FilePerm)
 		if err != nil {
 			logger.Error("failed to write config file", zap.Error(err))
 		}
@@ -73,6 +46,7 @@ func LoadEmbed(logger *zap.Logger) {
 		logger.Error("failed to stat config file", zap.Error(err))
 	}
 
+	// load HTML
 	if IndexDataBytes, err = fs.ReadFile(fileSys, "/index.html"); err != nil {
 		logger.Error("failed to read index file from statik fs", zap.Error(err))
 	}

@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/crimist/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/paths"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -26,7 +26,7 @@ func (bck *FileBackup) Init(db storage.Database) error {
 func (bck *FileBackup) Load() error {
 	bck.db.conf.Logger.Info("Loading database from file")
 	start := time.Now()
-	path := shared.CacheDir + "peers.db"
+	path := paths.CacheDir + "peers.db"
 
 	_, err := os.Stat(path)
 	if err != nil {
@@ -78,7 +78,7 @@ func (bck *FileBackup) writeFile() (int, error) {
 		return 0, errors.Wrap(err, "failed to encode data")
 	}
 
-	if err := ioutil.WriteFile(shared.CacheDir+"peers.db", encoded, 0644); err != nil {
+	if err := ioutil.WriteFile(paths.CacheDir+"peers.db", encoded, 0644); err != nil {
 		return 0, errors.Wrap(err, "failed to write file to disk")
 	}
 
