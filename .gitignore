@@ -1,6 +1,11 @@
-# VSCode/macOS folders
+# macos visual layout
 *.DS_Store
+
+# vscode settings
 .vscode
 
 # dlv debug
 __debug_bin
+
+# pprof data
+pprof/

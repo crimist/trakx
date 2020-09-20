@@ -55,10 +55,13 @@ func Run() {
 		logger.Fatal("Failed to initialize storage", zap.Error(err))
 	}
 
+	// init the peerchan q with minimum
+	storage.PeerChan.Add(conf.PeerChanMin)
+
 	// pprof, sigs, expvar
 	go sigHandler(peerdb, &udptracker, &httptracker)
-	if conf.Trakx.Pprof.Port != 0 {
-		logger.Info("pprof enabled", zap.Int("port", conf.Trakx.Pprof.Port))
+	if conf.PprofPort != 0 {
+		logger.Info("pprof enabled", zap.Int("port", conf.PprofPort))
 		initpprof()
 	}
 

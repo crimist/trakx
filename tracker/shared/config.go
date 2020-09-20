@@ -15,17 +15,13 @@ const (
 )
 
 type Config struct {
-	Logger *zap.Logger
-	Trakx  struct {
-		Prod   bool
-		Expvar struct {
-			Every int
-		}
-		Pprof struct {
-			Port int
-		}
-		Ulimit uint64
-	}
+	Logger         *zap.Logger
+	Prod           bool // basically doesn't do anything
+	ExpvarInterval int
+	PprofPort      int
+	Ulimit         uint64
+	PeerChanMin    uint64
+
 	Tracker struct {
 		Announce     int32
 		AnnounceFuzz int32
@@ -70,7 +66,7 @@ func (conf *Config) Loaded() bool {
 
 func (conf *Config) update() error {
 	// limits
-	if conf.Trakx.Ulimit == nofileIgnore {
+	if conf.Ulimit == nofileIgnore {
 		return nil
 	}
 
@@ -81,12 +77,12 @@ func (conf *Config) update() error {
 	}
 
 	// Bugged on OSX & WSL
-	if ulimitBugged() && conf.Trakx.Ulimit > 10000 {
+	if ulimitBugged() && conf.Ulimit > 10000 {
 		rLimit.Max = 10000
 		rLimit.Cur = 10000
 	} else {
-		rLimit.Max = conf.Trakx.Ulimit
-		rLimit.Cur = conf.Trakx.Ulimit
+		rLimit.Max = conf.Ulimit
+		rLimit.Cur = conf.Ulimit
 	}
 	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 	if err != nil {

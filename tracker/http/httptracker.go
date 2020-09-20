@@ -194,12 +194,14 @@ func (w *workers) work(ln net.Listener) {
 				// Not appeng
 				ipStr, _, _ = net.SplitHostPort(conn.RemoteAddr().String())
 			}
-			parsedIP := net.ParseIP(ipStr).To4()
-			if parsedIP == nil {
-				w.tracker.clientError(conn, "IPv6 unsupported")
+
+			if err := ip.Set(ipStr); err != nil {
+				// TODO: Remove if this is okay
+				w.tracker.conf.Logger.Warn("failed to parse ip", zap.String("ip", ipStr), zap.Error(err), zap.Any("attempt", ip))
+
+				w.tracker.clientError(conn, "failed to parse ip: "+err.Error())
 				break
 			}
-			copy(ip[:], parsedIP)
 
 			w.tracker.announce(conn, &v, ip)
 		case "/scrape":

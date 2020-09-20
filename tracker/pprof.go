@@ -8,5 +8,5 @@ import (
 
 func initpprof() {
 	// only listen on localhost
-	go http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", conf.Trakx.Pprof.Port), nil)
+	go http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", conf.PprofPort), nil)
 }

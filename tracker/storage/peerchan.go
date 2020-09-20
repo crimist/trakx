@@ -19,6 +19,19 @@ func (pc *peerChan) create() {
 	pc.channel = make(chan *Peer, chanSize)
 }
 
+// Add adds n number of peers into the channel
+func (pc *peerChan) Add(n uint64) {
+	// don't go over 1e6
+	if n > 1e6 {
+		n = 1e6
+	}
+
+	for i := uint64(0); i < n; i++ {
+		pc.channel <- new(Peer)
+	}
+	Expvar.Pools.Peer.Add(int64(n))
+}
+
 func (pc *peerChan) buffer() {
 	const amount = 5000
 

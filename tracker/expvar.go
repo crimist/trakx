@@ -25,7 +25,7 @@ func publishExpvar(conf *shared.Config, peerdb storage.Database, httptracker *ht
 	goroutines := expvar.NewInt("trakx.stats.goroutines")
 	uptime := expvar.NewInt("trakx.stats.uptime")
 
-	shared.RunOn(time.Duration(conf.Trakx.Expvar.Every)*time.Second, func() {
+	shared.RunOn(time.Duration(conf.ExpvarInterval)*time.Second, func() {
 		storage.Expvar.IPs.Lock()
 		ips.Set(int64(storage.Expvar.IPs.Len()))
 		storage.Expvar.IPs.Unlock()
