@@ -21,6 +21,7 @@ func TestPeerIPSet(t *testing.T) {
 		{"1234567890123456", PeerIP{0, 0, 0, 0}, errors.New("ip too long")},
 		{".1.1.1", PeerIP{0, 0, 0, 0}, errors.New("no number before dot '.'")},
 		{"1.1..1.1", PeerIP{0, 0, 0, 0}, errors.New("no number before dot '.'")},
+		{"::1", PeerIP{0, 0, 0, 0}, errors.New("ipv6 unsupported")},
 	}
 
 	for _, c := range cases {
