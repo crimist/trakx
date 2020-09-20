@@ -86,7 +86,7 @@ func parse(data []byte, size int) (parsed, parsedCode, error) {
 
 		var err error
 		for i := 0; i <= pIndex; i++ {
-			p.Params[i], err = url.QueryUnescape(p.Params[i])
+			p.Params[i], err = unescape(p.Params[i])
 			if err != nil {
 				return parsed{}, parseInvalid, nil // failed to escape a param
 			}
@@ -101,3 +101,13 @@ func parse(data []byte, size int) (parsed, parsedCode, error) {
 
 	return p, parseOk, nil
 }
+
+func unescape(s string) (string, error) {
+	return url.QueryUnescape(s)
+}
+
+// func unescape(s string) (string, error) {
+// 	for _, c := range s {
+
+// 	}
+// }

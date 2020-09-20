@@ -12,6 +12,7 @@ import (
 
 // Hashes gets the number of hashes
 func (db *Memory) Hashes() int {
+	// race condition but doesn't matter as it's just for metrics
 	return len(db.hashmap)
 }
 

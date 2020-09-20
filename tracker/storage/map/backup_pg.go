@@ -42,7 +42,7 @@ func (bck *PgBackup) Init(db storage.Database) error {
 		return errors.New("nil database on backup Init()")
 	}
 
-	bck.pg, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	bck.pg, err = sql.Open("postgres", os.Getenv("DATABASE_URL")) // TODO: Unhardcode this, allow conf var for database addr
 	if err != nil {
 		return errors.Wrap(err, "failed to open pg connection")
 	}

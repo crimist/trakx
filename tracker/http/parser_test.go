@@ -71,7 +71,7 @@ func BenchmarkStdParse(b *testing.B) {
 	}
 }
 
-const benchReqParams = "GET /benchmark?key0=val0&key1=val1&key2=val2&key3=val3 HTTP/1.1\r\nHEADER: VALUE\r\n\r\n"
+const benchReqParams = "GET /benchmark?key0=val0&key1=val1%00%01%02%03%04%05%06%07%08%09%0A&key2=val2&key3=val3 HTTP/1.1\r\nHEADER: VALUE\r\n\r\n"
 
 func BenchmarkParseParams(b *testing.B) {
 	req := []byte(benchReqParams)

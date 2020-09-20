@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"net"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -39,5 +40,23 @@ func TestPeerIPSet(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+const benchIP = "245.104.32.94"
+
+func BenchmarkPeerIPSet(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		var ip PeerIP
+		ip.Set(benchIP)
+	}
+}
+
+func BenchmarkStdNetParseIP(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		var ip PeerIP
+		copy(ip[:], net.ParseIP(benchIP).To4())
 	}
 }
