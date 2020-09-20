@@ -21,13 +21,15 @@ func (ip *PeerIP) Set(s string) error {
 	}
 
 	for pos, c := range s {
+		end := pos == len(s)-1 // check if were at the end of the string
+
 		// if were at end then record digit before parsing
-		if pos == len(s)-1 {
+		if end {
 			digitar[digitpos] = uint8(c - '0')
 			digitpos++
 		}
 
-		if c == '.' || pos == len(s)-1 { // if we hit dot or are at the end of the string
+		if c == '.' || end { // if we hit dot or are at the end of the string
 			var n uint16 // because we check if it's over 15 we can guarantee they dont enter uint32 or bigger vals
 			switch digitpos {
 			case 3:
@@ -44,6 +46,11 @@ func (ip *PeerIP) Set(s string) error {
 				return errors.New("digit group > 255")
 			}
 			ip[arpos] = uint8(n)
+
+			// if were at the end lets get out of here
+			if end {
+				break
+			}
 
 			// move to next digits
 			arpos++
