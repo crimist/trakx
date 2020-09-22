@@ -5,13 +5,17 @@ import "github.com/crimist/trakx/tracker/storage"
 var dictChan dictCh
 
 func init() {
-	const max = 1e3
-
-	dictChan.channel = make(chan *Dictionary, max)
+	dictChan.Init()
 }
 
 type dictCh struct {
 	channel chan *Dictionary
+}
+
+func (dc *dictCh) Init() {
+	const max = 1e4
+
+	dictChan.channel = make(chan *Dictionary, max)
 }
 
 func (dc *dictCh) Get() *Dictionary {
