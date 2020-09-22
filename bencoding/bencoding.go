@@ -6,10 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 	"unsafe"
-
-	"github.com/crimist/trakx/tracker/storage"
 )
 
 func str(str string) string {
@@ -59,14 +56,9 @@ type Dictionary struct {
 	buf []byte
 }
 
-var dictionaryPool = sync.Pool{New: func() interface{} {
-	storage.Expvar.Pools.Dict.Add(1)
-	return new(Dictionary)
-}}
-
 // NewDict returns a new initialized dictionary
 func NewDict() *Dictionary {
-	d := dictionaryPool.Get().(*Dictionary)
+	d := dictChan.Get()
 	d.write("d")
 	return d
 }
@@ -162,7 +154,8 @@ func (d *Dictionary) Get() string {
 	d.write("e")
 	s := *(*string)(unsafe.Pointer(&d.buf))
 	d.reset()
-	dictionaryPool.Put(d)
+
+	dictChan.Put(d)
 	return s
 }
 
@@ -171,6 +164,7 @@ func (d *Dictionary) GetBytes() []byte {
 	d.write("e")
 	b := d.buf
 	d.reset()
-	dictionaryPool.Put(d)
+
+	dictChan.Put(d)
 	return b
 }

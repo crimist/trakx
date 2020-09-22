@@ -1,5 +1,9 @@
 package storage
 
+// worth the 8MB cost as it will stabilize @ the maximum number of peers
+// once the tracker has experience a 24hr cycle
+const maxChanSize = 1e6
+
 // PeerChan holds the buffered peers like a `sync.Pool`
 var PeerChan peerChan
 
@@ -12,18 +16,15 @@ type peerChan struct {
 }
 
 func (pc *peerChan) create() {
-	// worth the 8MB cost as it will stabilize @ the maximum number of peers
-	// once the tracker has experience a 24hr cycle
-	const chanSize = 1e6
 
-	pc.channel = make(chan *Peer, chanSize)
+	pc.channel = make(chan *Peer, maxChanSize)
 }
 
 // Add adds n number of peers into the channel
 func (pc *peerChan) Add(n uint64) {
-	// don't go over 1e6
-	if n > 1e6 {
-		n = 1e6
+	// don't go over maxChanSize
+	if n > maxChanSize {
+		n = maxChanSize
 	}
 
 	for i := uint64(0); i < n; i++ {
