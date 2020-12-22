@@ -57,7 +57,7 @@ func LoadEmbed(logger *zap.Logger) {
 	IndexData = string(IndexDataBytes)
 	DMCAData = string(DMCADataBytes)
 
-	// trim whitespace to save bytes
+	// trim whitespace to save bandwidth
 	strip := func(data string) string {
 		data = strings.ReplaceAll(data, "\t", "")
 		data = strings.ReplaceAll(data, "\n", "")

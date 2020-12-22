@@ -1,8 +1,8 @@
 embed:
-	statik -src install/ -include "*.html,*.yaml"
+	statik -src install/ -include "*.html,*.yaml" -f
 
 install:
-	statik -src install/ -include "*.html,*.yaml"
+	statik -src install/ -include "*.html,*.yaml" -f
 	go install -v -gcflags='-l=4'
 
 build:
