@@ -7,7 +7,6 @@ go 1.13
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-torrent/bencode v0.0.0-20150403200907-4318e12a955c
-	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/heroku/x v0.0.26
 	github.com/kkyr/fig v0.2.0
 	github.com/kr/pretty v0.2.0 // indirect
