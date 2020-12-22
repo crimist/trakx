@@ -35,7 +35,7 @@ type cerrFields map[string]interface{}
 func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ...cerrFields) []byte {
 	storage.Expvar.ClientErrors.Add(1)
 
-	if !u.conf.Prod {
+	if u.conf.LogLevel.Debug() {
 		fields := []zap.Field{zap.String("msg", msg)}
 		if len(fieldMap) == 1 {
 			for k, v := range fieldMap[0] {

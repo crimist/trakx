@@ -3,26 +3,42 @@ package shared
 import (
 	"os"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/kkyr/fig"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 const (
 	nofileIgnore = 0
 )
 
+// LogLevel is the logging level
+type LogLevel string
+
+// Debug checks whether the loglevel is set to debug
+func (l LogLevel) Debug() (dbg bool) {
+	if l == "debug" {
+		dbg = true
+	}
+	return
+}
+
 type Config struct {
-	Logger         *zap.Logger
-	Prod           bool // basically doesn't do anything
+	// internal
+	LoggerAtom zap.AtomicLevel
+	Logger     *zap.Logger
+
+	// configurable
+	LogLevel       LogLevel
 	ExpvarInterval int
 	PprofPort      int
 	Ulimit         uint64
 	PeerChanMin    uint64
-
-	Tracker struct {
+	Tracker        struct {
 		Announce     int32
 		AnnounceFuzz int32
 		HTTP         struct {
@@ -65,6 +81,39 @@ func (conf *Config) Loaded() bool {
 }
 
 func (conf *Config) update() error {
+	// logger and loglvl
+	if conf.Logger == nil {
+		conf.LoggerAtom = zap.NewAtomicLevel()
+		cfg := zap.NewDevelopmentConfig()
+
+		if conf.LogLevel.Debug() {
+			cfg.Development = true
+		} else {
+			cfg.Development = false
+		}
+
+		conf.Logger = zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(cfg.EncoderConfig), zapcore.Lock(os.Stdout), conf.LoggerAtom))
+	}
+
+	switch strings.ToLower(string(conf.LogLevel)) {
+	case "debug":
+		conf.LoggerAtom.SetLevel(zap.DebugLevel)
+		conf.Logger.Debug("Debug level enabled, debug panics are on")
+	case "info":
+		conf.LoggerAtom.SetLevel(zap.InfoLevel)
+	case "warn":
+		conf.LoggerAtom.SetLevel(zap.WarnLevel)
+	case "error":
+		conf.LoggerAtom.SetLevel(zap.ErrorLevel)
+	case "fatal":
+		conf.LoggerAtom.SetLevel(zap.FatalLevel)
+	default:
+		conf.Logger.Warn("Invalid log level was specified, defaulting to warn")
+		conf.LoggerAtom.SetLevel(zap.WarnLevel)
+	}
+
+	conf.Logger.Debug("logger created", zap.Any("loglevel", conf.LogLevel))
+
 	// limits
 	if conf.Ulimit == nofileIgnore {
 		return nil
@@ -93,13 +142,12 @@ func (conf *Config) update() error {
 }
 
 // LoadConf attempts to load the config from the disk or environment
-func LoadConf(logger *zap.Logger) (*Config, error) {
+func LoadConf() (*Config, error) {
 	conf := new(Config)
-	conf.Logger = logger
 
 	home, err := os.UserHomeDir()
 	if err != nil {
-		logger.Error("failed to get user home dir", zap.Error(err))
+		println("[ERROR] Failed to get user home dir, attempting to continue config load ->", err)
 	}
 
 	err = fig.Load(conf,
@@ -115,7 +163,7 @@ func LoadConf(logger *zap.Logger) (*Config, error) {
 	if appenginePort := os.Getenv("PORT"); appenginePort != "" {
 		appPort, err := strconv.Atoi(appenginePort)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to parse $PORT env variable as int")
+			return nil, errors.Wrap(err, "failed to parse $PORT env variable (not an int)")
 		}
 
 		conf.Tracker.HTTP.Port = appPort

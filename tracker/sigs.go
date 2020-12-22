@@ -28,32 +28,32 @@ func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker, httptracker
 		switch sig {
 		case os.Interrupt, os.Kill, syscall.SIGTERM:
 			// Exit
-			logger.Info("Got exit signal", zap.Any("sig", sig))
+			conf.Logger.Info("Got exit signal", zap.Any("sig", sig))
 
 			udptracker.Shutdown()
 			httptracker.Shutdown()
 
 			if err := peerdb.Backup().Save(); err != nil {
-				logger.Info("Failed to backup the database on exit")
+				conf.Logger.Info("Failed to backup the database on exit")
 			}
 
 			udptracker.WriteConns()
 
-			logger.Info("Goodbye")
+			conf.Logger.Info("Goodbye")
 			os.Exit(exitSuccess)
 		case syscall.SIGUSR1:
 			// Save
-			logger.Info("Got save signal", zap.Any("sig", sig))
+			conf.Logger.Info("Got save signal", zap.Any("sig", sig))
 
 			if err := peerdb.Backup().Save(); err != nil {
-				logger.Info("Failed to backup the database on save")
+				conf.Logger.Info("Failed to backup the database on save")
 			}
 
 			udptracker.WriteConns()
 
-			logger.Info("Saved")
+			conf.Logger.Info("Saved")
 		default:
-			logger.Info("Got unknown sig", zap.Any("sig", sig))
+			conf.Logger.Info("Got unknown sig", zap.Any("sig", sig))
 		}
 		// os.Exit(128 + int(sig.(syscall.Signal)))
 	}

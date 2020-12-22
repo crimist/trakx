@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/crimist/trakx/bencoding"
@@ -19,8 +20,7 @@ import (
 )
 
 var (
-	logger *zap.Logger
-	conf   *shared.Config
+	conf *shared.Config
 )
 
 // Run runs the tracker
@@ -31,28 +31,26 @@ func Run() {
 
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 
-	cfg := zap.NewDevelopmentConfig()
-	logger, err = cfg.Build()
+	conf, err = shared.LoadConf()
 	if err != nil {
-		panic(err)
-	}
-
-	logger.Info("Starting trakx...")
-
-	shared.LoadEmbed(logger)
-
-	conf, err = shared.LoadConf(logger)
-	if err != nil {
-		logger.Warn("Failed to load a configuration", zap.Any("config", conf), zap.Error(errors.WithMessage(err, "Failed to load config")))
+		if conf.Logger != nil {
+			conf.Logger.Warn("Failed to load a configuration", zap.Any("config", conf), zap.Error(errors.WithMessage(err, "Failed to load config")))
+		}
+		println("failed to load config and logger", err, conf)
 	}
 	if !conf.Loaded() {
-		logger.Fatal("Config failed to load critical values")
+		println("Config failed to load critical values")
+		os.Exit(1)
 	}
+
+	shared.LoadEmbed(conf.Logger)
+
+	conf.Logger.Info("Loaded conf and embed, starting trakx...")
 
 	// db
 	peerdb, err := storage.Open(conf)
 	if err != nil {
-		logger.Fatal("Failed to initialize storage", zap.Error(err))
+		conf.Logger.Fatal("Failed to initialize storage", zap.Error(err))
 	}
 
 	// init the peerchan q with minimum
@@ -61,14 +59,14 @@ func Run() {
 	// pprof, sigs, expvar
 	go sigHandler(peerdb, &udptracker, &httptracker)
 	if conf.PprofPort != 0 {
-		logger.Info("pprof enabled", zap.Int("port", conf.PprofPort))
+		conf.Logger.Info("pprof enabled", zap.Int("port", conf.PprofPort))
 		initpprof()
 	}
 
 	if conf.Tracker.HTTP.Enabled {
-		logger.Info("http tracker enabled", zap.Int("port", conf.Tracker.HTTP.Port))
+		conf.Logger.Info("http tracker enabled", zap.Int("port", conf.Tracker.HTTP.Port))
 
-		httptracker.Init(conf, logger, peerdb)
+		httptracker.Init(conf, peerdb)
 		go httptracker.Serve()
 	} else {
 		d := bencoding.NewDict()
@@ -94,15 +92,15 @@ func Run() {
 
 		go func() {
 			if err := server.ListenAndServe(); err != nil {
-				logger.Error("ListenAndServe()", zap.Error(err))
+				conf.Logger.Error("ListenAndServe()", zap.Error(err))
 			}
 		}()
 	}
 
 	// UDP tracker
 	if conf.Tracker.UDP.Enabled {
-		logger.Info("udp tracker enabled", zap.Int("port", conf.Tracker.UDP.Port))
-		udptracker.Init(conf, logger, peerdb)
+		conf.Logger.Info("udp tracker enabled", zap.Int("port", conf.Tracker.UDP.Port))
+		udptracker.Init(conf, peerdb)
 		go udptracker.Serve()
 	}
 

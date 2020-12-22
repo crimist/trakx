@@ -124,7 +124,7 @@ func (c *controller) Wipe() error {
 
 // Running checks if trakx is running using bind
 func (c *controller) Running() bool {
-	config, err := shared.LoadConf(nil)
+	config, err := shared.LoadConf()
 	if err != nil {
 		panic(err) // TODO: handle
 	}

@@ -25,10 +25,10 @@ type UDPTracker struct {
 }
 
 // Init sets the UDP trackers required values
-func (u *UDPTracker) Init(conf *shared.Config, logger *zap.Logger, peerdb storage.Database) {
-	u.conndb = newConnectionDatabase(conf.Database.Conn.Timeout, logger)
+func (u *UDPTracker) Init(conf *shared.Config, peerdb storage.Database) {
+	u.conndb = newConnectionDatabase(conf.Database.Conn.Timeout, conf.Logger)
 	u.conf = conf
-	u.logger = logger
+	u.logger = conf.Logger
 	u.peerdb = peerdb
 	u.shutdown = make(chan struct{})
 

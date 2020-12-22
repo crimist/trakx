@@ -30,9 +30,9 @@ type HTTPTracker struct {
 }
 
 // Init sets the HTTP trackers required values
-func (t *HTTPTracker) Init(conf *shared.Config, logger *zap.Logger, peerdb storage.Database) {
+func (t *HTTPTracker) Init(conf *shared.Config, peerdb storage.Database) {
 	t.conf = conf
-	t.logger = logger
+	t.logger = conf.Logger
 	t.peerdb = peerdb
 	t.shutdown = make(chan struct{})
 }
