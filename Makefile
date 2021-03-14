@@ -1,3 +1,6 @@
+setup:
+	go get -v github.com/rakyll/statik
+
 embed:
 	statik -src install/ -include "*.html,*.yaml" -f
 
