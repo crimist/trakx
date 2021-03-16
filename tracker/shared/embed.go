@@ -14,14 +14,14 @@ import (
 // generate with `statik -src ./install -include "*.html,*.yaml"`
 
 const (
-	uninit = "uninitialized, you should never see this"
+	defaultMessage = "n/a"
 )
 
 var (
-	IndexData      = uninit
-	IndexDataBytes = []byte(uninit)
-	DMCAData       = uninit
-	DMCADataBytes  = []byte(uninit)
+	IndexData      = defaultMessage
+	IndexDataBytes = []byte(defaultMessage)
+	DMCAData       = defaultMessage
+	DMCADataBytes  = []byte(defaultMessage)
 )
 
 // LoadEmbed loads all the embedded files in the exe and sets up crutial filesystem
@@ -49,13 +49,14 @@ func LoadEmbed(logger *zap.Logger) {
 	// load HTML
 	if IndexDataBytes, err = fs.ReadFile(fileSys, "/index.html"); err != nil {
 		logger.Error("failed to read index file from statik fs", zap.Error(err))
+	} else {
+		IndexData = string(IndexDataBytes)
 	}
 	if DMCADataBytes, err = fs.ReadFile(fileSys, "/dmca.html"); err != nil {
 		logger.Error("failed to read dmca file from statik fs", zap.Error(err))
+	} else {
+		DMCAData = string(DMCADataBytes)
 	}
-
-	IndexData = string(IndexDataBytes)
-	DMCAData = string(DMCADataBytes)
 
 	// trim whitespace to save bandwidth
 	strip := func(data string) string {
