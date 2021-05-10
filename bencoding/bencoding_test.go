@@ -106,6 +106,22 @@ func BenchmarkBencodeInt64(b *testing.B) {
 	}
 }
 
+func BenchmarkBencodeStringGetBytes(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		d := bencoding.NewDict()
+		d.String("key", "value")
+		_ = d.GetBytes()
+	}
+}
+
+func BenchmarkBencodeInt64GetBytes(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		d := bencoding.NewDict()
+		d.Int64("key", 0x1337)
+		_ = d.GetBytes()
+	}
+}
+
 func BenchmarkBencodeAnyString(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		d := bencoding.NewDict()
