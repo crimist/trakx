@@ -113,3 +113,13 @@ func BenchmarkBencodeAnyString(b *testing.B) {
 		_ = d.Get()
 	}
 }
+
+func BenchmarkBencodeDict(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		d := bencoding.NewDict()
+		embedDict := bencoding.NewDict()
+		embedDict.String("key", "value")
+		d.Dictionary("dict", embedDict.Get())
+		_ = d.Get()
+	}
+}

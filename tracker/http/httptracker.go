@@ -87,6 +87,7 @@ type workers struct {
 }
 
 func (w *workers) startWorkers(num int, ln net.Listener) {
+	w.tracker.logger.Debug("Starting http workers", zap.Int("count", num))
 	for i := 0; i < num; i++ {
 		go w.work(ln)
 	}

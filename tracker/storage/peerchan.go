@@ -16,7 +16,6 @@ type peerChan struct {
 }
 
 func (pc *peerChan) create() {
-
 	pc.channel = make(chan *Peer, maxChanSize)
 }
 

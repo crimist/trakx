@@ -2,23 +2,24 @@ package bencoding
 
 import "github.com/crimist/trakx/tracker/storage"
 
-var dictChan dictCh
+// global dictChannel
+var dictChan dictChannel
 
 func init() {
 	dictChan.Init()
 }
 
-type dictCh struct {
+type dictChannel struct {
 	channel chan *Dictionary
 }
 
-func (dc *dictCh) Init() {
+func (dc *dictChannel) Init() {
 	const max = 1e4
 
 	dictChan.channel = make(chan *Dictionary, max)
 }
 
-func (dc *dictCh) Get() *Dictionary {
+func (dc *dictChannel) Get() *Dictionary {
 	// if empty create new
 	if len(dc.channel) == 0 {
 		storage.Expvar.Pools.Dict.Add(1)
@@ -29,7 +30,7 @@ func (dc *dictCh) Get() *Dictionary {
 	return <-dc.channel
 }
 
-func (dc *dictCh) Put(d *Dictionary) {
+func (dc *dictChannel) Put(d *Dictionary) {
 	// if queue is full than discard
 	if len(dc.channel) == cap(dc.channel) {
 		return

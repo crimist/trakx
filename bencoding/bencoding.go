@@ -143,13 +143,13 @@ func (d *Dictionary) Any(key string, v interface{}) error {
 	case uint, uint8, uint16, uint32, uint64:
 		d.write(integer(v))
 	default:
-		return errors.New("Invalid type")
+		return errors.New("invalid type")
 	}
 
 	return nil
 }
 
-// Get returns the encoded dictionary as a string
+// Get returns the encoded dictionary as a string. The dictionary cannot be used after this is called.
 func (d *Dictionary) Get() string {
 	d.write("e")
 	s := *(*string)(unsafe.Pointer(&d.buf))
@@ -159,7 +159,7 @@ func (d *Dictionary) Get() string {
 	return s
 }
 
-// GetBytes returns the encoded dictionary as a byte slice
+// GetBytes returns the encoded dictionary as a byte slice. The dictionary cannot be used after this is called.
 func (d *Dictionary) GetBytes() []byte {
 	d.write("e")
 	b := d.buf

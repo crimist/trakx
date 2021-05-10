@@ -25,13 +25,14 @@ tracker:
     readtimeout: 3
     writetimeout: 10
     # num of goroutines for http tracker
-    threads: 2048
+    threads: 512
   udp:
     enabled: true
     port: 1337
     # validate connection IDs - if disabled tracker can be abused for UDP amplification
     checkconnid: true
-    threads: 1024
+    # num of goroutines for udp tracker
+    threads: 512
   numwant:
     # default number of peers in response if none specified
     default: 75

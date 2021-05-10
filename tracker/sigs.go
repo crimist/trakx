@@ -12,21 +12,20 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	// SigStop is the signal which Trakx uses to shutdwn gracefully
-	SigStop     = os.Interrupt
-	exitSuccess = 0
-)
+// SigStop is the signal which Trakx uses to shutdwn gracefully
+var SigStop = os.Interrupt
+
+const exitSuccess = 0
 
 func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker, httptracker *http.HTTPTracker) {
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGUSR1)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
 
 	for {
 		sig := <-c
 
 		switch sig {
-		case os.Interrupt, os.Kill, syscall.SIGTERM:
+		case os.Interrupt, syscall.SIGTERM:
 			// Exit
 			conf.Logger.Info("Got exit signal", zap.Any("sig", sig))
 
@@ -39,7 +38,7 @@ func sigHandler(peerdb storage.Database, udptracker *udp.UDPTracker, httptracker
 
 			udptracker.WriteConns()
 
-			conf.Logger.Info("Goodbye")
+			conf.Logger.Info("Exiting")
 			os.Exit(exitSuccess)
 		case syscall.SIGUSR1:
 			// Save

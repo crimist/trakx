@@ -51,7 +51,14 @@ tracker:
 
 ### Modifying HTML pages
 
-If you want to change the index or dmca HTML pages you can change the files in the repos `install/` folder and than rebuild / reinstall.
+If you want to change the index or dmca HTML pages edit the files in the `install/` folder and run the following commands.
+
+```sh
+make setup # first time setup, only needed once
+make embed
+```
+
+Now future builds will contain the updated files.
 
 ### Build Tags
 
