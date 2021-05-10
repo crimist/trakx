@@ -16,7 +16,7 @@ func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
 	d.StartDict("files")
 
 	for _, infohash := range infohashes {
-		if infohash == "" {
+		if infohash == nil {
 			continue
 		}
 		if len(infohash) != 20 {
@@ -28,7 +28,7 @@ func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
 		copy(hash[:], infohash)
 		complete, incomplete := t.peerdb.HashStats(hash)
 
-		d.StartDict(infohash)
+		d.StartDictBytes(infohash)
 		{
 			d.Int64("complete", int64(complete))
 			d.Int64("incomplete", int64(incomplete))

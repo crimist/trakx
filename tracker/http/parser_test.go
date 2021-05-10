@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"encoding/base64"
 	"net/url"
 	"strings"
@@ -18,7 +19,7 @@ func TestParse(t *testing.T) {
 		t.Fatal("Params not found")
 	}
 	for _, param := range p.Params {
-		switch param {
+		switch string(param) {
 		case "":
 		case "param=1":
 		case "param2=two":
@@ -39,7 +40,7 @@ func TestParse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error when parsing: %v", err)
 	}
-	if p.Params[0] != "key=value" {
+	if !bytes.Equal(p.Params[0], []byte("key=value")) {
 		t.Fatal("Bad params")
 	}
 	if p.Path != "/url" {
@@ -52,7 +53,7 @@ func TestParse(t *testing.T) {
 
 const benchRequest = "GET /benchmark HTTP/1.1\r\nHEADER: VALUE\r\n\r\n"
 
-func BenchmarkParse(b *testing.B) {
+func BenchmarkParseBasic(b *testing.B) {
 	req := []byte(benchRequest)
 
 	b.ResetTimer()
@@ -62,7 +63,7 @@ func BenchmarkParse(b *testing.B) {
 	}
 }
 
-func BenchmarkStdParse(b *testing.B) {
+func BenchmarkStdParseBasic(b *testing.B) {
 	req := benchRequest[4:strings.Index(benchRequest, " HTTP/")]
 
 	for i := 0; i < b.N; i++ {
@@ -101,5 +102,22 @@ func BenchmarkStdParseParams(b *testing.B) {
 		parsed, _ := url.Parse(req)
 		p := parsed.Query()
 		_ = p
+	}
+}
+
+const escapedParameter = "info_hash=%b4%8f%85%20%92%1e~%c7%c38%90%40gv%28%7b%e8%f9~L"
+
+var escapedParameterBytes = []byte(escapedParameter)
+
+func BenchmarkStdUnescape(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		s, err := url.QueryUnescape(escapedParameter)
+		_, _ = s, err
+	}
+}
+
+func BenchmarkUnescape(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		unescapeFast(escapedParameterBytes)
 	}
 }

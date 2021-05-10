@@ -3,21 +3,21 @@ package http
 import (
 	"bytes"
 	"encoding/base64"
-	"net/url"
 	"unsafe"
 
+	"github.com/crimist/trakx/tracker/shared"
 	"github.com/pkg/errors"
 )
 
 const (
 	parseOk      parsedCode = iota
 	parseInvalid parsedCode = iota
-	maxparams               = 50
+	maxparams               = 45 // support scrapes with up to 40 `info_hash` params
 )
 
 type (
 	parsedCode uint8
-	params     [maxparams]string
+	params     [maxparams][]byte
 	parsed     struct {
 		Path      string
 		Params    params
@@ -66,17 +66,16 @@ func parse(data []byte, size int) (parsed, parsedCode, error) {
 			return parsed{}, parseInvalid, nil
 		}
 
-		tmp = data[p.pathend+1 : p.URLend]
-		params := *(*string)(unsafe.Pointer(&tmp))
+		paramsBytes := data[p.pathend+1 : p.URLend]
 
 		var pos, pIndex int
-		for i := 0; i < len(params) && pIndex < maxparams; i++ {
-			if params[i] == '&' {
-				p.Params[pIndex] = params[pos:i]
+		for i := 0; i < len(paramsBytes) && pIndex < maxparams; i++ {
+			if paramsBytes[i] == '&' {
+				p.Params[pIndex] = paramsBytes[pos:i]
 				pos = i + 1
 				pIndex++
-			} else if i == len(params)-1 {
-				p.Params[pIndex] = params[pos : i+1]
+			} else if i == len(paramsBytes)-1 {
+				p.Params[pIndex] = paramsBytes[pos : i+1]
 			}
 		}
 
@@ -86,7 +85,9 @@ func parse(data []byte, size int) (parsed, parsedCode, error) {
 
 		var err error
 		for i := 0; i <= pIndex; i++ {
-			p.Params[i], err = unescape(p.Params[i])
+			p.Params[i] = unescapeFast(p.Params[i])
+			// Leaving this dead error check in *somehow* makes the benchmark faster so I'm going to leave it for now
+			// TODO: check generated asm cause this makes no sense
 			if err != nil {
 				return parsed{}, parseInvalid, nil // failed to escape a param
 			}
@@ -102,12 +103,49 @@ func parse(data []byte, size int) (parsed, parsedCode, error) {
 	return p, parseOk, nil
 }
 
-func unescape(s string) (string, error) {
-	return url.QueryUnescape(s)
+// from stdlib
+// https://github.com/golang/go/blob/2ebe77a2fda1ee9ff6fd9a3e08933ad1ebaea039/src/encoding/hex/hex.go#L84
+func fromHexChar(c byte) byte {
+	switch {
+	case '0' <= c && c <= '9':
+		return c - '0'
+	case 'a' <= c && c <= 'f':
+		return c - 'a' + 10
+	case 'A' <= c && c <= 'F':
+		return c - 'A' + 10
+	}
+
+	return 0
 }
 
-// func unescape(s string) (string, error) {
-// 	for _, c := range s {
+// unescapes url escaped string
+// very fast but no checks
+func unescapeFast(bs []byte) []byte {
+	l := len(bs)
 
-// 	}
-// }
+	for i := 0; i < l; i++ {
+		// match escape
+		if bs[i] == '%' {
+			// get hex chars
+			a := fromHexChar(bs[i+1])
+			b := fromHexChar(bs[i+2])
+			// change percent to real byte
+			bs[i] = (a << 4) | b
+
+			// shift everything left by 2
+			for x := i; x < len(bs)-3; x++ {
+				bs[x+1] = bs[x+3]
+			}
+
+			// decrease slice length by 2
+			l -= 2
+		}
+
+		// fmt.Println(string(bs))
+	}
+
+	shared.SetSliceLen(&bs, l)
+	// fmt.Println(hex.Dump(bs))
+
+	return bs
+}

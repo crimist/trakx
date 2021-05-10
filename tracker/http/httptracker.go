@@ -1,11 +1,11 @@
 package http
 
 import (
+	"bytes"
 	"errors"
 	"expvar"
 	"fmt"
 	"net"
-	"strings"
 	"time"
 	"unsafe"
 
@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	httpRequestMax = 2100                               // slight buffer over 2000
+	httpRequestMax = 2600                               // enough for scrapes up to 40 info_hashes
 	errClosed      = "use of closed network connection" // go 1.16: "net.ErrClosed" (https://github.com/golang/go/issues/4373)
 )
 
@@ -50,11 +50,9 @@ func (t *HTTPTracker) Serve() {
 
 	t.workers.startWorkers(t.conf.Tracker.HTTP.Threads, ln)
 
-	select {
-	case _ = <-t.shutdown:
-		t.logger.Info("Closing HTTP tracker connection")
-		ln.Close()
-	}
+	<-t.shutdown
+	t.logger.Info("Closing HTTP tracker listen socket")
+	ln.Close()
 }
 
 // Shutdown gracefully closes the HTTP service by closing the listening connection
@@ -98,7 +96,7 @@ func (w *workers) work(ln net.Listener) {
 	statRespWriter := fakeRespWriter{}
 	maxread := time.Duration(w.tracker.conf.Tracker.HTTP.ReadTimeout) * time.Second
 	maxwrite := time.Duration(w.tracker.conf.Tracker.HTTP.WriteTimeout) * time.Second
-	data := make([]byte, httpRequestMax, httpRequestMax)
+	data := make([]byte, httpRequestMax)
 
 	for {
 		conn, err := ln.Accept()
@@ -146,12 +144,12 @@ func (w *workers) work(ln net.Listener) {
 			for _, param := range p.Params {
 				var key, val string
 
-				if equal := strings.Index(param, "="); equal == -1 {
-					key = param
+				if equal := bytes.Index(param, []byte("=")); equal == -1 {
+					key = string(param) // doesn't escape
 					val = "1"
 				} else {
-					key = param[:equal]
-					val = param[equal+1:]
+					key = string(param[:equal])   // doesn't escape
+					val = string(param[equal+1:]) // escapes - TODO: optimize?
 				}
 
 				switch key {
@@ -197,7 +195,6 @@ func (w *workers) work(ln net.Listener) {
 			}
 
 			if err := ip.Set(ipStr); err != nil {
-				// TODO: Remove if this is okay
 				w.tracker.conf.Logger.Warn("failed to parse ip", zap.String("ip", ipStr), zap.Error(err), zap.Any("attempt", ip))
 
 				w.tracker.clientError(conn, "failed to parse ip: "+err.Error())
@@ -208,8 +205,8 @@ func (w *workers) work(ln net.Listener) {
 		case "/scrape":
 			var count int
 			for i := 0; i < len(p.Params); i++ {
-				if len(p.Params[i]) < 10 || p.Params[i][0:10] != "info_hash=" {
-					p.Params[i] = ""
+				if len(p.Params[i]) < 10 || !bytes.Equal(p.Params[i][0:10], []byte("info_hash=")) {
+					p.Params[i] = nil
 				} else {
 					p.Params[i] = p.Params[i][10:]
 					count++
