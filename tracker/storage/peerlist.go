@@ -11,6 +11,7 @@ type Peerlist struct {
 }
 
 var peerlistMax = new(int)
+
 var peerlistPool = sync.Pool{New: func() interface{} {
 	Expvar.Pools.Peerlist.Add(1)
 	p := new(Peerlist)

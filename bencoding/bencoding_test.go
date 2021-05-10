@@ -130,12 +130,24 @@ func BenchmarkBencodeAnyString(b *testing.B) {
 	}
 }
 
-func BenchmarkBencodeDict(b *testing.B) {
+func BenchmarkBencodeEmbededDictionary(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		d := bencoding.NewDict()
 		embedDict := bencoding.NewDict()
 		embedDict.String("key", "value")
 		d.Dictionary("dict", embedDict.Get())
+		_ = d.Get()
+	}
+}
+
+func BenchmarkBencodeEmbededDictionaryFast(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		d := bencoding.NewDict()
+		d.StartDict("dict")
+		{
+			d.String("key", "value")
+		}
+		d.EndDict()
 		_ = d.Get()
 	}
 }

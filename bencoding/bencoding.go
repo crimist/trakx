@@ -101,6 +101,19 @@ func (d *Dictionary) Dictionary(key string, v string) {
 	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + v)
 }
 
+// StartDict starts an embeded dictionary with the given key.
+// It must be followed by an EndDict() call otherwise the bencode will be invalid
+func (d *Dictionary) StartDict(key string) *Dictionary {
+	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key)
+	d.write("d")
+	return d
+}
+
+// EndDict ends the embeded dictionary. StartDict should be called before
+func (d *Dictionary) EndDict() {
+	d.write("e")
+}
+
 // Any attempts to decode all types and write them to the dictionary
 //
 // This function is far slower than the rest and should be avoided if possible
