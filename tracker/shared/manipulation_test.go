@@ -60,7 +60,7 @@ func TestStringToBytesFast(t *testing.T) {
 	}
 }
 
-func TestSetSliceLen(t *testing.T) {
+func TestStdSetSliceLen(t *testing.T) {
 	var cases = []struct {
 		name     string
 		data     []byte
@@ -73,12 +73,13 @@ func TestSetSliceLen(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			oldlen := SetSliceLen(&c.data, c.size)
+			oldlen := len(c.data)
+			c.data = c.data[:c.size]
 			if len(c.data) != c.size {
 				t.Fatal("Failed to set len")
 			}
 
-			SetSliceLen(&c.data, oldlen)
+			c.data = c.data[:oldlen]
 			if len(c.data) != c.fullSize {
 				t.Fatal("Failed to restore len")
 			}
@@ -126,6 +127,14 @@ func BenchmarkStringToBytes(b *testing.B) {
 func BenchmarkStringToBytesFast(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = StringToBytesFast(&benchData)
+	}
+}
+
+func BenchmarkStdSetSliceLen(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		oldlen := len(benchByteData)
+		benchByteData = benchByteData[:20]
+		benchByteData = benchByteData[:oldlen]
 	}
 }
 

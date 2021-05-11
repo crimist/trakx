@@ -5,20 +5,20 @@ import (
 	"encoding/base64"
 	"unsafe"
 
-	"github.com/crimist/trakx/tracker/shared"
 	"github.com/pkg/errors"
 )
 
 const (
-	parseOk      parsedCode = iota
-	parseInvalid parsedCode = iota
-	maxparams               = 45 // support scrapes with up to 40 `info_hash` params
+	maxparams = 45 // support scrapes with up to 40 `info_hash` params
+)
+
+var (
+	invalidParse = errors.New("invalid parse")
 )
 
 type (
-	parsedCode uint8
-	params     [maxparams][]byte
-	parsed     struct {
+	params [maxparams][]byte
+	parsed struct {
 		Path      string
 		Params    params
 		URLend    int
@@ -28,13 +28,14 @@ type (
 	}
 )
 
-// Custom HTTP parser - only supports GET request and up to `maxparams` params but uses no heap memory
-func parse(data []byte, size int) (parsed, parsedCode, error) {
+// Custom HTTP parser
+// only supports GET request and up to `maxparams` params but uses no heap memory
+func parse(data []byte, size int) (parsed, error) {
 	// uTorrent sometimes encodes scrape req in b64
 	if bytes.HasPrefix(data, []byte("R0VU")) { // R0VUIC9zY3JhcGU/aW5mb19oYXNoPS = GET /scrape?info_hash=
 		decoded, err := base64.StdEncoding.Decode(data, data[:size])
 		if err != nil {
-			return parsed{}, parseOk, errors.New("Failed to decode base64 encoded payload")
+			return parsed{}, errors.Wrap(err, "failed to decode base64 encoded request")
 		}
 		data = data[:decoded] // this only modifies the local copy since `len int` vs `data uintptr`
 	}
@@ -47,23 +48,23 @@ func parse(data []byte, size int) (parsed, parsedCode, error) {
 
 	methodend := bytes.Index(data, []byte(" /"))
 	if methodend == -1 {
-		return parsed{}, parseInvalid, nil
+		return parsed{}, invalidParse
 	}
 
 	tmp := data[:methodend]
 	p.Method = *(*string)(unsafe.Pointer(&tmp))
 
 	if p.URLend == -1 {
-		return parsed{}, parseInvalid, nil
+		return parsed{}, invalidParse
 	}
 
 	if p.URLend < 5 { // less than "GET / HTTP..."
-		return parsed{}, parseInvalid, nil
+		return parsed{}, invalidParse
 	}
 
 	if p.pathend != -1 && p.pathend < p.URLend { // if the ? is part of a query then parse it
 		if p.pathend < p.pathstart {
-			return parsed{}, parseInvalid, nil
+			return parsed{}, invalidParse
 		}
 
 		paramsBytes := data[p.pathend+1 : p.URLend]
@@ -83,13 +84,12 @@ func parse(data []byte, size int) (parsed, parsedCode, error) {
 			pIndex--
 		}
 
-		var err error
 		for i := 0; i <= pIndex; i++ {
 			p.Params[i] = unescapeFast(p.Params[i])
-			// Leaving this dead error check in *somehow* makes the benchmark faster so I'm going to leave it for now
-			// TODO: check generated asm cause this makes no sense
-			if err != nil {
-				return parsed{}, parseInvalid, nil // failed to escape a param
+
+			// nil if escape was invalid
+			if p.Params[i] == nil {
+				return parsed{}, invalidParse
 			}
 		}
 
@@ -100,7 +100,7 @@ func parse(data []byte, size int) (parsed, parsedCode, error) {
 		p.Path = *(*string)(unsafe.Pointer(&tmp))
 	}
 
-	return p, parseOk, nil
+	return p, nil
 }
 
 // from stdlib
@@ -118,14 +118,19 @@ func fromHexChar(c byte) byte {
 	return 0
 }
 
-// unescapes url escaped string
-// very fast but no checks
+// unescapeFast unescapes url encoded []byte
+// returns nil if escape is invalid
 func unescapeFast(bs []byte) []byte {
 	l := len(bs)
 
 	for i := 0; i < l; i++ {
 		// match escape
 		if bs[i] == '%' {
+			// make sure there's 2 escape chars
+			if i+2 >= l {
+				return nil
+			}
+
 			// get hex chars
 			a := fromHexChar(bs[i+1])
 			b := fromHexChar(bs[i+2])
@@ -140,12 +145,8 @@ func unescapeFast(bs []byte) []byte {
 			// decrease slice length by 2
 			l -= 2
 		}
-
-		// fmt.Println(string(bs))
 	}
 
-	shared.SetSliceLen(&bs, l)
-	// fmt.Println(hex.Dump(bs))
-
+	bs = bs[:l]
 	return bs
 }

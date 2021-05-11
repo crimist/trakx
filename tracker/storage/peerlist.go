@@ -2,8 +2,6 @@ package storage
 
 import (
 	"sync"
-
-	"github.com/crimist/trakx/tracker/shared"
 )
 
 type Peerlist struct {
@@ -24,6 +22,6 @@ func GetPeerList() *Peerlist {
 }
 
 func (p *Peerlist) Put() {
-	shared.SetSliceLen(&p.Data, *peerlistMax)
+	p.Data = p.Data[:*peerlistMax]
 	peerlistPool.Put(p)
 }

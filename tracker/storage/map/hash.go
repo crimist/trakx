@@ -4,8 +4,6 @@ import (
 	"encoding/binary"
 	"net"
 
-	"github.com/crimist/trakx/tracker/shared"
-
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/storage"
 )
@@ -98,7 +96,7 @@ func (db *Memory) PeerListBytes(h storage.Hash, max int) *storage.Peerlist {
 	}
 
 	size := 6 * max
-	shared.SetSliceLen(&plist.Data, size)
+	plist.Data = plist.Data[:size]
 	for _, peer := range peermap.peers {
 		copy(plist.Data[pos:pos+4], peer.IP[:])
 		binary.BigEndian.PutUint16(plist.Data[pos+4:pos+6], peer.Port)

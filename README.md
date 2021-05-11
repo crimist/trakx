@@ -16,7 +16,7 @@ Memory wise the go GC only runs every 2 min ([the maximum GC period](https://git
 
 ## Install
 
-go 1.13+ recommended for `sync.Pool` and `sync.RMutex` optimizations.
+go 1.16+ required for [this](https://github.com/golang/go/issues/4373).
 
 ### Quick Install
 

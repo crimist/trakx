@@ -15,8 +15,7 @@ import (
 )
 
 const (
-	httpRequestMax = 2600                               // enough for scrapes up to 40 info_hashes
-	errClosed      = "use of closed network connection" // go 1.16: "net.ErrClosed" (https://github.com/golang/go/issues/4373)
+	httpRequestMax = 2600 // enough for scrapes up to 40 info_hashes
 )
 
 var httpSuccess = "HTTP/1.1 200\r\n\r\n"
@@ -102,7 +101,7 @@ func (w *workers) work(ln net.Listener) {
 		conn, err := ln.Accept()
 		if err != nil {
 			// if socket is closed we're done
-			if errors.Unwrap(err).Error() == errClosed {
+			if errors.Unwrap(err) == net.ErrClosed {
 				break
 			}
 
@@ -123,15 +122,16 @@ func (w *workers) work(ln net.Listener) {
 		}
 		storage.Expvar.Hits.Add(1)
 
-		p, parseCode, err := parse(data, size)
-		if parseCode == parseInvalid || p.Method != "GET" { // invalid request
+		p, err := parse(data, size)
+		if err == invalidParse || p.Method != "GET" {
+			// invalid request
 			writeStatus(conn, "400")
 			conn.Close()
 			continue
-		}
-		if err != nil { // error in parse
+		} else if err != nil {
+			// error in parse
 			storage.Expvar.Errors.Add(1)
-			w.tracker.logger.Error("parse()", zap.Error(err), zap.Any("data", data))
+			w.tracker.logger.Error("error parsing request", zap.Error(err), zap.Any("request data", data))
 			writeStatus(conn, "500")
 
 			conn.Close()

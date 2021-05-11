@@ -20,7 +20,8 @@ func StringToBytesFast(s *string) []byte {
 	return *(*[]byte)(unsafe.Pointer((*reflect.SliceHeader)(unsafe.Pointer(s))))
 }
 
-// SetSliceLen sets a byte slices length value
+// SetSliceLen sets a byte slices length value.
+// WARNING: You should use `bytes = bytes[:length]` instead, it's just as fast.
 func SetSliceLen(s *[]byte, l int) (old int) {
 	old = len(*s)
 	header := (*reflect.SliceHeader)(unsafe.Pointer(s))

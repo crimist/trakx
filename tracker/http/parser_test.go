@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"net/url"
 	"strings"
 	"testing"
@@ -10,7 +11,7 @@ import (
 
 func TestParse(t *testing.T) {
 	req := []byte("GET /test?param=1&param2=two&test=test%3Ftest HTTP/1.1 bla bla")
-	p, _, err := parse(req, len(req))
+	p, err := parse(req, len(req))
 
 	if err != nil {
 		t.Fatalf("Error when parsing: %v", err)
@@ -36,7 +37,7 @@ func TestParse(t *testing.T) {
 	}
 
 	req = []byte("GET /url?key=value HTTP/1.1")
-	p, _, err = parse(req, len(req))
+	p, err = parse(req, len(req))
 	if err != nil {
 		t.Fatalf("Error when parsing: %v", err)
 	}
@@ -51,6 +52,30 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestUnescapeFast(t *testing.T) {
+	var cases = []struct {
+		name     string
+		input    []byte
+		expected []byte
+	}{
+		{"no escapes", []byte("test"), []byte("test")},
+		{"one escape", []byte("1%002"), []byte("1\x002")},
+		{"only escape", []byte("%ff"), []byte("\xff")},
+		{"real info_hash", []byte("info_hash=%06%d4%cc2%9a%d79%7c%b854%99A%d4%1d%2c%b3%10H%3b"), []byte("info_hash=\x06\xd4\xcc2\x9a\xd79\x7c\xb854\x99A\xd4\x1d\x2c\xb3\x10H\x3b")},
+		{"multipe escapes", []byte("1%002%ba~L"), []byte("1\x002\xba~L")},
+		{"invalid escapes", []byte("1%2"), nil},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			unescaped := unescapeFast(c.input)
+			if !bytes.Equal(unescaped, c.expected) {
+				t.Errorf("Bad unescape\nGot:\n%v\nExpected:\n'%v'\n", hex.Dump(unescaped), hex.Dump(c.expected))
+			}
+		})
+	}
+}
+
 const benchRequest = "GET /benchmark HTTP/1.1\r\nHEADER: VALUE\r\n\r\n"
 
 func BenchmarkParseBasic(b *testing.B) {
@@ -58,7 +83,7 @@ func BenchmarkParseBasic(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		p, _, _ := parse(req, len(req))
+		p, _ := parse(req, len(req))
 		_ = p
 	}
 }
@@ -79,7 +104,7 @@ func BenchmarkParseParams(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		p, _, _ := parse(req, len(req))
+		p, _ := parse(req, len(req))
 		_ = p
 	}
 }
@@ -90,7 +115,7 @@ func BenchmarkParseParamsBase64(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		p, _, _ := parse(req, len(req))
+		p, _ := parse(req, len(req))
 		_ = p
 	}
 }
