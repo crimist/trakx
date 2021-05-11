@@ -29,10 +29,10 @@ func init() {
 	var err error
 	Logger, err = zap.NewDevelopment()
 	if err != nil {
-		panic("failed to init inital zap logger")
+		panic("failed to init initial zap logger")
 	}
 
-	// load embeded filesystem
+	// load embedded filesystem
 	loadEmbed()
 
 	// load config

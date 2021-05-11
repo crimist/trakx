@@ -33,6 +33,7 @@ type expvals struct {
 }
 
 var (
+	// Expvar contains the global expvars
 	Expvar expvals
 )
 

@@ -101,7 +101,7 @@ func (d *Dictionary) Dictionary(key string, v string) {
 	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + v)
 }
 
-// StartDict starts an embeded dictionary with the given string key.
+// StartDict starts an embedded dictionary with the given string key.
 // It must be followed by an EndDict() call otherwise the bencode will be invalid
 func (d *Dictionary) StartDict(key string) {
 	d.startDict(len(key))
@@ -109,7 +109,7 @@ func (d *Dictionary) StartDict(key string) {
 	d.write("d")
 }
 
-// StartDictBytes starts an embeded dictionary with the given byte slice key.
+// StartDictBytes starts an embedded dictionary with the given byte slice key.
 // It must be followed by an EndDict() call otherwise the bencode will be invalid
 func (d *Dictionary) StartDictBytes(key []byte) {
 	d.startDict(len(key))
@@ -121,7 +121,7 @@ func (d *Dictionary) startDict(len int) {
 	d.write(strconv.FormatInt(int64(len), 10) + ":")
 }
 
-// EndDict ends the embeded dictionary. StartDict should be called before
+// EndDict ends the embedded dictionary. StartDict should be called before
 func (d *Dictionary) EndDict() {
 	d.write("e")
 }

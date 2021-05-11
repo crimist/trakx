@@ -62,7 +62,7 @@ func TestUnescapeFast(t *testing.T) {
 		{"one escape", []byte("1%002"), []byte("1\x002")},
 		{"only escape", []byte("%ff"), []byte("\xff")},
 		{"real info_hash", []byte("info_hash=%06%d4%cc2%9a%d79%7c%b854%99A%d4%1d%2c%b3%10H%3b"), []byte("info_hash=\x06\xd4\xcc2\x9a\xd79\x7c\xb854\x99A\xd4\x1d\x2c\xb3\x10H\x3b")},
-		{"multipe escapes", []byte("1%002%ba~L"), []byte("1\x002\xba~L")},
+		{"multiple escapes", []byte("1%002%ba~L"), []byte("1\x002\xba~L")},
 		{"invalid escapes", []byte("1%2"), nil},
 	}
 
