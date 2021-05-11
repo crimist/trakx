@@ -8,8 +8,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/crimist/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/utils"
 	"go.uber.org/zap"
 )
 
@@ -18,28 +19,24 @@ const errClosed = "use of closed network connection"
 type UDPTracker struct {
 	sock     *net.UDPConn
 	conndb   *connectionDatabase
-	conf     *shared.Config
-	logger   *zap.Logger
 	peerdb   storage.Database
 	shutdown chan struct{}
 }
 
 // Init sets the UDP trackers required values
-func (u *UDPTracker) Init(conf *shared.Config, peerdb storage.Database) {
-	u.conndb = newConnectionDatabase(conf.Database.Conn.Timeout, conf.Logger)
-	u.conf = conf
-	u.logger = conf.Logger
+func (u *UDPTracker) Init(peerdb storage.Database) {
+	u.conndb = newConnectionDatabase(config.Conf.Database.Conn.Timeout)
 	u.peerdb = peerdb
 	u.shutdown = make(chan struct{})
 
-	go shared.RunOn(time.Duration(conf.Database.Conn.Trim)*time.Second, u.conndb.trim)
+	go utils.RunOn(time.Duration(config.Conf.Database.Conn.Trim)*time.Second, u.conndb.trim)
 }
 
 // Serve starts the UDP service and begins to serve clients
 func (u *UDPTracker) Serve() {
 	var err error
 
-	u.sock, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: u.conf.Tracker.UDP.Port, Zone: ""})
+	u.sock, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: config.Conf.Tracker.UDP.Port, Zone: ""})
 	if err != nil {
 		panic(err)
 	}
@@ -48,7 +45,7 @@ func (u *UDPTracker) Serve() {
 		New: func() interface{} { return make([]byte, 1496, 1496) }, // 1496 is max size of a scrape with 20 hashes
 	}
 
-	for i := 0; i < u.conf.Tracker.UDP.Threads; i++ {
+	for i := 0; i < config.Conf.Tracker.UDP.Threads; i++ {
 		go func() {
 			for {
 				data := pool.Get().([]byte)
@@ -57,7 +54,7 @@ func (u *UDPTracker) Serve() {
 					if errors.Unwrap(err).Error() == errClosed { // if socket is closed we're done
 						break
 					}
-					u.logger.Error("ReadFromUDP()", zap.Error(err))
+					config.Logger.Error("ReadFromUDP()", zap.Error(err))
 					pool.Put(data)
 					continue
 				}
@@ -73,7 +70,7 @@ func (u *UDPTracker) Serve() {
 
 	select {
 	case _ = <-u.shutdown:
-		u.logger.Info("Closing UDP tracker socket")
+		config.Logger.Info("Closing UDP tracker socket")
 		u.sock.Close()
 	}
 }
@@ -101,7 +98,7 @@ func (u *UDPTracker) WriteConns() {
 		return
 	}
 	if err := u.conndb.write(); err != nil {
-		u.logger.Fatal("Failed to write connection database", zap.Error(err))
+		config.Logger.Fatal("Failed to write connection database", zap.Error(err))
 	}
 }
 
@@ -140,7 +137,7 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 	}
 
 	connid := int64(binary.BigEndian.Uint64(data[0:8]))
-	if ok := u.conndb.check(connid, cAddr); !ok && u.conf.Tracker.UDP.CheckConnID {
+	if ok := u.conndb.check(connid, cAddr); !ok && config.Conf.Tracker.UDP.CheckConnID {
 		msg := u.newClientError("bad connid", txid, cerrFields{"clientID": connid, "ip": ip})
 		u.sock.WriteToUDP(msg, remote)
 		return

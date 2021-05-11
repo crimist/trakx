@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/crimist/trakx/tracker"
-	"github.com/crimist/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/pkg/errors"
 )
 
@@ -124,13 +124,8 @@ func (c *controller) Wipe() error {
 
 // Running checks if trakx is running using bind
 func (c *controller) Running() bool {
-	config, err := shared.LoadConf()
-	if err != nil {
-		panic(err) // TODO: handle
-	}
-
-	if config.Tracker.UDP.Enabled {
-		conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: config.Tracker.UDP.Port, Zone: ""})
+	if config.Conf.Tracker.UDP.Enabled {
+		conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: config.Conf.Tracker.UDP.Port, Zone: ""})
 		if err != nil {
 			if strings.Contains(err.Error(), "address already in use") {
 				return true
@@ -140,8 +135,8 @@ func (c *controller) Running() bool {
 		}
 	}
 
-	if config.Tracker.HTTP.Enabled {
-		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/announce", config.Tracker.HTTP.Port))
+	if config.Conf.Tracker.HTTP.Enabled {
+		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/announce", config.Conf.Tracker.HTTP.Port))
 		if err == nil && resp.StatusCode == 200 {
 			return true
 		}

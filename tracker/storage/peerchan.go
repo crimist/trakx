@@ -1,8 +1,8 @@
 package storage
 
-// worth the 8MB cost as it will stabilize @ the maximum number of peers
+// worth the 4MB cost as it will stabilize @ the maximum number of peers
 // once the tracker has experience a 24hr cycle
-const maxChanSize = 1e6
+const maxChanSize = 5e5
 
 // PeerChan holds the buffered peers like a `sync.Pool`
 var PeerChan peerChan

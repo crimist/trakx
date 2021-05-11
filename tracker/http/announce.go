@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/crimist/trakx/tracker/shared"
-
 	"github.com/crimist/trakx/bencoding"
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/utils/unsafemanip"
 )
 
 type announceParams struct {
@@ -48,7 +48,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	if vals.event == "stopped" {
 		t.peerdb.Drop(hash, peerid)
 		storage.Expvar.AnnouncesOK.Add(1)
-		conn.Write(shared.StringToBytes(httpSuccess))
+		conn.Write(unsafemanip.StringToBytes(httpSuccess))
 		return
 	}
 
@@ -60,7 +60,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	}
 
 	// numwant
-	numwant := int(t.conf.Tracker.Numwant.Default)
+	numwant := int(config.Conf.Tracker.Numwant.Default)
 
 	if vals.numwant != "" {
 		numwantInt, err := strconv.Atoi(vals.numwant)
@@ -70,10 +70,10 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 		}
 
 		// if numwant is within our limit than listen to the client
-		if numwantInt <= int(t.conf.Tracker.Numwant.Limit) {
+		if numwantInt <= int(config.Conf.Tracker.Numwant.Limit) {
 			numwant = numwantInt
 		} else {
-			numwant = int(t.conf.Tracker.Numwant.Limit)
+			numwant = int(config.Conf.Tracker.Numwant.Limit)
 		}
 	}
 
@@ -91,7 +91,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	complete, incomplete := t.peerdb.HashStats(hash)
 
 	d := bencoding.NewDict()
-	d.Int64("interval", int64(t.conf.Tracker.Announce+rand.Int31n(t.conf.Tracker.AnnounceFuzz)))
+	d.Int64("interval", int64(config.Conf.Tracker.Announce+rand.Int31n(config.Conf.Tracker.AnnounceFuzz)))
 	d.Int64("complete", int64(complete))
 	d.Int64("incomplete", int64(incomplete))
 	if vals.compact {
@@ -104,6 +104,6 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	}
 
 	storage.Expvar.AnnouncesOK.Add(1)
-	conn.Write(shared.StringToBytes(httpSuccess))
+	conn.Write(unsafemanip.StringToBytes(httpSuccess))
 	conn.Write(d.GetBytes())
 }

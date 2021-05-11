@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/paths"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/pkg/errors"
@@ -24,7 +25,7 @@ func (bck *FileBackup) Init(db storage.Database) error {
 }
 
 func (bck *FileBackup) Load() error {
-	bck.db.conf.Logger.Info("Loading database from file")
+	config.Logger.Info("Loading database from file")
 	start := time.Now()
 	path := paths.CacheDir + "peers.db"
 
@@ -33,7 +34,7 @@ func (bck *FileBackup) Load() error {
 		// If the file doesn't exist than create an empty database and return success
 		if os.IsNotExist(err) {
 			bck.db.make()
-			bck.db.conf.Logger.Info("Database file not found, created empty database", zap.String("filepath", path))
+			config.Logger.Info("Database file not found, created empty database", zap.String("filepath", path))
 			return nil
 		}
 
@@ -45,7 +46,7 @@ func (bck *FileBackup) Load() error {
 		return errors.Wrap(err, "failed to load file")
 	}
 
-	bck.db.conf.Logger.Info("Loaded database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("took", time.Now().Sub(start)))
+	config.Logger.Info("Loaded database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("took", time.Now().Sub(start)))
 
 	return nil
 }
@@ -87,7 +88,7 @@ func (bck *FileBackup) writeFile() (int, error) {
 
 // Save encodes and writes the database to a file
 func (bck *FileBackup) Save() error {
-	bck.db.conf.Logger.Info("Writing database to file")
+	config.Logger.Info("Writing database to file")
 	start := time.Now()
 
 	size, err := bck.writeFile()
@@ -95,7 +96,7 @@ func (bck *FileBackup) Save() error {
 		return errors.Wrap(err, "failed to save database")
 	}
 
-	bck.db.conf.Logger.Info("Wrote database", zap.Int("size (bytes)", size), zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
+	config.Logger.Info("Wrote database", zap.Int("size (bytes)", size), zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
 
 	return nil
 }

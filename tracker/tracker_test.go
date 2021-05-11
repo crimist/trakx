@@ -287,7 +287,7 @@ func TestUDPAnnounce(t *testing.T) {
 	}
 	s, err := conn.Read(packet)
 	if err != nil {
-		if strings.Contains(err.Error(), "i/o timeout") {
+		if strings.Contains(err.Error(), "i/o timeout") || strings.Contains(err.Error(), "connection refused") {
 			t.Skip(udptimeoutmsg)
 		}
 		t.Fatal(err)
@@ -400,7 +400,7 @@ func TestUDPBadAction(t *testing.T) {
 	}
 	_, err = conn.Read(packet)
 	if err != nil {
-		if strings.Contains(err.Error(), "i/o timeout") {
+		if strings.Contains(err.Error(), "i/o timeout") || strings.Contains(err.Error(), "connection refused") {
 			t.Skip(udptimeoutmsg)
 		}
 		t.Fatal(err)
@@ -460,7 +460,7 @@ func TestUDPBadConnID(t *testing.T) {
 	}
 	s, err := conn.Read(packet)
 	if err != nil {
-		if strings.Contains(err.Error(), "i/o timeout") {
+		if strings.Contains(err.Error(), "i/o timeout") || strings.Contains(err.Error(), "connection refused") {
 			t.Skip(udptimeoutmsg)
 		}
 		t.Fatal(err)
@@ -500,7 +500,7 @@ func TestUDPBadPort(t *testing.T) {
 	}
 	_, err = conn.Read(packet)
 	if err != nil {
-		if strings.Contains(err.Error(), "i/o timeout") {
+		if strings.Contains(err.Error(), "i/o timeout") || strings.Contains(err.Error(), "connection refused") {
 			t.Skip(udptimeoutmsg)
 		}
 		t.Fatal(err)
@@ -574,7 +574,7 @@ func TestUDPTransactionID(t *testing.T) {
 		}
 		size, err := conn.Read(packet)
 		if err != nil {
-			if strings.Contains(err.Error(), "i/o timeout") {
+			if strings.Contains(err.Error(), "i/o timeout") || strings.Contains(err.Error(), "connection refused") {
 				t.Skip(udptimeoutmsg)
 			}
 			t.Fatal(err)

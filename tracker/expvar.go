@@ -5,16 +5,17 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/http"
-	"github.com/crimist/trakx/tracker/shared"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp"
+	"github.com/crimist/trakx/tracker/utils"
 )
 
 var start = time.Now()
 
 // TODO: Adhere to `fast` tag
-func publishExpvar(conf *shared.Config, peerdb storage.Database, httptracker *http.HTTPTracker, udptracker *udp.UDPTracker) {
+func publishExpvar(peerdb storage.Database, httptracker *http.HTTPTracker, udptracker *udp.UDPTracker) {
 	// database
 	ips := expvar.NewInt("trakx.database.ips")
 	hashes := expvar.NewInt("trakx.database.hashes")
@@ -25,7 +26,7 @@ func publishExpvar(conf *shared.Config, peerdb storage.Database, httptracker *ht
 	goroutines := expvar.NewInt("trakx.stats.goroutines")
 	uptime := expvar.NewInt("trakx.stats.uptime")
 
-	shared.RunOn(time.Duration(conf.ExpvarInterval)*time.Second, func() {
+	utils.RunOn(time.Duration(config.Conf.ExpvarInterval)*time.Second, func() {
 		storage.Expvar.IPs.Lock()
 		ips.Set(int64(storage.Expvar.IPs.Len()))
 		storage.Expvar.IPs.Unlock()

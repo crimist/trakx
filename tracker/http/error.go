@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"github.com/crimist/trakx/bencoding"
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
 	"go.uber.org/zap"
 )
@@ -22,5 +23,5 @@ func (t *HTTPTracker) clientError(conn net.Conn, msg string) {
 func (t *HTTPTracker) internalError(conn net.Conn, errmsg string, err error) {
 	storage.Expvar.Errors.Add(1)
 	writeErr(conn, "internal server error")
-	t.logger.Error(errmsg, zap.Error(err))
+	config.Logger.Error(errmsg, zap.Error(err))
 }

@@ -4,8 +4,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/crimist/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/utils"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -27,12 +28,10 @@ type Memory struct {
 	hashmap map[storage.Hash]*PeerMap
 
 	backup storage.Backup
-	conf   *shared.Config
 }
 
-func (db *Memory) Init(conf *shared.Config, backup storage.Backup) error {
+func (db *Memory) Init(backup storage.Backup) error {
 	*db = Memory{
-		conf:   conf,
 		backup: backup,
 	}
 
@@ -43,15 +42,15 @@ func (db *Memory) Init(conf *shared.Config, backup storage.Backup) error {
 		return errors.Wrap(err, "failed to load backup")
 	}
 
-	if conf.Database.Peer.Write > 0 {
-		go shared.RunOn(time.Duration(conf.Database.Peer.Write)*time.Second, func() {
+	if config.Conf.Database.Peer.Write > 0 {
+		go utils.RunOn(time.Duration(config.Conf.Database.Peer.Write)*time.Second, func() {
 			if err := db.backup.Save(); err != nil {
-				conf.Logger.Info("Failed to backup the database", zap.Error(err))
+				config.Logger.Info("Failed to backup the database", zap.Error(err))
 			}
 		})
 	}
-	if conf.Database.Peer.Trim > 0 {
-		go shared.RunOn(time.Duration(conf.Database.Peer.Trim)*time.Second, db.Trim)
+	if config.Conf.Database.Peer.Trim > 0 {
+		go utils.RunOn(time.Duration(config.Conf.Database.Peer.Trim)*time.Second, db.Trim)
 	}
 
 	return nil
@@ -79,12 +78,12 @@ func (db *Memory) Check() bool {
 
 func (db *Memory) Trim() {
 	start := time.Now()
-	db.conf.Logger.Info("Trimming database")
+	config.Logger.Info("Trimming database")
 	peers, hashes := db.trim()
 	if peers < 1 && hashes < 1 {
-		db.conf.Logger.Info("Can't trim database: database empty")
+		config.Logger.Info("Can't trim database: database empty")
 	} else {
-		db.conf.Logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
+		config.Logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Now().Sub(start)))
 	}
 }
 
@@ -97,7 +96,7 @@ func (db *Memory) trim() (peers, hashes int) {
 
 		peermap.Lock()
 		for id, peer := range peermap.peers {
-			if now-peer.LastSeen > db.conf.Database.Peer.Timeout {
+			if now-peer.LastSeen > config.Conf.Database.Peer.Timeout {
 				db.delete(peer, peermap, id)
 				peers++
 			}

@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
 )
 
@@ -82,9 +83,9 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	}
 
 	if announce.NumWant < 1 {
-		announce.NumWant = u.conf.Tracker.Numwant.Default
-	} else if announce.NumWant > u.conf.Tracker.Numwant.Limit {
-		announce.NumWant = u.conf.Tracker.Numwant.Limit
+		announce.NumWant = config.Conf.Tracker.Numwant.Default
+	} else if announce.NumWant > config.Conf.Tracker.Numwant.Limit {
+		announce.NumWant = config.Conf.Tracker.Numwant.Limit
 	}
 
 	if announce.Event == stopped {
@@ -93,7 +94,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		resp := announceResp{
 			Action:        1,
 			TransactionID: announce.TransactionID,
-			Interval:      u.conf.Tracker.Announce + rand.Int31n(u.conf.Tracker.AnnounceFuzz),
+			Interval:      config.Conf.Tracker.Announce + rand.Int31n(config.Conf.Tracker.AnnounceFuzz),
 			Leechers:      0,
 			Seeders:       0,
 			Peers:         []byte{},
@@ -127,7 +128,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	resp := announceResp{
 		Action:        1,
 		TransactionID: announce.TransactionID,
-		Interval:      u.conf.Tracker.Announce + rand.Int31n(u.conf.Tracker.AnnounceFuzz),
+		Interval:      config.Conf.Tracker.Announce + rand.Int31n(config.Conf.Tracker.AnnounceFuzz),
 		Leechers:      int32(incomplete),
 		Seeders:       int32(complete),
 		Peers:         peerlist.Data,

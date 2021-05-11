@@ -4,23 +4,16 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/crimist/trakx/tracker/shared"
 	"github.com/crimist/trakx/tracker/storage"
-	"go.uber.org/zap"
 )
 
 func dbWithHashesAndPeers(hashes, peers int) *Memory {
-	var err error
 	var db Memory
-	db.conf = new(shared.Config)
 
 	storage.Expvar.Seeds.Set(int64(hashes * peers))
 
 	db.make()
 	db.Expvar()
-	if db.conf.Logger, err = zap.NewDevelopment(); err != nil {
-		panic(err)
-	}
 
 	peerid := storage.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	peer := storage.Peer{

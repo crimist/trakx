@@ -3,21 +3,21 @@ package storage
 import (
 	"github.com/pkg/errors"
 
-	"github.com/crimist/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/config"
 )
 
-func Open(conf *shared.Config) (Database, error) {
-	driver, ok := drivers[conf.Database.Type]
+func Open() (Database, error) {
+	driver, ok := drivers[config.Conf.Database.Type]
 	if !ok {
-		return nil, errors.New("Invalid database driver: '" + conf.Database.Type + "'")
+		return nil, errors.New("Invalid database driver: '" + config.Conf.Database.Type + "'")
 	}
 
-	backup, ok := driver.backups[conf.Database.Backup]
+	backup, ok := driver.backups[config.Conf.Database.Backup]
 	if !ok {
-		return nil, errors.New("Invalid backup driver: '" + conf.Database.Backup + "'")
+		return nil, errors.New("Invalid backup driver: '" + config.Conf.Database.Backup + "'")
 	}
 
-	if err := driver.db.Init(conf, backup); err != nil {
+	if err := driver.db.Init(backup); err != nil {
 		return nil, errors.Wrap(err, "failed to init storage driver")
 	}
 
@@ -25,14 +25,14 @@ func Open(conf *shared.Config) (Database, error) {
 		return nil, errors.Wrap(err, "failed to init expvar on storage driver")
 	}
 
-	*peerlistMax = 6 * int(conf.Tracker.Numwant.Limit)
+	*peerlistMax = 6 * int(config.Conf.Tracker.Numwant.Limit)
 
 	return driver.db, nil
 }
 
 type Database interface {
 	// Used to init the database after open()
-	Init(conf *shared.Config, backup Backup) error
+	Init(backup Backup) error
 
 	// Internal functions
 	Check() bool

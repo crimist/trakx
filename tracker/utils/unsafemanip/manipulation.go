@@ -1,7 +1,7 @@
 /*
 	All byte slice and string manipulation functions in this package use unsafe to modify the values. Use these functions with caution.
 */
-package shared
+package unsafemanip
 
 import (
 	"reflect"

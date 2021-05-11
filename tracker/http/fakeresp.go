@@ -5,7 +5,10 @@ import (
 	"net/http"
 )
 
-var fakeHdr http.Header
+var (
+	fakeHdr     http.Header
+	statsHeader = []byte("HTTP/1.1 200\r\nContent-Type: application/json; charset=utf-8\r\n\r\n")
+)
 
 func init() {
 	fakeHdr = make(http.Header)

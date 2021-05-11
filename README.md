@@ -49,6 +49,10 @@ tracker:
 > TRAKX_TRACKER_HTTP_ENABLED=false ./trakx run
 ```
 
+Trakx attempts to load the config from the following directories in this order `".", "~/.config/trakx", "./install", "/app/install"`.
+
+This means you can override the config file by placing a `trakx.yaml` in the directory trakx runs in (`./`).
+
 ### Modifying HTML pages
 
 If you want to change the index or dmca HTML pages edit the files in the `install/` folder and run the following commands.

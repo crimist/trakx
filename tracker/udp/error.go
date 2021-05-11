@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
 	"go.uber.org/zap"
 )
@@ -35,7 +36,7 @@ type cerrFields map[string]interface{}
 func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ...cerrFields) []byte {
 	storage.Expvar.ClientErrors.Add(1)
 
-	if u.conf.LogLevel.Debug() {
+	if config.Conf.LogLevel.Debug() {
 		fields := []zap.Field{zap.String("msg", msg)}
 		if len(fieldMap) == 1 {
 			for k, v := range fieldMap[0] {
@@ -43,7 +44,7 @@ func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ..
 			}
 		}
 
-		u.logger.Info("Client Err", fields...)
+		config.Logger.Info("Client Err", fields...)
 	}
 
 	e := udperror{
@@ -54,7 +55,7 @@ func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ..
 
 	data, err := e.marshall()
 	if err != nil {
-		u.logger.Error("e.Marshall()", zap.Error(err))
+		config.Logger.Error("e.Marshall()", zap.Error(err))
 	}
 	return data
 }
@@ -67,11 +68,11 @@ func (u *UDPTracker) newServerError(msg string, err error, TransactionID int32) 
 		TransactionID: TransactionID,
 		ErrorString:   []byte("internal err"),
 	}
-	u.logger.Error(msg, zap.Error(err))
+	config.Logger.Error(msg, zap.Error(err))
 
 	data, err := e.marshall()
 	if err != nil {
-		u.logger.Error("e.Marshall()", zap.Error(err))
+		config.Logger.Error("e.Marshall()", zap.Error(err))
 	}
 	return data
 }

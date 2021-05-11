@@ -6,6 +6,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/paths"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -27,17 +28,15 @@ type connectionDatabase struct {
 	db map[connAddr]connID
 
 	timeout int64
-	logger  *zap.Logger
 }
 
-func newConnectionDatabase(timeout int64, logger *zap.Logger) *connectionDatabase {
+func newConnectionDatabase(timeout int64) *connectionDatabase {
 	db := connectionDatabase{
 		timeout: timeout,
-		logger:  logger,
 	}
 
 	if err := db.load(); err != nil {
-		logger.Warn("Failed to load connection database, creating empty db", zap.Error(err))
+		config.Logger.Warn("Failed to load connection database, creating empty db", zap.Error(err))
 		db.make()
 	}
 
@@ -73,7 +72,7 @@ func (db *connectionDatabase) check(id int64, addr connAddr) bool {
 
 // spec says to only cache connIDs for 2min but realistically ips changing for ddos is unlikely so higher can be used
 func (db *connectionDatabase) trim() {
-	db.logger.Info("Trimming connection database")
+	config.Logger.Info("Trimming connection database")
 
 	start := time.Now()
 	epoch := start.Unix()
@@ -88,11 +87,11 @@ func (db *connectionDatabase) trim() {
 	}
 	db.mu.Unlock()
 
-	db.logger.Info("Trimmed connection database", zap.Int("removed", trimmed), zap.Int("left", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
+	config.Logger.Info("Trimmed connection database", zap.Int("removed", trimmed), zap.Int("left", db.conns()), zap.Duration("duration", time.Since(start)))
 }
 
 func (db *connectionDatabase) write() (err error) {
-	db.logger.Info("Writing connection database")
+	config.Logger.Info("Writing connection database")
 	start := time.Now()
 
 	defer func() {
@@ -117,12 +116,12 @@ func (db *connectionDatabase) write() (err error) {
 		return errors.Wrap(err, "Failed to write connection database to file")
 	}
 
-	db.logger.Info("Wrote connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
+	config.Logger.Info("Wrote connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Since(start)))
 	return nil
 }
 
 func (db *connectionDatabase) load() (err error) {
-	db.logger.Info("Loading connection database")
+	config.Logger.Info("Loading connection database")
 	start := time.Now()
 
 	defer func() {
@@ -149,7 +148,7 @@ func (db *connectionDatabase) load() (err error) {
 		db.db[addr] = id
 	}
 
-	db.logger.Info("Loaded connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Now().Sub(start)))
+	config.Logger.Info("Loaded connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Since(start)))
 	return nil
 }
 

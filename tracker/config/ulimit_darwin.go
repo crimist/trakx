@@ -1,6 +1,6 @@
 // +build darwin
 
-package shared
+package config
 
 func ulimitBugged() bool {
 	return true

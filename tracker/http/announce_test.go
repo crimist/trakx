@@ -7,9 +7,8 @@ import (
 	"runtime/debug"
 	"testing"
 
-	"github.com/crimist/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
-	"go.uber.org/zap"
 
 	_ "github.com/crimist/trakx/tracker/storage/map"
 )
@@ -19,23 +18,13 @@ import (
 func BenchmarkAnnounce200(b *testing.B) {
 	conn, _ := net.Dial("udp", ":1")
 
-	cfg := zap.NewDevelopmentConfig()
-	cfg.OutputPaths = []string{} // silence
-	logger, err := cfg.Build()
-	if err != nil {
-		b.Error("failed to build zap", err)
-		b.FailNow()
-	}
-
 	tracker := HTTPTracker{}
-	tracker.conf = &shared.Config{}
-	tracker.conf.Logger = logger
-	tracker.conf.Database.Type = "gomap"
-	tracker.conf.Database.Backup = "file"
-	tracker.conf.Tracker.AnnounceFuzz = 1
-	tracker.conf.Tracker.Numwant.Limit = 200 // for peerlistpool
+	config.Conf.Database.Type = "gomap"
+	config.Conf.Database.Backup = "file"
+	config.Conf.Tracker.AnnounceFuzz = 1
+	config.Conf.Tracker.Numwant.Limit = 200 // for peerlistpool
 
-	db, err := storage.Open(tracker.conf)
+	db, err := storage.Open()
 	if err != nil {
 		b.Error("failed to open storage", err)
 		b.FailNow()

@@ -9,8 +9,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/crimist/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/utils/unsafemanip"
 	"go.uber.org/zap"
 )
 
@@ -21,36 +22,33 @@ const (
 var httpSuccess = "HTTP/1.1 200\r\n\r\n"
 
 type HTTPTracker struct {
-	conf     *shared.Config
-	logger   *zap.Logger
 	peerdb   storage.Database
 	workers  workers
 	shutdown chan struct{}
 }
 
 // Init sets the HTTP trackers required values
-func (t *HTTPTracker) Init(conf *shared.Config, peerdb storage.Database) {
-	t.conf = conf
-	t.logger = conf.Logger
+func (t *HTTPTracker) Init(peerdb storage.Database) {
 	t.peerdb = peerdb
 	t.shutdown = make(chan struct{})
 }
 
 // Serve starts the HTTP service and begins to serve clients
 func (t *HTTPTracker) Serve() {
-	t.workers = workers{
-		tracker: t,
-	}
-
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", t.conf.Tracker.HTTP.Port))
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", config.Conf.Tracker.HTTP.Port))
 	if err != nil {
-		t.logger.Panic("net.Listen()", zap.Error(err))
+		config.Logger.Panic("net.Listen()", zap.Error(err))
 	}
 
-	t.workers.startWorkers(t.conf.Tracker.HTTP.Threads, ln)
+	t.workers = workers{
+		tracker:  t,
+		listener: ln,
+	}
+
+	t.workers.startWorkers(config.Conf.Tracker.HTTP.Threads)
 
 	<-t.shutdown
-	t.logger.Info("Closing HTTP tracker listen socket")
+	config.Logger.Info("Closing HTTP tracker listen socket")
 	ln.Close()
 }
 
@@ -64,11 +62,11 @@ func (t *HTTPTracker) Shutdown() {
 }
 
 func redir(c net.Conn, url string) {
-	c.Write(shared.StringToBytes("HTTP/1.1 303\r\nLocation: " + url + "\r\n\r\n"))
+	c.Write(unsafemanip.StringToBytes("HTTP/1.1 303\r\nLocation: " + url + "\r\n\r\n"))
 }
 
 func writeData(c net.Conn, data string) {
-	c.Write(shared.StringToBytes("HTTP/1.1 200\r\n\r\n" + data))
+	c.Write(unsafemanip.StringToBytes("HTTP/1.1 200\r\n\r\n" + data))
 }
 
 func writeDataBytes(c net.Conn, data []byte) {
@@ -76,29 +74,30 @@ func writeDataBytes(c net.Conn, data []byte) {
 }
 
 func writeStatus(c net.Conn, status string) {
-	c.Write(shared.StringToBytes("HTTP/1.1 " + status + "\r\n\r\n"))
+	c.Write(unsafemanip.StringToBytes("HTTP/1.1 " + status + "\r\n\r\n"))
 }
 
 type workers struct {
-	tracker *HTTPTracker
+	tracker  *HTTPTracker
+	listener net.Listener
 }
 
-func (w *workers) startWorkers(num int, ln net.Listener) {
-	w.tracker.logger.Debug("Starting http workers", zap.Int("count", num))
+func (w *workers) startWorkers(num int) {
+	config.Logger.Debug("Starting http workers", zap.Int("count", num))
 	for i := 0; i < num; i++ {
-		go w.work(ln)
+		go w.work()
 	}
 }
 
-func (w *workers) work(ln net.Listener) {
+func (w *workers) work() {
 	expvarHandler := expvar.Handler()
 	statRespWriter := fakeRespWriter{}
-	maxread := time.Duration(w.tracker.conf.Tracker.HTTP.ReadTimeout) * time.Second
-	maxwrite := time.Duration(w.tracker.conf.Tracker.HTTP.WriteTimeout) * time.Second
+	maxread := time.Duration(config.Conf.Tracker.HTTP.ReadTimeout) * time.Second
+	maxwrite := time.Duration(config.Conf.Tracker.HTTP.WriteTimeout) * time.Second
 	data := make([]byte, httpRequestMax)
 
 	for {
-		conn, err := ln.Accept()
+		conn, err := w.listener.Accept()
 		if err != nil {
 			// if socket is closed we're done
 			if errors.Unwrap(err) == net.ErrClosed {
@@ -107,7 +106,7 @@ func (w *workers) work(ln net.Listener) {
 
 			// otherwise log the error
 			storage.Expvar.Errors.Add(1)
-			w.tracker.logger.Warn("net.Listen()", zap.Error(err))
+			config.Logger.Warn("http tracker net accept() failed", zap.Error(err))
 			continue
 		}
 
@@ -131,7 +130,7 @@ func (w *workers) work(ln net.Listener) {
 		} else if err != nil {
 			// error in parse
 			storage.Expvar.Errors.Add(1)
-			w.tracker.logger.Error("error parsing request", zap.Error(err), zap.Any("request data", data))
+			config.Logger.Error("error parsing request", zap.Error(err), zap.Any("request data", data))
 			writeStatus(conn, "500")
 
 			conn.Close()
@@ -195,7 +194,7 @@ func (w *workers) work(ln net.Listener) {
 			}
 
 			if err := ip.Set(ipStr); err != nil {
-				w.tracker.conf.Logger.Warn("failed to parse ip", zap.String("ip", ipStr), zap.Error(err), zap.Any("attempt", ip))
+				config.Logger.Warn("failed to parse ip", zap.String("ip", ipStr), zap.Error(err), zap.Any("attempt", ip))
 
 				w.tracker.clientError(conn, "failed to parse ip: "+err.Error())
 				break
@@ -218,14 +217,14 @@ func (w *workers) work(ln net.Listener) {
 			}
 			w.tracker.scrape(conn, p.Params)
 		case "/":
-			writeData(conn, shared.IndexData)
+			writeData(conn, config.IndexData)
 		case "/dmca":
-			writeData(conn, shared.DMCAData)
+			writeData(conn, config.DMCAData)
 		case "/stats":
 			// Serves expvar handler but it's hacky af
 			statRespWriter.conn = conn
 
-			conn.Write(shared.StringToBytes("HTTP/1.1 200\r\nContent-Type: application/json; charset=utf-8\r\n\r\n"))
+			conn.Write(statsHeader)
 			expvarHandler.ServeHTTP(statRespWriter, nil)
 		default:
 			writeStatus(conn, "404")

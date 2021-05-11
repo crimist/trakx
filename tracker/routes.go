@@ -3,13 +3,13 @@ package tracker
 import (
 	"net/http"
 
-	"github.com/crimist/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/config"
 )
 
 func index(w http.ResponseWriter, r *http.Request) {
-	w.Write(shared.IndexDataBytes)
+	w.Write(config.IndexDataBytes)
 }
 
 func dmca(w http.ResponseWriter, r *http.Request) {
-	w.Write(shared.DMCADataBytes)
+	w.Write(config.DMCADataBytes)
 }

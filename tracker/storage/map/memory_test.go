@@ -3,7 +3,7 @@ package gomap
 import (
 	"testing"
 
-	"github.com/crimist/trakx/tracker/shared"
+	"github.com/crimist/trakx/tracker/config"
 )
 
 const (
@@ -20,30 +20,23 @@ func TestCheck(t *testing.T) {
 }
 
 func TestTrim(t *testing.T) {
-	var c shared.Config
-	c.Database.Peer.Timeout = 0
+	config.Conf.Database.Peer.Timeout = 0
 
 	db := dbWithHashes(150_000)
-	db.conf = &c
-
 	db.trim()
 
 	db, _ = dbWithPeers(200_000)
-	db.conf = &c
-
 	db.trim()
 }
 
 func BenchmarkTrim(b *testing.B) {
-	cfg := new(shared.Config)
-	cfg.Database.Peer.Timeout = -1
+	config.Conf.Database.Peer.Timeout = -1
 
 	b.StopTimer()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		peerdb := dbWithHashesAndPeers(benchHashes, benchPeers)
-		peerdb.conf = cfg
 
 		b.StartTimer()
 		peerdb.trim()

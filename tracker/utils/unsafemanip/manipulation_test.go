@@ -1,4 +1,4 @@
-package shared
+package unsafemanip
 
 import (
 	"bytes"

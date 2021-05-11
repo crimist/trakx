@@ -11,10 +11,8 @@ expvarinterval: 1   # how often to update expvar vals
 PprofPort: 1338     # port to serve pprof over, 0 to disable
 ulimit: 0           # `ulimit -n` - essentially max socket limit, 0 for default
 
-# number of peer pointers to initialize at startup
-# if you know your peak peer count you can set it to this
-# maximum is 1'000'000
-PeerChanMin: 0
+# number of peer pointers to initialize at startup, max: 500'000
+PeerChanMin: 5000
 
 tracker:
   http:
