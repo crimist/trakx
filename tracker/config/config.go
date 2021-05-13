@@ -40,7 +40,11 @@ func init() {
 	if err != nil {
 		Logger.Error("Failed to load a config", zap.Any("config", Conf), zap.Error(err))
 	} else {
-		Logger.Info("Loaded config")
+		if Conf.LogLevel.Debug() {
+			Logger.Debug("Loaded config", zap.Any("config", Conf))
+		} else {
+			Logger.Info("Loaded config")
+		}
 	}
 }
 
@@ -109,6 +113,9 @@ func (conf *Config) Update() error {
 	loggerAtom = zap.NewAtomicLevel()
 	cfg := zap.NewDevelopmentConfig()
 
+	// set LogLevel to lower case (casting nightmare)
+	conf.LogLevel = LogLevel(strings.ToLower(string(conf.LogLevel)))
+
 	if conf.LogLevel.Debug() {
 		cfg.Development = true
 	} else {
@@ -117,7 +124,7 @@ func (conf *Config) Update() error {
 
 	Logger = zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(cfg.EncoderConfig), zapcore.Lock(os.Stdout), loggerAtom))
 
-	switch strings.ToLower(string(conf.LogLevel)) {
+	switch conf.LogLevel {
 	case "debug":
 		loggerAtom.SetLevel(zap.DebugLevel)
 		Logger.Debug("Debug level enabled, debug panics are on")
@@ -144,14 +151,20 @@ func (conf *Config) Update() error {
 			return errors.Wrap(err, "failed to get the NOFILE limit")
 		}
 
+		Logger.Debug("Got nofile limit", zap.Any("limit", rLimit))
+
 		// Bugged on OSX & WSL
 		if ulimitBugged() && conf.Ulimit > 10000 {
+			Logger.Debug("Detected bugged rlimit, capping to 10'000")
 			rLimit.Max = 10000
 			rLimit.Cur = 10000
 		} else {
 			rLimit.Max = conf.Ulimit
 			rLimit.Cur = conf.Ulimit
 		}
+
+		Logger.Debug("Setting nofile limit", zap.Any("limit", rLimit))
+
 		err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 		if err != nil {
 			return errors.Wrap(err, "failed to set the NOFILE limit")
