@@ -3,7 +3,6 @@ package http
 import (
 	"math/rand"
 	"net"
-	"runtime"
 	"runtime/debug"
 	"testing"
 
@@ -15,15 +14,38 @@ import (
 
 // go build -gcflags '-m' -o /dev/null ./... |& grep "moved to heap:"
 
-func BenchmarkAnnounce200(b *testing.B) {
-	conn, _ := net.Dial("udp", ":1")
+const (
+	addr = ":12345"
+)
 
+func BenchmarkAnnounce(b *testing.B) {
+	// open listen
+	ln, err := net.Listen("tcp4", addr)
+	if err != nil {
+		panic(err)
+	}
+
+	// run accepter
+	go func() {
+		for {
+			ln.Accept()
+		}
+	}()
+
+	// establish connection
+	conn, err := net.Dial("tcp4", addr)
+	if err != nil {
+		panic(err)
+	}
+
+	// setup tracker
 	tracker := HTTPTracker{}
 	config.Conf.Database.Type = "gomap"
-	config.Conf.Database.Backup = "file"
+	config.Conf.Database.Backup = "none"
 	config.Conf.Tracker.AnnounceFuzz = 1
-	config.Conf.Tracker.Numwant.Limit = 200 // for peerlistpool
+	config.Conf.Tracker.Numwant.Limit = 300 // for peerlistpool
 
+	// setup db
 	db, err := storage.Open()
 	if err != nil {
 		b.Error("failed to open storage", err)
@@ -31,6 +53,7 @@ func BenchmarkAnnounce200(b *testing.B) {
 	}
 	tracker.peerdb = db
 
+	// setup params
 	params := announceParams{
 		compact:  true,
 		nopeerid: true,
@@ -52,19 +75,23 @@ func BenchmarkAnnounce200(b *testing.B) {
 		return string(b)
 	}
 
-	for i := 0; i < 200; i++ {
+	// init entries in database
+	for i := 0; i < 300; i++ {
 		params.peerid = random20()
 		tracker.announce(conn, &params, ip)
 	}
 
 	gcp := debug.SetGCPercent(-1)
-
 	b.ResetTimer()
+
+	// run benchmark
 	for i := 0; i < b.N; i++ {
+		params.peerid = random20()
 		tracker.announce(conn, &params, ip)
 	}
-	b.StopTimer()
 
-	runtime.GC()
+	// cleanup
+	b.StopTimer()
 	debug.SetGCPercent(gcp)
+	ln.Close()
 }

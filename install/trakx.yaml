@@ -11,7 +11,6 @@ loglevel: "warn"
 # debug vars
 debug:
   # port to serve pprof over, 0 to disable
-  # also serves expvars on `/stats`
   pprofport: 1338
 
   # how often to update expvar vals, 0 to disable

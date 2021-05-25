@@ -9,7 +9,6 @@ import (
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
-	"github.com/crimist/trakx/tracker/utils/unsafemanip"
 )
 
 type announceParams struct {
@@ -48,7 +47,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	if vals.event == "stopped" {
 		t.peerdb.Drop(hash, peerid)
 		storage.Expvar.AnnouncesOK.Add(1)
-		conn.Write(unsafemanip.StringToBytes(httpSuccess))
+		conn.Write(httpSuccessBytes)
 		return
 	}
 
@@ -104,6 +103,10 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	}
 
 	storage.Expvar.AnnouncesOK.Add(1)
-	conn.Write(unsafemanip.StringToBytes(httpSuccess))
-	conn.Write(d.GetBytes())
+
+	// double write no append is more efficient when > ~250 peers in response
+	// conn.Write(httpSuccessBytes)
+	// conn.Write(d.GetBytes())
+
+	conn.Write(append(httpSuccessBytes, d.GetBytes()...))
 }

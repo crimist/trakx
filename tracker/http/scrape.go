@@ -5,7 +5,6 @@ import (
 
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/storage"
-	"github.com/crimist/trakx/tracker/utils/unsafemanip"
 )
 
 func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
@@ -37,5 +36,9 @@ func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
 	}
 
 	d.EndDict()
-	conn.Write(unsafemanip.StringToBytes(httpSuccess + d.Get()))
+
+	// conn.Write(httpSuccessBytes)
+	// conn.Write(d.GetBytes())
+
+	conn.Write(append(httpSuccessBytes, d.GetBytes()...))
 }

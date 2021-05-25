@@ -5,6 +5,8 @@ import (
 	"net/http"
 )
 
+// Hacky fake http response writer to serve expvar over
+
 var (
 	fakeHdr     http.Header
 	statsHeader = []byte("HTTP/1.1 200\r\nContent-Type: application/json; charset=utf-8\r\n\r\n")
