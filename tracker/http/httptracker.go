@@ -13,11 +13,6 @@ const (
 	httpRequestMax = 2600 // enough for scrapes up to 40 info_hashes
 )
 
-var (
-	httpSuccess      = "HTTP/1.1 200\r\n\r\n"
-	httpSuccessBytes = []byte(httpSuccess)
-)
-
 type HTTPTracker struct {
 	peerdb   storage.Database
 	workers  workers

@@ -25,3 +25,9 @@ func BenchmarkAppend(b *testing.B) {
 		_ = append(d1Bytes, d2Bytes...)
 	}
 }
+
+func BenchmarkSliceAdd(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = []byte(d1 + d2)
+	}
+}
