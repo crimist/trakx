@@ -35,6 +35,9 @@ func init() {
 		panic("failed to init initial zap logger")
 	}
 
+	// load paths
+	initPaths()
+
 	// load embedded filesystem
 	loadEmbed()
 
@@ -49,6 +52,8 @@ func init() {
 			Logger.Info("Loaded config")
 		}
 	}
+
+	Logger.Debug("initialized paths", zap.String("config", ConfigDir), zap.String("cache", CacheDir))
 }
 
 // LogLevel is the logging level

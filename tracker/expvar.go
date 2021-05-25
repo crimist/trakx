@@ -17,7 +17,7 @@ var start = time.Now()
 
 // TODO: Adhere to `fast` tag
 func publishExpvar(peerdb storage.Database, httptracker *http.HTTPTracker, udptracker *udp.UDPTracker) {
-	config.Logger.Debug("publishing expvar vars", zap.Int("interval", config.Conf.Debug.ExpvarInterval))
+	config.Logger.Info("publishing expvar vars", zap.Int("interval", config.Conf.Debug.ExpvarInterval))
 
 	// database
 	ips := expvar.NewInt("trakx.database.ips")

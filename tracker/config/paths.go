@@ -1,9 +1,10 @@
-package paths
+package config
 
 import (
-	"fmt"
 	"os"
 	"syscall"
+
+	"go.uber.org/zap"
 )
 
 // automatically sets up the filesys when imported
@@ -22,10 +23,10 @@ var (
 	CacheDir string
 )
 
-func init() {
+func initPaths() {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		panic(fmt.Sprintf("failed to get user home dir: %v", err))
+		Logger.Panic("failed to get user home dir", zap.Error(err))
 	}
 
 	ConfigDir = home + "/.config/trakx/"
@@ -35,10 +36,10 @@ func init() {
 
 	err = os.MkdirAll(CacheDir, FolderPerm)
 	if err != nil {
-		panic(fmt.Sprintf("failed to create cache dir: %v", err))
+		Logger.Panic("failed to create cache dir", zap.Error(err))
 	}
 	err = os.MkdirAll(ConfigDir, FolderPerm)
 	if err != nil {
-		panic(fmt.Sprintf("failed to create config dir: %v", err))
+		Logger.Panic("failed to create config dir", zap.Error(err))
 	}
 }

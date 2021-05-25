@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	_ "github.com/crimist/trakx/statik"
-	"github.com/crimist/trakx/tracker/paths"
 	"github.com/rakyll/statik/fs"
 	"go.uber.org/zap"
 )
@@ -32,13 +31,13 @@ func loadEmbed() {
 	}
 
 	// create config if it doesn't exist
-	_, err = os.Stat(paths.ConfigDir + "trakx.yaml")
+	_, err = os.Stat(ConfigDir + "trakx.yaml")
 	if os.IsNotExist(err) {
 		cfgData, err := fs.ReadFile(fileSys, "/trakx.yaml")
 		if err != nil {
 			Logger.Error("failed to read embedded config", zap.Error(err))
 		}
-		err = ioutil.WriteFile(paths.ConfigDir+"trakx.yaml", cfgData, paths.FilePerm)
+		err = ioutil.WriteFile(ConfigDir+"trakx.yaml", cfgData, FilePerm)
 		if err != nil {
 			Logger.Error("failed to write config file", zap.Error(err))
 		}
