@@ -135,7 +135,7 @@ func (c *controller) Running() bool {
 		}
 	}
 
-	if config.Conf.Tracker.HTTP.Enabled {
+	if config.Conf.Tracker.HTTP.Mode == config.TrackerModeEnabled {
 		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/announce", config.Conf.Tracker.HTTP.Port))
 		if err == nil && resp.StatusCode == 200 {
 			return true

@@ -111,7 +111,7 @@ func (w *workers) work() {
 		}
 
 		now := time.Now()
-		conn.SetDeadline(now.Add(maxread))
+		conn.SetReadDeadline(now.Add(maxread))
 		conn.SetWriteDeadline(now.Add(maxwrite))
 
 		size, err := conn.Read(data)

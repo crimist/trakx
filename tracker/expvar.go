@@ -10,12 +10,15 @@ import (
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp"
 	"github.com/crimist/trakx/tracker/utils"
+	"go.uber.org/zap"
 )
 
 var start = time.Now()
 
 // TODO: Adhere to `fast` tag
 func publishExpvar(peerdb storage.Database, httptracker *http.HTTPTracker, udptracker *udp.UDPTracker) {
+	config.Logger.Debug("publishing expvar vars", zap.Int("interval", config.Conf.Debug.ExpvarInterval))
+
 	// database
 	ips := expvar.NewInt("trakx.database.ips")
 	hashes := expvar.NewInt("trakx.database.hashes")
@@ -26,7 +29,7 @@ func publishExpvar(peerdb storage.Database, httptracker *http.HTTPTracker, udptr
 	goroutines := expvar.NewInt("trakx.stats.goroutines")
 	uptime := expvar.NewInt("trakx.stats.uptime")
 
-	utils.RunOn(time.Duration(config.Conf.ExpvarInterval)*time.Second, func() {
+	utils.RunOn(time.Duration(config.Conf.Debug.ExpvarInterval)*time.Second, func() {
 		storage.Expvar.IPs.Lock()
 		ips.Set(int64(storage.Expvar.IPs.Len()))
 		storage.Expvar.IPs.Unlock()

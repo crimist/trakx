@@ -13,7 +13,10 @@ import (
 )
 
 const (
-	nofileIgnore = 0
+	nofileIgnore        = 0
+	TrackerModeEnabled  = "enabled"
+	TrackerModeInfo     = "info"
+	TrackerModeDisabled = "disabled"
 )
 
 var (
@@ -60,26 +63,28 @@ func (l LogLevel) Debug() (dbg bool) {
 }
 
 type Config struct {
-	LogLevel       LogLevel
-	ExpvarInterval int
-	PprofPort      int
-	Ulimit         uint64
-	PeerChanMin    uint64
-	Tracker        struct {
+	LogLevel LogLevel
+	Debug    struct {
+		PprofPort      int
+		ExpvarInterval int
+		NofileLimit    uint64
+		PeerChanInit   uint64
+		CheckConnIDs   bool
+	}
+	Tracker struct {
 		Announce     int32
 		AnnounceFuzz int32
 		HTTP         struct {
-			Enabled      bool
+			Mode         string
 			Port         int
 			ReadTimeout  int
 			WriteTimeout int
 			Threads      int
 		}
 		UDP struct {
-			Enabled     bool
-			Port        int
-			CheckConnID bool
-			Threads     int
+			Enabled bool
+			Port    int
+			Threads int
 		}
 		Numwant struct {
 			Default int32
@@ -115,6 +120,7 @@ func (conf *Config) Update() error {
 
 	// set LogLevel to lower case (casting nightmare)
 	conf.LogLevel = LogLevel(strings.ToLower(string(conf.LogLevel)))
+	conf.Tracker.HTTP.Mode = strings.ToLower(conf.Tracker.HTTP.Mode)
 
 	if conf.LogLevel.Debug() {
 		cfg.Development = true
@@ -144,7 +150,7 @@ func (conf *Config) Update() error {
 	Logger.Debug("logger created", zap.Any("loglevel", conf.LogLevel))
 
 	// limits
-	if conf.Ulimit != nofileIgnore {
+	if conf.Debug.NofileLimit != nofileIgnore {
 		var rLimit syscall.Rlimit
 		err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
 		if err != nil {
@@ -154,13 +160,13 @@ func (conf *Config) Update() error {
 		Logger.Debug("Got nofile limit", zap.Any("limit", rLimit))
 
 		// Bugged on OSX & WSL
-		if ulimitBugged() && conf.Ulimit > 10000 {
+		if ulimitBugged() && conf.Debug.NofileLimit > 10000 {
 			Logger.Debug("Detected bugged rlimit, capping to 10'000")
 			rLimit.Max = 10000
 			rLimit.Cur = 10000
 		} else {
-			rLimit.Max = conf.Ulimit
-			rLimit.Cur = conf.Ulimit
+			rLimit.Max = conf.Debug.NofileLimit
+			rLimit.Cur = conf.Debug.NofileLimit
 		}
 
 		Logger.Debug("Setting nofile limit", zap.Any("limit", rLimit))

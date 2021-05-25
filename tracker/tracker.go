@@ -38,23 +38,23 @@ func Run() {
 	}
 
 	// init the peerchan with minimum
-	storage.PeerChan.Add(config.Conf.PeerChanMin)
+	storage.PeerChan.Add(config.Conf.Debug.PeerChanInit)
 
 	// run signal handler
 	go signalHandler(peerdb, &udptracker, &httptracker)
 
 	// init pprof if enabled
-	if config.Conf.PprofPort != 0 {
-		config.Logger.Info("pprof enabled", zap.Int("port", config.Conf.PprofPort))
+	if config.Conf.Debug.PprofPort != 0 {
+		config.Logger.Info("pprof enabled", zap.Int("port", config.Conf.Debug.PprofPort))
 		initpprof()
 	}
 
-	if config.Conf.Tracker.HTTP.Enabled {
+	if config.Conf.Tracker.HTTP.Mode == config.TrackerModeEnabled {
 		config.Logger.Info("http tracker enabled", zap.Int("port", config.Conf.Tracker.HTTP.Port))
 
 		httptracker.Init(peerdb)
 		go httptracker.Serve()
-	} else {
+	} else if config.Conf.Tracker.HTTP.Mode == config.TrackerModeInfo {
 		// serve basic html server with index and dmca pages
 		d := bencoding.NewDict()
 		d.Int64("interval", 432000) // 5 days
@@ -91,5 +91,9 @@ func Run() {
 		go udptracker.Serve()
 	}
 
-	publishExpvar(peerdb, &httptracker, &udptracker)
+	if config.Conf.Debug.ExpvarInterval > 0 {
+		publishExpvar(peerdb, &httptracker, &udptracker)
+	} else {
+		select {}
+	}
 }

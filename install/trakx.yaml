@@ -1,46 +1,73 @@
-#########################################################
 # Trakx YAML config
 #   All time is measured in seconds
-# All values in this can be overridden with env vars
-#   For example: `export TRAKX_TRACKER_HTTP_ENABLED=FALSE`
-#                `export TRAKX_LOGLEVEL=ERROR`
+#   All values in this can be overridden with env vars
+#     For example: `TRAKX_TRACKER_HTTP_ENABLED=FALSE TRAKX_LOGLEVEL=ERROR trakx run`
 
-loglevel: "warn"    # "debug", "info", "warn", "error", or "fatal"
-                    # "debug" will run debug only panics
-expvarinterval: 1   # how often to update expvar vals
-PprofPort: 1338     # port to serve pprof over, 0 to disable
-ulimit: 0           # `ulimit -n` - essentially max socket limit, 0 for default
 
-# number of peer pointers to initialize at startup, max: 500'000
-PeerChanMin: 5000
+# "debug", "info", "warn", "error", or "fatal"
+# "debug" will run debug only panics
+loglevel: "warn"
 
+# debug vars
+debug:
+  # port to serve pprof over, 0 to disable
+  # also serves expvars on `/stats`
+  pprofport: 1338
+
+  # how often to update expvar vals, 0 to disable
+  expvarinterval: 1
+
+  # set nofile limit, 0 for default
+  # basically changes the max number of open sockets, equivalent to `ulimit -n`
+  nofilelimit: 0
+
+  # number of peer pointers to initialize at startup, max: 500'000
+  peerchaninit: 5000
+
+  # whether udp tracker validates connection IDs
+  # only disable for debug purposes - if disabled tracker can be abused for UDP amplification
+  checkconnids: true
+
+# tracker vars
 tracker:
+  # announce interval for clients
+  announce: 1800 # 30 min
+  
+  # max number of seconds to add to `announce` to smooth out request frequency
+  announcefuzz: 300 # 5 min
+
+  # http tracker vars
   http:
-    # if disabled the tracker will still run an http server on the port that serves the index and DMCA page
-    enabled: true
+    # "enabled" enables the http tracker, "info" runs an http server that serves the index and DMCA page, "disabled" disables anything http related
+    enabled: "enabled"
+    
     port: 1337
-    # tcp timeouts for http tracker
+    
+    # tcp timeouts in seconds, starting from soon as connection is accepted
     readtimeout: 3
     writetimeout: 10
-    # num of goroutines for http tracker
+
+    # number of worker goroutines to run
     threads: 512
+
+  # udp tracker vars
   udp:
     enabled: true
+    
     port: 1337
-    # validate connection IDs - if disabled tracker can be abused for UDP amplification
-    checkconnid: true
-    # num of goroutines for udp tracker
+    
+    # number of worker goroutines to run
     threads: 512
+
+  # numwant vars
   numwant:
     # default number of peers in response if none specified
     default: 75
-    # max number of peers in response
+    
+    # max number of peers in response, numwants above this will be capped
     limit: 200
-  # announce interval for clients
-  announce: 1800 # 30 min
-  # 0->announcefuzz seconds will randomly be added to the announce interval every request to smooth out request frequency
-  announcefuzz: 300 # 5 min
 
+# database vars
 database:
   # Database type options:
   #   gomap - In memory database using golang maps
@@ -52,15 +79,21 @@ database:
   #   none  - Doesn't backup database
   backup: "none"
   
+  # peer database vars
   peer:
     # How often to check and remove expired peers
     trim: 600 # 10 min
+    
     # How often to backup database in case of crash, 0 to disable
     write: 0
+    
     # Maximum peer age before removal
     timeout: 2400 # 40 min
+  
+  # udp connection database vars
   conn:
     # How often to check and remove expired UDP connection IDs
     trim: 600 # 10 min
+
     # Maximum UDP connection ID age before removal
     timeout: 1800 # 30 min
