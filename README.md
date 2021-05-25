@@ -43,10 +43,10 @@ You can also override config settings with environemnt variables:
 # config file
 tracker:
   http:
-    enabled: true
+    mode: info
 
 # command line
-> TRAKX_TRACKER_HTTP_ENABLED=false ./trakx run
+> TRAKX_TRACKER_HTTP_MODE=info ./trakx run
 ```
 
 Trakx attempts to load the config from the following directories in this order `".", "~/.config/trakx", "./install", "/app/install"`.
@@ -68,7 +68,7 @@ Now future builds will contain the updated files.
 
 You can build with different tags by using `go build/install -tags <tag> .`
 
-* `fast` tag will build without IP, seeds, and leeches metrics which will reduce cpu and memory usage
+* `fast` tag will build without IP, seed, and leech metrics which will reduce cpu and memory usage
 * `heroku` tag will build the service for app engines, this means that when executed the binary will immediately run the tracker rather than the controller
 
 ### Netdata graph install
