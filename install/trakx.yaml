@@ -38,7 +38,7 @@ tracker:
   # http tracker vars
   http:
     # "enabled" enables the http tracker, "info" runs an http server that serves the index and DMCA page, "disabled" disables anything http related
-    enabled: "enabled"
+    mode: "enabled"
     
     port: 1337
     
