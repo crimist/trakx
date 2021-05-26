@@ -18,21 +18,27 @@ const (
 	addr = ":12345"
 )
 
-func BenchmarkAnnounce(b *testing.B) {
+func BenchmarkHTTPAnnounceCompact200(b *testing.B) {
+	b.Log("This benchmark does not reflect the real memory usage of Announce. However it can be used for comparative purposes")
+
 	// open listen
 	ln, err := net.Listen("tcp4", addr)
 	if err != nil {
 		panic(err)
 	}
+	defer ln.Close()
 
-	// run accepter
+	// run accepter & reader
 	go func() {
+		date := make([]byte, 65535)
+		c, _ := ln.Accept()
 		for {
-			ln.Accept()
+			if _, err := c.Read(date); err != nil {
+				break
+			}
 		}
 	}()
 
-	// establish connection
 	conn, err := net.Dial("tcp4", addr)
 	if err != nil {
 		panic(err)
@@ -64,7 +70,7 @@ func BenchmarkAnnounce(b *testing.B) {
 		peerid:   "01234567890123456789",
 		numwant:  "200",
 	}
-	ip := storage.PeerIP{1, 2, 3, 4}
+	ip := storage.PeerIP{123, 123, 123, 123}
 
 	random20 := func() string {
 		var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -86,12 +92,13 @@ func BenchmarkAnnounce(b *testing.B) {
 
 	// run benchmark
 	for i := 0; i < b.N; i++ {
+		b.StopTimer()
 		params.peerid = random20()
+		b.StartTimer()
 		tracker.announce(conn, &params, ip)
 	}
 
 	// cleanup
 	b.StopTimer()
 	debug.SetGCPercent(gcp)
-	ln.Close()
 }
