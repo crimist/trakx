@@ -1,6 +1,6 @@
-# trakx [![Go Report Card](https://godoc.org/github.com/crimist/trakx?status.svg)](https://godoc.org/github.com/crimist/trakx) [![Go Report Card](https://goreportcard.com/badge/github.com/crimist/trakx)](https://goreportcard.com/report/github.com/crimist/trakx)
+# trakx
 
-Fast bittorrent tracker
+Performance focused HTTP & UDP BitTorrent tracker.
 
 ## Performance
 
