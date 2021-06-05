@@ -56,7 +56,7 @@ func Run() {
 		go httptracker.Serve()
 	} else if config.Conf.Tracker.HTTP.Mode == config.TrackerModeInfo {
 		// serve basic html server with index and dmca pages
-		d := bencoding.NewDict()
+		d := bencoding.NewDictionary()
 		d.Int64("interval", 432000) // 5 days
 		errResp := []byte(d.Get())
 

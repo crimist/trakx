@@ -10,9 +10,12 @@ import (
 )
 
 func writeErr(conn net.Conn, msg string) {
-	d := bencoding.NewDict()
+	d := bencoding.GetDictionary()
+
 	d.String("failure reason", msg)
 	conn.Write(append(httpSuccessBytes, d.GetBytes()...))
+
+	bencoding.PutDictionary(d)
 }
 
 func (t *HTTPTracker) clientError(conn net.Conn, msg string) {

@@ -19,7 +19,7 @@ func TestBencodingInt64(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.key, func(t *testing.T) {
-			d := bencoding.NewDict()
+			d := bencoding.NewDictionary()
 			d.Int64(c.key, c.val)
 			if val := d.Get(); val != c.result {
 				t.Errorf("Bad encode: '%s' should be '%s'", val, c.result)
@@ -41,7 +41,7 @@ func TestBencodingString(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.key, func(t *testing.T) {
-			d := bencoding.NewDict()
+			d := bencoding.NewDictionary()
 			d.String(c.key, c.val)
 			if val := d.Get(); val != c.result {
 				t.Errorf("Bad encode: '%s' should be '%s'", val, c.result)
@@ -68,7 +68,7 @@ func TestBencodingAny(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			d := bencoding.NewDict()
+			d := bencoding.NewDictionary()
 			for _, pair := range c.pairs {
 				d.Any(pair.key, pair.val)
 			}
@@ -81,7 +81,7 @@ func TestBencodingAny(t *testing.T) {
 
 func BenchmarkBencodeAnnounceBytes(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		d := bencoding.NewDict()
+		d := bencoding.NewDictionary()
 		d.Int64("interval", int64(1))
 		d.Int64("complete", int64(1))
 		d.Int64("incomplete", int64(1))
@@ -92,7 +92,7 @@ func BenchmarkBencodeAnnounceBytes(b *testing.B) {
 
 func BenchmarkBencodeString(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		d := bencoding.NewDict()
+		d := bencoding.NewDictionary()
 		d.String("key", "value")
 		_ = d.Get()
 	}
@@ -100,7 +100,7 @@ func BenchmarkBencodeString(b *testing.B) {
 
 func BenchmarkBencodeInt64(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		d := bencoding.NewDict()
+		d := bencoding.NewDictionary()
 		d.Int64("key", 0x1337)
 		_ = d.Get()
 	}
@@ -108,7 +108,7 @@ func BenchmarkBencodeInt64(b *testing.B) {
 
 func BenchmarkBencodeStringGetBytes(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		d := bencoding.NewDict()
+		d := bencoding.NewDictionary()
 		d.String("key", "value")
 		_ = d.GetBytes()
 	}
@@ -116,7 +116,7 @@ func BenchmarkBencodeStringGetBytes(b *testing.B) {
 
 func BenchmarkBencodeInt64GetBytes(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		d := bencoding.NewDict()
+		d := bencoding.NewDictionary()
 		d.Int64("key", 0x1337)
 		_ = d.GetBytes()
 	}
@@ -124,7 +124,7 @@ func BenchmarkBencodeInt64GetBytes(b *testing.B) {
 
 func BenchmarkBencodeAnyString(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		d := bencoding.NewDict()
+		d := bencoding.NewDictionary()
 		d.Any("key", "value")
 		_ = d.Get()
 	}
@@ -132,8 +132,8 @@ func BenchmarkBencodeAnyString(b *testing.B) {
 
 func BenchmarkBencodeEmbededDictionary(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		d := bencoding.NewDict()
-		embedDict := bencoding.NewDict()
+		d := bencoding.NewDictionary()
+		embedDict := bencoding.NewDictionary()
 		embedDict.String("key", "value")
 		d.Dictionary("dict", embedDict.Get())
 		_ = d.Get()
@@ -142,12 +142,12 @@ func BenchmarkBencodeEmbededDictionary(b *testing.B) {
 
 func BenchmarkBencodeEmbededDictionaryFast(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		d := bencoding.NewDict()
-		d.StartDict("dict")
+		d := bencoding.NewDictionary()
+		d.StartDictionary("dict")
 		{
 			d.String("key", "value")
 		}
-		d.EndDict()
+		d.EndDictionary()
 		_ = d.Get()
 	}
 }

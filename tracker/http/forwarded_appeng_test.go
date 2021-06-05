@@ -14,6 +14,7 @@ func TestForwarded(t *testing.T) {
 		ip   []byte
 	}{
 		{"single", []byte("GET / HTTP1.1\r\nX-Forwarded-For: 1.1.1.1\r\n\r\n"), []byte("1.1.1.1")},
+		{"single", []byte("GET / HTTP1.1\r\nX-Forwarded-For: 255.255.255.255\r\n\r\n"), []byte("255.255.255.255")},
 		{"multi", []byte("GET / HTTP1.1\r\nX-Forwarded-For: 1.1.1.1, 2.2.2.2\r\n\r\n"), []byte("2.2.2.2")},
 		{"empty", []byte("GET / HTTP1.1\r\nX-Forwarded-For:\r\n\r\n"), nil},
 	}

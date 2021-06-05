@@ -2,65 +2,25 @@ package bencoding
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"unsafe"
 )
 
-func str(str string) string {
-	return fmt.Sprintf("%d:%s", len(str), str)
-}
-
-func integer(num interface{}) string {
-	return fmt.Sprintf("i%de", num)
-}
-
-func list(list ...string) string {
-	encoded := "l"
-	for _, str := range list {
-		encoded += fmt.Sprintf("%d:%s", len(str), str)
-	}
-	encoded += "e"
-	return encoded
-}
-
-func dict(dict ...string) string {
-	encoded := "d"
-	for _, part := range dict {
-		parts := strings.Split(part, " ")
-		// parts[0] key
-		// parts[1] value
-		encoded += str(parts[0]) // Add the key
-
-		if len(parts) > 2 { // its a list
-			// remove index since weve already added it
-			parts = append(parts[:0], parts[0+1:]...)
-			encoded += list(parts...)
-		} else { // string or int
-			valInt, err := strconv.Atoi(parts[1])
-			if err != nil {
-				encoded += integer(valInt)
-			} else {
-				encoded += str(parts[1])
-			}
-		}
-	}
-	encoded += "e"
-	return encoded
-}
+// default Dictionary internal buf length
+const bufLen = 64
 
 // Dictionary holds the encoded key value pairs
 type Dictionary struct {
 	buf []byte
 }
 
-// NewDict returns a new initialized dictionary
-func NewDict() *Dictionary {
-	d := dictChan.Get()
+// NewDictionary returns a new initialized Dictionary
+func NewDictionary() *Dictionary {
+	var d Dictionary
+	d.buf = make([]byte, 0, bufLen)
 	d.write("d")
-	return d
+	return &d
 }
 
 func (d *Dictionary) write(s string) {
@@ -71,13 +31,15 @@ func (d *Dictionary) writeBytes(b []byte) {
 	d.buf = append(d.buf, b[:]...)
 }
 
-func (d *Dictionary) reset() {
+// Reset resets the Dictionary
+func (d *Dictionary) Reset() {
 	/* TODO: Consider implementing a maximum size check to prevent large allocations from permanently increasing memory
 	if len(d.buf) > 10240 {
 		d.buf = nil
 	}
 	*/
 	d.buf = d.buf[:0]
+	d.write("d")
 }
 
 // String writes a string to the dictionary
@@ -103,26 +65,26 @@ func (d *Dictionary) Dictionary(key string, v string) {
 
 // StartDict starts an embedded dictionary with the given string key.
 // It must be followed by an EndDict() call otherwise the bencode will be invalid
-func (d *Dictionary) StartDict(key string) {
-	d.startDict(len(key))
+func (d *Dictionary) StartDictionary(key string) {
+	d.startDictionary(len(key))
 	d.write(key)
 	d.write("d")
 }
 
 // StartDictBytes starts an embedded dictionary with the given byte slice key.
 // It must be followed by an EndDict() call otherwise the bencode will be invalid
-func (d *Dictionary) StartDictBytes(key []byte) {
-	d.startDict(len(key))
+func (d *Dictionary) StartDictionaryBytes(key []byte) {
+	d.startDictionary(len(key))
 	d.writeBytes(key)
 	d.write("d")
 }
 
-func (d *Dictionary) startDict(len int) {
+func (d *Dictionary) startDictionary(len int) {
 	d.write(strconv.FormatInt(int64(len), 10) + ":")
 }
 
 // EndDict ends the embedded dictionary. StartDict should be called before
-func (d *Dictionary) EndDict() {
+func (d *Dictionary) EndDictionary() {
 	d.write("e")
 }
 
@@ -146,19 +108,19 @@ func (d *Dictionary) Any(key string, v interface{}) error {
 		}
 		d.write(list(slice...))
 	case map[string]interface{}:
-		dict := NewDict()
+		dict := GetDictionary()
 		for k, v := range v {
 			dict.Any(k, v)
 		}
 		d.write(dict.Get())
 	case map[string]map[string]int32:
-		dict := NewDict()
+		dict := GetDictionary()
 		for k, v := range v {
 			dict.Any(k, v)
 		}
 		d.write(dict.Get())
 	case map[string]int32:
-		dict := NewDict()
+		dict := GetDictionary()
 		for k, v := range v {
 			dict.Any(k, v)
 		}
@@ -178,9 +140,7 @@ func (d *Dictionary) Any(key string, v interface{}) error {
 func (d *Dictionary) Get() string {
 	d.write("e")
 	s := *(*string)(unsafe.Pointer(&d.buf))
-	d.reset()
 
-	dictChan.Put(d)
 	return s
 }
 
@@ -188,8 +148,6 @@ func (d *Dictionary) Get() string {
 func (d *Dictionary) GetBytes() []byte {
 	d.write("e")
 	b := d.buf
-	d.reset()
 
-	dictChan.Put(d)
 	return b
 }

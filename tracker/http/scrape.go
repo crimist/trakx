@@ -11,8 +11,8 @@ func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
 	storage.Expvar.Scrapes.Add(1)
 	defer storage.Expvar.ScrapesOK.Add(1)
 
-	d := bencoding.NewDict()
-	d.StartDict("files")
+	d := bencoding.GetDictionary()
+	d.StartDictionary("files")
 
 	for _, infohash := range infohashes {
 		if infohash == nil {
@@ -27,18 +27,20 @@ func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
 		copy(hash[:], infohash)
 		complete, incomplete := t.peerdb.HashStats(hash)
 
-		d.StartDictBytes(infohash)
+		d.StartDictionaryBytes(infohash)
 		{
 			d.Int64("complete", int64(complete))
 			d.Int64("incomplete", int64(incomplete))
 		}
-		d.EndDict()
+		d.EndDictionary()
 	}
 
-	d.EndDict()
+	d.EndDictionary()
 
 	// conn.Write(httpSuccessBytes)
 	// conn.Write(d.GetBytes())
 
 	conn.Write(append(httpSuccessBytes, d.GetBytes()...))
+
+	bencoding.PutDictionary(d)
 }

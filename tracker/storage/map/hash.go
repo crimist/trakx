@@ -53,21 +53,26 @@ func (db *Memory) PeerList(h storage.Hash, max int, noPeerID bool) []string {
 
 	var i int
 	peerList := make([]string, max)
+	dict := bencoding.GetDictionary()
+
 	for id, peer := range peermap.peers {
-		dict := bencoding.NewDict()
 		if noPeerID == false {
 			dict.String("peer id", string(id[:]))
 		}
 		dict.String("ip", net.IP(peer.IP[:]).String())
 		dict.Int64("port", int64(peer.Port))
+
 		peerList[i] = dict.Get()
+		dict.Reset()
 
 		i++
 		if i == max {
 			break
 		}
 	}
+
 	peermap.RUnlock()
+	bencoding.PutDictionary(dict)
 
 	return peerList
 }
