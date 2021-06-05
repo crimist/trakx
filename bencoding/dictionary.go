@@ -8,7 +8,7 @@ import (
 )
 
 // default Dictionary internal buf length
-const bufLen = 64
+const bufLen = 32
 
 // Dictionary holds the encoded key value pairs
 type Dictionary struct {
