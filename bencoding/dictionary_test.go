@@ -44,7 +44,45 @@ func TestBencodingString(t *testing.T) {
 			d := bencoding.NewDictionary()
 			d.String(c.key, c.val)
 			if val := d.Get(); val != c.result {
-				t.Errorf("Bad encode: '%s' should be '%s'", val, c.result)
+				t.Errorf("Bad encode of String: '%s' should be '%s'", val, c.result)
+			}
+
+			d = bencoding.NewDictionary()
+			d.StringBytes(c.key, []byte(c.val))
+			if val := d.Get(); val != c.result {
+				t.Errorf("Bad encode of StringBytes: '%s' should be '%s'", val, c.result)
+			}
+		})
+	}
+}
+
+func TestBencodingBytesliceSlice(t *testing.T) {
+	var cases = []struct {
+		key    string
+		val    [][]byte
+		result string
+	}{
+		{"short", [][]byte{[]byte("test")}, "d5:shortl4:testee"},
+		{"long", [][]byte{[]byte("hello"), []byte("world")}, "d4:longl5:hello5:worldee"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.key, func(t *testing.T) {
+			d := bencoding.NewDictionary()
+			d.BytesliceSlice(c.key, c.val)
+			if val := d.Get(); val != c.result {
+				t.Errorf("Bad encode of BytesliceSlice: '%s' should be '%s'", val, c.result)
+			}
+
+			ss := make([]string, len(c.val))
+			for i, v := range c.val {
+				ss[i] = string(v)
+			}
+
+			d = bencoding.NewDictionary()
+			d.Any(c.key, ss)
+			if val := d.Get(); val != c.result {
+				t.Errorf("Bad encode of Any: '%s' should be '%s'", val, c.result)
 			}
 		})
 	}

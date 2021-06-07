@@ -4,7 +4,6 @@ import (
 	"errors"
 	"reflect"
 	"strconv"
-	"unsafe"
 )
 
 // default Dictionary internal buf length
@@ -88,6 +87,16 @@ func (d *Dictionary) EndDictionary() {
 	d.write("e")
 }
 
+// BytesliceSlice writes a list of form byte slice slice ([][]byte) to the dictionary
+func (d *Dictionary) BytesliceSlice(key string, slice [][]byte) {
+	d.write(str(key) + "l")
+	for _, b := range slice {
+		d.write(strconv.Itoa(len(b)) + ":")
+		d.writeBytes(b)
+	}
+	d.write("e")
+}
+
 // Any attempts to decode all types and write them to the dictionary
 //
 // This function is far slower than the rest and should be avoided if possible
@@ -112,19 +121,19 @@ func (d *Dictionary) Any(key string, v interface{}) error {
 		for k, v := range v {
 			dict.Any(k, v)
 		}
-		d.write(dict.Get())
+		d.writeBytes(dict.GetBytes())
 	case map[string]map[string]int32:
 		dict := GetDictionary()
 		for k, v := range v {
 			dict.Any(k, v)
 		}
-		d.write(dict.Get())
+		d.writeBytes(dict.GetBytes())
 	case map[string]int32:
 		dict := GetDictionary()
 		for k, v := range v {
 			dict.Any(k, v)
 		}
-		d.write(dict.Get())
+		d.writeBytes(dict.GetBytes())
 	case int, int8, int16, int32, int64:
 		d.write(integer(v))
 	case uint, uint8, uint16, uint32, uint64:
@@ -139,7 +148,7 @@ func (d *Dictionary) Any(key string, v interface{}) error {
 // Get returns the encoded dictionary as a string. The dictionary cannot be used after this is called.
 func (d *Dictionary) Get() string {
 	d.write("e")
-	s := *(*string)(unsafe.Pointer(&d.buf))
+	s := string(d.buf)
 
 	return s
 }

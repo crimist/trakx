@@ -59,20 +59,20 @@ func Run() {
 	} else if config.Conf.Tracker.HTTP.Mode == config.TrackerModeInfo {
 		// serve basic html server with index and dmca pages
 		d := bencoding.NewDictionary()
-		d.Int64("interval", 432000) // 5 days
-		errResp := []byte(d.Get())
+		d.Int64("interval", 86400) // 1 day
+		errResp := d.GetBytes()
 
-		trackerMux := gohttp.NewServeMux()
-		trackerMux.HandleFunc("/", index)
-		trackerMux.HandleFunc("/dmca", dmca)
-		trackerMux.HandleFunc("/scrape", func(w gohttp.ResponseWriter, r *gohttp.Request) {})
-		trackerMux.HandleFunc("/announce", func(w gohttp.ResponseWriter, r *gohttp.Request) {
+		mux := gohttp.NewServeMux()
+		mux.HandleFunc("/", index)
+		mux.HandleFunc("/dmca", dmca)
+		mux.HandleFunc("/scrape", func(w gohttp.ResponseWriter, r *gohttp.Request) {})
+		mux.HandleFunc("/announce", func(w gohttp.ResponseWriter, r *gohttp.Request) {
 			w.Write(errResp)
 		})
 
 		server := gohttp.Server{
 			Addr:         fmt.Sprintf(":%d", config.Conf.Tracker.HTTP.Port),
-			Handler:      trackerMux,
+			Handler:      mux,
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 7 * time.Second,
 			IdleTimeout:  0,

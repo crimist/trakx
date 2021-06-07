@@ -99,7 +99,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 		peerlist.Put()
 	} else {
 		// Escapes to heap but isn't used in prod much
-		d.Any("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
+		d.BytesliceSlice("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
 	}
 
 	storage.Expvar.AnnouncesOK.Add(1)
@@ -109,6 +109,5 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	// conn.Write(d.GetBytes())
 
 	conn.Write(append(httpSuccessBytes, d.GetBytes()...))
-
 	bencoding.PutDictionary(d)
 }

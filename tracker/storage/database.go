@@ -44,7 +44,7 @@ type Database interface {
 	Drop(Hash, PeerID)
 
 	HashStats(Hash) (uint16, uint16)
-	PeerList(Hash, int, bool) []string
+	PeerList(Hash, int, bool) [][]byte
 	PeerListBytes(Hash, int) *Peerlist
 
 	// Only used for expvar

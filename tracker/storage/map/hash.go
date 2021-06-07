@@ -32,12 +32,12 @@ func (db *Memory) HashStats(h storage.Hash) (complete, incomplete uint16) {
 }
 
 // PeerList returns a peer list for the given hash capped at max
-func (db *Memory) PeerList(h storage.Hash, max int, noPeerID bool) []string {
+func (db *Memory) PeerList(h storage.Hash, max int, noPeerID bool) [][]byte {
 	db.mu.RLock()
 	peermap, ok := db.hashmap[h]
 	db.mu.RUnlock()
 	if !ok {
-		return []string{}
+		return [][]byte{}
 	}
 
 	peermap.RLock()
@@ -48,21 +48,24 @@ func (db *Memory) PeerList(h storage.Hash, max int, noPeerID bool) []string {
 
 	if max == 0 {
 		peermap.RUnlock()
-		return []string{}
+		return [][]byte{}
 	}
 
 	var i int
-	peerList := make([]string, max)
+	peerList := make([][]byte, max)
 	dict := bencoding.GetDictionary()
 
 	for id, peer := range peermap.peers {
-		if noPeerID == false {
+		if !noPeerID {
 			dict.String("peer id", string(id[:]))
 		}
 		dict.String("ip", net.IP(peer.IP[:]).String())
 		dict.Int64("port", int64(peer.Port))
 
-		peerList[i] = dict.Get()
+		b := dict.GetBytes()
+		peerList[i] = make([]byte, len(b))
+		copy(peerList[i], b)
+
 		dict.Reset()
 
 		i++

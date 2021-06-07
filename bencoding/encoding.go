@@ -7,17 +7,65 @@ import (
 )
 
 func str(str string) string {
-	return fmt.Sprintf("%d:%s", len(str), str)
+	return strconv.Itoa(len(str)) + ":" + str
 }
 
-func integer(num interface{}) string {
-	return fmt.Sprintf("i%de", num)
+func integer(num interface{}) (s string) {
+	/* // 69.12 ns/op 31 B/op
+	num64 := func(n interface{}) interface{} {
+		switch n := n.(type) {
+		case int:
+			return int64(n)
+		case int8:
+			return int64(n)
+		case int16:
+			return int64(n)
+		case int32:
+			return int64(n)
+		case int64:
+			return int64(n)
+		case uint:
+			return uint64(n)
+		case uintptr:
+			return uint64(n)
+		case uint8:
+			return uint64(n)
+		case uint16:
+			return uint64(n)
+		case uint32:
+			return uint64(n)
+		case uint64:
+			return uint64(n)
+		}
+		return nil
+	}
+
+	switch i := num64(num); i.(type) {
+	case int64:
+		s = "i" + strconv.FormatInt(i.(int64), 10) + "e"
+	case uint64:
+		s = "i" + strconv.FormatUint(i.(uint64), 10) + "e"
+	}
+	*/
+
+	/* // 69.08 ns/op 31 B/op
+	switch t := num.(type) {
+	case int, int8, int16, int32, int64:
+		s = "i" + strconv.FormatInt(reflect.ValueOf(t).Int(), 10) + "e"
+	case uint, uint8, uint16, uint32, uint64:
+		s = "i" + strconv.FormatUint(reflect.ValueOf(t).Uint(), 10) + "e"
+	}
+	*/
+
+	// 88.22 ns/op 23 B/op
+	s = fmt.Sprintf("i%de", num)
+	return s
 }
 
 func list(list ...string) string {
 	encoded := "l"
-	for _, str := range list {
-		encoded += fmt.Sprintf("%d:%s", len(str), str)
+	for _, s := range list {
+		encoded += str(s)
 	}
 	encoded += "e"
 	return encoded
