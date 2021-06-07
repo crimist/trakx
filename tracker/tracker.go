@@ -3,12 +3,12 @@ package tracker
 import (
 	"fmt"
 	"math/rand"
-	"net/http"
+	gohttp "net/http"
 	"time"
 
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/config"
-	trakxhttp "github.com/crimist/trakx/tracker/http"
+	"github.com/crimist/trakx/tracker/http"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp"
 	"go.uber.org/zap"
@@ -20,7 +20,7 @@ import (
 // Run runs the tracker
 func Run() {
 	var udptracker udp.UDPTracker
-	var httptracker trakxhttp.HTTPTracker
+	var httptracker http.HTTPTracker
 	var err error
 
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
@@ -35,6 +35,8 @@ func Run() {
 	peerdb, err := storage.Open()
 	if err != nil {
 		config.Logger.Fatal("Failed to initialize storage", zap.Error(err))
+	} else {
+		config.Logger.Info("Initialized storage")
 	}
 
 	// init the peerchan with minimum
@@ -60,15 +62,15 @@ func Run() {
 		d.Int64("interval", 432000) // 5 days
 		errResp := []byte(d.Get())
 
-		trackerMux := http.NewServeMux()
+		trackerMux := gohttp.NewServeMux()
 		trackerMux.HandleFunc("/", index)
 		trackerMux.HandleFunc("/dmca", dmca)
-		trackerMux.HandleFunc("/scrape", func(w http.ResponseWriter, r *http.Request) {})
-		trackerMux.HandleFunc("/announce", func(w http.ResponseWriter, r *http.Request) {
+		trackerMux.HandleFunc("/scrape", func(w gohttp.ResponseWriter, r *gohttp.Request) {})
+		trackerMux.HandleFunc("/announce", func(w gohttp.ResponseWriter, r *gohttp.Request) {
 			w.Write(errResp)
 		})
 
-		server := http.Server{
+		server := gohttp.Server{
 			Addr:         fmt.Sprintf(":%d", config.Conf.Tracker.HTTP.Port),
 			Handler:      trackerMux,
 			ReadTimeout:  5 * time.Second,

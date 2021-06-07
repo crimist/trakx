@@ -198,7 +198,7 @@ func Load() (*Config, error) {
 	err = fig.Load(conf,
 		fig.File("trakx.yaml"),
 		fig.UseEnv("trakx"),
-		fig.Dirs(".", home+"/.config/trakx", "./install", "/app/install"),
+		fig.Dirs(".", home+"/.config/trakx", "./embeded", "/app/embeded"),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "fig failed to load a config")

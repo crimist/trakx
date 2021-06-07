@@ -2,10 +2,10 @@ setup:
 	go get -v github.com/rakyll/statik
 
 embed:
-	statik -src install/ -include "*.html,*.yaml" -f
+	statik -src embeded/ -include "*.html,*.yaml" -f -dest embeded/
 
 install:
-	statik -src install/ -include "*.html,*.yaml" -f
+	statik -src embeded/ -include "*.html,*.yaml" -f -dest embeded/
 	go install -v -gcflags='-l=4'
 
 build:

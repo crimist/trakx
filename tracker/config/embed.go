@@ -5,12 +5,12 @@ import (
 	"os"
 	"strings"
 
-	_ "github.com/crimist/trakx/statik"
+	_ "github.com/crimist/trakx/embeded/statik"
 	"github.com/rakyll/statik/fs"
 	"go.uber.org/zap"
 )
 
-// generate with `statik -src ./install -include "*.html,*.yaml"`
+// generate with `statik -src ./embeded -include "*.html,*.yaml"`
 
 const (
 	defaultMessage = "n/a"
