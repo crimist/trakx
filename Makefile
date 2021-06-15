@@ -6,7 +6,7 @@ embed:
 
 install:
 	statik -src embeded/ -include "*.html,*.yaml" -f -dest embeded/
-	go install -v -gcflags='-l=4'
+	go install -v
 
 build:
-	go build -v -gcflags='-l=4' .
+	go build -v
