@@ -25,7 +25,8 @@ func Open() (Database, error) {
 		return nil, errors.Wrap(err, "failed to init expvar on storage driver")
 	}
 
-	*peerlistMax = 6 * int(config.Conf.Tracker.Numwant.Limit)
+	// set peerlistMax based on max numwant limit
+	peerlistMax = 6 * int(config.Conf.Tracker.Numwant.Limit)
 
 	return driver.db, nil
 }

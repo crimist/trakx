@@ -8,12 +8,12 @@ type Peerlist struct {
 	Data []byte
 }
 
-var peerlistMax = new(int)
+var peerlistMax int
 
 var peerlistPool = sync.Pool{New: func() interface{} {
 	Expvar.Pools.Peerlist.Add(1)
 	p := new(Peerlist)
-	p.Data = make([]byte, *peerlistMax)
+	p.Data = make([]byte, peerlistMax)
 	return p
 }}
 
@@ -22,6 +22,6 @@ func GetPeerList() *Peerlist {
 }
 
 func (p *Peerlist) Put() {
-	p.Data = p.Data[:*peerlistMax]
+	p.Data = p.Data[:peerlistMax]
 	peerlistPool.Put(p)
 }
