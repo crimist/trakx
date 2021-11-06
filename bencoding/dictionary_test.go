@@ -36,7 +36,7 @@ func TestBencodingString(t *testing.T) {
 	}{
 		{"short", "hello", "d5:short5:helloe"},
 		{"long", "really_long_string_that_has_lots_of_shit_in_it", "d4:long46:really_long_string_that_has_lots_of_shit_in_ite"},
-		{"specialchars", "this_has controlchars\n", "d12:specialchars22:this_has controlchars\ne"}, // TODO: real special chars test
+		{"specialchars", "this\xFFhas\xFFcontr\x00lchars\n", "d12:specialchars22:this\xFFhas\xFFcontr\x00lchars\ne"},
 	}
 
 	for _, c := range cases {

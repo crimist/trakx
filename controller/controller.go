@@ -25,7 +25,10 @@ var (
 )
 
 func init() {
-	home, _ := os.UserHomeDir() // todo: handle err
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
 	pidFile = strings.ReplaceAll(pidFile, "~", home)
 	logFile = strings.ReplaceAll(logFile, "~", home)
 }

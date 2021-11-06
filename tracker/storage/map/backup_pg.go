@@ -43,7 +43,13 @@ func (bck *PgBackup) Init(db storage.Database) error {
 		return errors.New("nil database on backup Init()")
 	}
 
-	bck.pg, err = sql.Open("postgres", os.Getenv("DATABASE_URL")) // TODO: Unhardcode this, allow conf var for database addr
+	// resolve database address from env variable if needed
+	dbAddress := config.Conf.Database.Address
+	if strings.HasPrefix(dbAddress, "ENV:") {
+		dbAddress = os.Getenv(strings.TrimPrefix(dbAddress, "ENV:"))
+	}
+
+	bck.pg, err = sql.Open("postgres", dbAddress)
 	if err != nil {
 		return errors.Wrap(err, "failed to open pg connection")
 	}

@@ -78,6 +78,11 @@ database:
   #   none  - Doesn't backup database
   backup: "none"
   
+  # address for pg backup
+  #   use "ENV:VARIABLE" for environment variables
+  #   ex: "ENV:TEST" = os.Getenv("TEST")
+  address: "ENV:DATABASE_URL"
+
   # peer database vars
   peer:
     # How often to check and remove expired peers

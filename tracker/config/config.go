@@ -97,9 +97,10 @@ type Config struct {
 		}
 	}
 	Database struct {
-		Type   string
-		Backup string
-		Peer   struct {
+		Type    string
+		Backup  string
+		Address string
+		Peer    struct {
 			Trim    int
 			Write   int
 			Timeout int64
