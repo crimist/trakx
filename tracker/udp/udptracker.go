@@ -10,6 +10,7 @@ import (
 
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/udp/protocol"
 	"github.com/crimist/trakx/tracker/utils"
 	"go.uber.org/zap"
 )
@@ -127,8 +128,8 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 	}
 
 	if action == 0 {
-		c := connect{}
-		if err := c.unmarshall(data); err != nil {
+		c := protocol.Connect{}
+		if err := c.Unmarshall(data); err != nil {
 			msg := u.newServerError("base.unmarshall()", err, txid)
 			u.sock.WriteToUDP(msg, remote)
 		}
@@ -150,16 +151,16 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 			u.sock.WriteToUDP(msg, remote)
 			return
 		}
-		announce := announce{}
-		if err := announce.unmarshall(data); err != nil {
+		announce := protocol.Announce{}
+		if err := announce.Unmarshall(data); err != nil {
 			msg := u.newServerError("announce.unmarshall()", err, txid)
 			u.sock.WriteToUDP(msg, remote)
 			return
 		}
 		u.announce(&announce, remote, addr)
 	case 2:
-		scrape := scrape{}
-		if err := scrape.unmarshall(data); err != nil {
+		scrape := protocol.Scrape{}
+		if err := scrape.Unmarshall(data); err != nil {
 			msg := u.newServerError("scrape.unmarshall()", err, txid)
 			u.sock.WriteToUDP(msg, remote)
 			return

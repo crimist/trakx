@@ -3,7 +3,6 @@ package tracker
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/crimist/trakx/tracker/config"
+	"github.com/crimist/trakx/tracker/udp/protocol"
 	"github.com/go-torrent/bencode"
 )
 
@@ -186,124 +186,6 @@ func TestHTTPAnnounceCompact(t *testing.T) {
 
 // UDP
 
-type Error struct {
-	X struct {
-		Action        int32
-		TransactionID int32
-	}
-	ErrorString []uint8
-}
-
-func (e *Error) Unmarshall(data []byte, size int) {
-	e.ErrorString = make([]uint8, (size - 8))
-	readerX := bytes.NewReader(data[:8])
-	err := binary.Read(readerX, binary.BigEndian, &e.X)
-	if err != nil {
-		panic(err)
-	}
-
-	readerErrorString := bytes.NewReader(data[8:])
-	err = binary.Read(readerErrorString, binary.BigEndian, &e.ErrorString)
-	if err != nil {
-		panic(err)
-	}
-}
-
-type Connect struct {
-	ConnectionID  int64
-	Action        int32
-	TransactionID int32
-}
-
-func (c *Connect) Marshall() []byte {
-	buff := new(bytes.Buffer)
-	binary.Write(buff, binary.BigEndian, c.ConnectionID)
-	binary.Write(buff, binary.BigEndian, c.Action)
-	binary.Write(buff, binary.BigEndian, c.TransactionID)
-	return buff.Bytes()
-}
-
-type ConnectResp struct {
-	Action        int32
-	TransactionID int32
-	ConnectionID  int64
-}
-
-func (cr *ConnectResp) Unmarshall(data []byte) {
-	reader := bytes.NewReader(data)
-	err := binary.Read(reader, binary.BigEndian, cr)
-	if err != nil {
-		panic(err)
-	}
-}
-
-type Announce struct {
-	ConnectionID  int64
-	Action        int32
-	TransactionID int32
-	InfoHash      [20]byte
-	PeerID        [20]byte
-	Downloaded    int64
-	Left          int64
-	Uploaded      int64
-	Event         int32
-	IP            uint32
-	Key           uint32
-	NumWant       int32
-	Port          uint16
-	Extensions    uint16
-}
-
-func (a *Announce) Marshall() []byte {
-	buff := new(bytes.Buffer)
-	binary.Write(buff, binary.BigEndian, a.ConnectionID)
-	binary.Write(buff, binary.BigEndian, a.Action)
-	binary.Write(buff, binary.BigEndian, a.TransactionID)
-	binary.Write(buff, binary.BigEndian, a.InfoHash)
-	binary.Write(buff, binary.BigEndian, a.PeerID)
-	binary.Write(buff, binary.BigEndian, a.Downloaded)
-	binary.Write(buff, binary.BigEndian, a.Left)
-	binary.Write(buff, binary.BigEndian, a.Uploaded)
-	binary.Write(buff, binary.BigEndian, a.Event)
-	binary.Write(buff, binary.BigEndian, a.IP)
-	binary.Write(buff, binary.BigEndian, a.Key)
-	binary.Write(buff, binary.BigEndian, a.NumWant)
-	binary.Write(buff, binary.BigEndian, a.Port)
-	binary.Write(buff, binary.BigEndian, a.Extensions)
-	return buff.Bytes()
-}
-
-type Peer struct {
-	IP   uint32
-	Port uint16
-}
-
-type AnnounceResp struct {
-	X struct {
-		Action        int32
-		TransactionID int32
-		Interval      int32
-		Leechers      int32
-		Seeders       int32
-	}
-	Peers []Peer
-}
-
-func (ar *AnnounceResp) Unmarshall(data []byte, size int) {
-	ar.Peers = make([]Peer, (size-20)/6)
-	readerX := bytes.NewReader(data[:20])
-	err := binary.Read(readerX, binary.BigEndian, &ar.X)
-	if err != nil {
-		panic(err)
-	}
-
-	readerPeers := bytes.NewReader(data[20:])
-	err = binary.Read(readerPeers, binary.BigEndian, &ar.Peers)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func TestUDPAnnounce(t *testing.T) {
 	packet := make([]byte, 0xFFFF)
 	addr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:1337")
@@ -319,13 +201,17 @@ func TestUDPAnnounce(t *testing.T) {
 	conn.SetWriteDeadline(time.Now().Add(udptimeout))
 	conn.SetReadDeadline(time.Now().Add(udptimeout))
 
-	c := Connect{
-		ConnectionID:  0x41727101980,
+	c := protocol.Connect{
+		ProtcolID:     0x41727101980,
 		Action:        0,
 		TransactionID: 1337,
 	}
 
-	if _, err = conn.Write(c.Marshall()); err != nil {
+	data, err := c.Marshall()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = conn.Write(data); err != nil {
 		t.Fatal(err)
 	}
 	s, err := conn.Read(packet)
@@ -336,11 +222,11 @@ func TestUDPAnnounce(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cr := ConnectResp{}
+	cr := protocol.ConnectResp{}
 	cr.Unmarshall(packet)
 
 	if cr.Action == 3 {
-		e := Error{}
+		e := protocol.Error{}
 		e.Unmarshall(packet, s)
 		t.Error("Tracker err:", string(e.ErrorString))
 	}
@@ -352,7 +238,7 @@ func TestUDPAnnounce(t *testing.T) {
 		t.Error("Invalid action should be 0 but got", cr.Action)
 	}
 
-	a := Announce{
+	a := protocol.Announce{
 		ConnectionID:  cr.ConnectionID,
 		Action:        1,
 		TransactionID: 7331,
@@ -365,11 +251,14 @@ func TestUDPAnnounce(t *testing.T) {
 		IP:            0,
 		Key:           0xDEADBEEF,
 		NumWant:       1,
-		Port:          1337,
-		Extensions:    0,
+		Port:          0xAABB,
 	}
 
-	if _, err = conn.Write(a.Marshall()); err != nil {
+	data, err = a.Marshall()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = conn.Write(data); err != nil {
 		t.Error(err)
 	}
 	s, err = conn.Read(packet)
@@ -377,27 +266,27 @@ func TestUDPAnnounce(t *testing.T) {
 		t.Error(err)
 	}
 
-	ar := AnnounceResp{}
+	ar := protocol.AnnounceResp{}
 	ar.Unmarshall(packet, s)
 
-	if ar.X.Action == 3 {
-		e := Error{}
+	if ar.Action == 3 {
+		e := protocol.Error{}
 		e.Unmarshall(packet, s)
 		t.Error("Tracker err:", string(e.ErrorString))
 		return
 	}
 
-	if ar.X.TransactionID != a.TransactionID {
-		t.Error("Invalid transactionID should be", a.TransactionID, "but got", ar.X.TransactionID)
+	if ar.TransactionID != a.TransactionID {
+		t.Error("Invalid transactionID should be", a.TransactionID, "but got", ar.TransactionID)
 	}
-	if ar.X.Action != 1 {
-		t.Error("Invalid action should be 1 but got", ar.X.Action)
+	if ar.Action != 1 {
+		t.Error("Invalid action should be 1 but got", ar.Action)
 	}
-	if ar.X.Leechers != 1 {
-		t.Error("Invalid leechers should be 1 but got", ar.X.Leechers)
+	if ar.Leechers != 1 {
+		t.Error("Invalid leechers should be 1 but got", ar.Leechers)
 	}
-	if ar.X.Seeders != 0 {
-		t.Error("Invalid seeders should be 1 but got", ar.X.Seeders)
+	if ar.Seeders != 0 {
+		t.Error("Invalid seeders should be 1 but got", ar.Seeders)
 	}
 
 	if len(ar.Peers) < 1 {
@@ -405,12 +294,11 @@ func TestUDPAnnounce(t *testing.T) {
 		return
 	}
 
-	if ar.Peers[0].Port != 1337 {
-		t.Error("Invalid peer port should be 1337 but got", ar.Peers[0].Port)
+	if !bytes.Equal(ar.Peers[4:6], []byte{0xAA, 0xBB}) {
+		t.Error("Invalid peer port should be 0xAABB but got", ar.Peers[4:6])
 	}
-	ipstr := fmt.Sprintf("%d.%d.%d.%d", ar.Peers[0].IP>>24, uint16(ar.Peers[0].IP)>>16, uint16(ar.Peers[0].IP)>>8, byte(ar.Peers[0].IP))
-	if ipstr != "127.0.0.1" {
-		t.Error("Invalid peer ip should be 127.0.0.1 but got", ipstr)
+	if !bytes.Equal(ar.Peers[0:4], []byte{127, 0, 0, 1}) {
+		t.Error("Invalid peer ip should be 127.0.0.1 but got", ar.Peers[0:4])
 	}
 }
 
@@ -429,13 +317,17 @@ func TestUDPBadAction(t *testing.T) {
 	conn.SetWriteDeadline(time.Now().Add(udptimeout))
 	conn.SetReadDeadline(time.Now().Add(udptimeout))
 
-	c := Connect{
-		ConnectionID:  0x41727101980,
+	c := protocol.Connect{
+		ProtcolID:     0x41727101980,
 		Action:        0,
 		TransactionID: 1337,
 	}
 
-	if _, err = conn.Write(c.Marshall()); err != nil {
+	data, err := c.Marshall()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = conn.Write(data); err != nil {
 		if strings.Contains(err.Error(), "i/o timeout") {
 			t.Skip(udptimeoutmsg)
 		}
@@ -449,16 +341,20 @@ func TestUDPBadAction(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cr := ConnectResp{}
+	cr := protocol.ConnectResp{}
 	cr.Unmarshall(packet)
 
-	c = Connect{
-		ConnectionID:  cr.ConnectionID,
+	c = protocol.Connect{
+		ProtcolID:     cr.ConnectionID,
 		Action:        0xBAD,
 		TransactionID: 0xDEAD,
 	}
 
-	if _, err = conn.Write(c.Marshall()); err != nil {
+	data, err = c.Marshall()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = conn.Write(data); err != nil {
 		t.Error(err)
 	}
 	s, err := conn.Read(packet)
@@ -466,7 +362,7 @@ func TestUDPBadAction(t *testing.T) {
 		t.Error(err)
 	}
 
-	e := Error{}
+	e := protocol.Error{}
 	e.Unmarshall(packet, s)
 
 	if bytes.Compare(e.ErrorString, []byte("bad action")) != 0 {
@@ -489,13 +385,17 @@ func TestUDPBadConnID(t *testing.T) {
 	conn.SetWriteDeadline(time.Now().Add(udptimeout))
 	conn.SetReadDeadline(time.Now().Add(udptimeout))
 
-	a := Announce{
+	a := protocol.Announce{
 		ConnectionID:  0xBAD, // bad connid
 		Action:        1,
 		TransactionID: 0xDEAD,
 	}
 
-	if _, err = conn.Write(a.Marshall()); err != nil {
+	data, err := a.Marshall()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = conn.Write(data); err != nil {
 		if strings.Contains(err.Error(), "i/o timeout") {
 			t.Skip(udptimeoutmsg)
 		}
@@ -509,7 +409,7 @@ func TestUDPBadConnID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e := Error{}
+	e := protocol.Error{}
 	e.Unmarshall(packet, s)
 
 	if bytes.Compare(e.ErrorString, []byte("bad connid")) != 0 {
@@ -532,13 +432,17 @@ func TestUDPBadPort(t *testing.T) {
 	conn.SetWriteDeadline(time.Now().Add(udptimeout))
 	conn.SetReadDeadline(time.Now().Add(udptimeout))
 
-	c := Connect{
-		ConnectionID:  0x41727101980,
+	c := protocol.Connect{
+		ProtcolID:     0x41727101980,
 		Action:        0,
 		TransactionID: 1337,
 	}
 
-	if _, err = conn.Write(c.Marshall()); err != nil {
+	data, err := c.Marshall()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = conn.Write(data); err != nil {
 		t.Fatal(err)
 	}
 	_, err = conn.Read(packet)
@@ -549,10 +453,10 @@ func TestUDPBadPort(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cr := ConnectResp{}
+	cr := protocol.ConnectResp{}
 	cr.Unmarshall(packet)
 
-	a := Announce{
+	a := protocol.Announce{
 		ConnectionID:  cr.ConnectionID,
 		Action:        1,
 		TransactionID: 7331,
@@ -566,10 +470,13 @@ func TestUDPBadPort(t *testing.T) {
 		Key:           0xDEADBEEF,
 		NumWant:       1,
 		Port:          0,
-		Extensions:    0,
 	}
 
-	if _, err = conn.Write(a.Marshall()); err != nil {
+	data, err = a.Marshall()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = conn.Write(data); err != nil {
 		t.Fatal(err)
 	}
 	s, err := conn.Read(packet)
@@ -577,7 +484,7 @@ func TestUDPBadPort(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e := Error{}
+	e := protocol.Error{}
 	e.Unmarshall(packet, s)
 
 	if bytes.Compare(e.ErrorString, []byte("bad port")) != 0 {
@@ -600,12 +507,15 @@ func TestUDPTransactionID(t *testing.T) {
 	conn.SetWriteDeadline(time.Now().Add(udptimeout))
 	conn.SetReadDeadline(time.Now().Add(udptimeout))
 
-	c := Connect{
-		ConnectionID:  0x41727101980,
+	c := protocol.Connect{
+		ProtcolID:     0x41727101980,
 		Action:        0,
 		TransactionID: 0xBAD,
 	}
-	data := c.Marshall()
+	data, err := c.Marshall()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	for i := 0; i < 1000; i++ {
 
@@ -624,12 +534,12 @@ func TestUDPTransactionID(t *testing.T) {
 		}
 
 		if size != 16 {
-			e := Error{}
+			e := protocol.Error{}
 			e.Unmarshall(packet, size)
 			t.Error(i, "Tracker err:", string(e.ErrorString))
 		}
 
-		cr := ConnectResp{}
+		cr := protocol.ConnectResp{}
 		cr.Unmarshall(packet)
 
 		if cr.TransactionID != 0xBAD {
@@ -690,44 +600,48 @@ func BenchmarkUDPAnnounceStress(b *testing.B) {
 				packet := make([]byte, 0xFFFF)
 				addr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:1337")
 				if err != nil {
-					b.Fatal(err)
+					b.Error(err)
 				}
 
 				conn, err := net.DialUDP("udp", nil, addr)
 				if err != nil {
-					b.Fatal(err)
+					b.Error(err)
 				}
 
 				conn.SetWriteDeadline(time.Now().Add(udptimeout))
 				conn.SetReadDeadline(time.Now().Add(udptimeout))
 
-				c := Connect{
-					ConnectionID:  0x41727101980,
+				c := protocol.Connect{
+					ProtcolID:     0x41727101980,
 					Action:        0,
 					TransactionID: 1337,
 				}
 
-				if _, err = conn.Write(c.Marshall()); err != nil {
-					b.Fatal(err)
+				data, err := c.Marshall()
+				if err != nil {
+					b.Error(err)
+				}
+				if _, err = conn.Write(data); err != nil {
+					b.Error(err)
 				}
 				s, err := conn.Read(packet)
 				if err != nil {
 					if strings.Contains(err.Error(), "i/o timeout") {
 						b.Skip(udptimeoutmsg)
 					}
-					b.Fatal(err)
+					b.Error(err)
 				}
 
-				cr := ConnectResp{}
+				cr := protocol.ConnectResp{}
 				cr.Unmarshall(packet)
 
 				if cr.Action == 3 {
-					e := Error{}
+					e := protocol.Error{}
 					e.Unmarshall(packet, s)
 					b.Error("Tracker err:", string(e.ErrorString))
 				}
 
-				a := Announce{
+				a := protocol.Announce{
 					ConnectionID:  cr.ConnectionID,
 					Action:        1,
 					TransactionID: 7331,
@@ -741,10 +655,13 @@ func BenchmarkUDPAnnounceStress(b *testing.B) {
 					Key:           0xDEADBEEF,
 					NumWant:       1,
 					Port:          1337,
-					Extensions:    0,
 				}
 
-				if _, err = conn.Write(a.Marshall()); err != nil {
+				data, err = a.Marshall()
+				if err != nil {
+					b.Error(err)
+				}
+				if _, err = conn.Write(data); err != nil {
 					b.Error(err)
 				}
 				_, err = conn.Read(packet)

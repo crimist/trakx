@@ -1,49 +1,30 @@
 package udp
 
 import (
-	"bytes"
-	"encoding/binary"
 	"math/rand"
 	"net"
 
 	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/udp/protocol"
 )
 
-type connect struct {
-	ConnectionID  int64
-	Action        int32
-	TransactionID int32
-}
-
-func (c *connect) unmarshall(data []byte) error {
-	return binary.Read(bytes.NewReader(data), binary.BigEndian, c)
-}
-
-type connectResp struct {
-	Action        int32
-	TransactionID int32
-	ConnectionID  int64
-}
-
-func (cr *connectResp) marshall() ([]byte, error) {
-	var buff bytes.Buffer
-	err := binary.Write(&buff, binary.BigEndian, cr)
-	return buff.Bytes(), err
-}
-
-func (u *UDPTracker) connect(connect *connect, remote *net.UDPAddr, addr connAddr) {
+func (u *UDPTracker) connect(connect *protocol.Connect, remote *net.UDPAddr, addr connAddr) {
 	storage.Expvar.Connects.Add(1)
+
+	if connect.ProtcolID != 0x41727101980 {
+		// let it slide
+	}
 
 	id := rand.Int63()
 	u.conndb.add(id, addr)
 
-	resp := connectResp{
+	resp := protocol.ConnectResp{
 		Action:        0,
 		TransactionID: connect.TransactionID,
 		ConnectionID:  id,
 	}
 
-	respBytes, err := resp.marshall()
+	respBytes, err := resp.Marshall()
 	if err != nil {
 		msg := u.newServerError("ConnectResp.Marshall()", err, connect.TransactionID)
 		u.sock.WriteToUDP(msg, remote)

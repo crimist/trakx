@@ -1,78 +1,15 @@
 package udp
 
 import (
-	"bytes"
-	"encoding/binary"
 	"math/rand"
 	"net"
 
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/udp/protocol"
 )
 
-type event int32
-
-const (
-	none      event = 0
-	completed event = 1
-	started   event = 2
-	stopped   event = 3
-)
-
-type announce struct {
-	ConnectionID  int64
-	Action        int32
-	TransactionID int32
-	InfoHash      storage.Hash
-	PeerID        storage.PeerID
-	Downloaded    int64
-	Left          int64
-	Uploaded      int64
-	Event         event
-	IP            uint32
-	Key           uint32
-	NumWant       int32
-	Port          uint16
-	// Extensions    uint16
-}
-
-func (a *announce) unmarshall(data []byte) error {
-	return binary.Read(bytes.NewReader(data), binary.BigEndian, a)
-}
-
-type announceResp struct {
-	Action        int32
-	TransactionID int32
-	Interval      int32
-	Leechers      int32
-	Seeders       int32
-	Peers         []byte
-}
-
-func (ar *announceResp) marshall() ([]byte, error) {
-	buff := new(bytes.Buffer)
-	if err := binary.Write(buff, binary.BigEndian, ar.Action); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buff, binary.BigEndian, ar.TransactionID); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buff, binary.BigEndian, ar.Interval); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buff, binary.BigEndian, ar.Leechers); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buff, binary.BigEndian, ar.Seeders); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(buff, binary.BigEndian, ar.Peers); err != nil {
-		return nil, err
-	}
-	return buff.Bytes(), nil
-}
-
-func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]byte) {
+func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, addr [4]byte) {
 	storage.Expvar.Announces.Add(1)
 
 	if announce.Port == 0 {
@@ -87,10 +24,10 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		announce.NumWant = config.Conf.Tracker.Numwant.Limit
 	}
 
-	if announce.Event == stopped {
+	if announce.Event == protocol.Stopped {
 		u.peerdb.Drop(announce.InfoHash, announce.PeerID)
 
-		resp := announceResp{
+		resp := protocol.AnnounceResp{
 			Action:        1,
 			TransactionID: announce.TransactionID,
 			Interval:      config.Conf.Tracker.Announce + rand.Int31n(config.Conf.Tracker.AnnounceFuzz),
@@ -98,7 +35,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 			Seeders:       0,
 			Peers:         []byte{},
 		}
-		respBytes, err := resp.marshall()
+		respBytes, err := resp.Marshall()
 		if err != nil {
 			msg := u.newServerError("AnnounceResp.Marshall()", err, announce.TransactionID)
 			u.sock.WriteToUDP(msg, remote)
@@ -111,7 +48,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	}
 
 	peerComplete := false
-	if announce.Event == completed || announce.Left == 0 {
+	if announce.Event == protocol.Completed || announce.Left == 0 {
 		peerComplete = true
 	}
 
@@ -119,7 +56,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 	complete, incomplete := u.peerdb.HashStats(announce.InfoHash)
 
 	peerlist := u.peerdb.PeerListBytes(announce.InfoHash, int(announce.NumWant))
-	resp := announceResp{
+	resp := protocol.AnnounceResp{
 		Action:        1,
 		TransactionID: announce.TransactionID,
 		Interval:      config.Conf.Tracker.Announce + rand.Int31n(config.Conf.Tracker.AnnounceFuzz),
@@ -127,7 +64,7 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		Seeders:       int32(complete),
 		Peers:         peerlist.Data,
 	}
-	respBytes, err := resp.marshall()
+	respBytes, err := resp.Marshall()
 	peerlist.Put()
 	if err != nil {
 		msg := u.newServerError("AnnounceResp.Marshall()", err, announce.TransactionID)
