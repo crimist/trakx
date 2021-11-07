@@ -3,6 +3,7 @@ package gomap
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/crimist/trakx/tracker/storage"
 )
@@ -20,9 +21,8 @@ func TestSaveDrop(t *testing.T) {
 		Complete: true,
 		IP:       storage.PeerIP{1, 2, 3, 4},
 		Port:     4321,
-		LastSeen: 1234567890,
 	}
-	db.Save(&savePeer, hash, peerid)
+	db.Save(savePeer.IP, savePeer.Port, savePeer.Complete, hash, peerid)
 
 	getPeer, ok := db.hashmap[hash].peers[peerid]
 	if !ok {
@@ -37,7 +37,7 @@ func TestSaveDrop(t *testing.T) {
 	if getPeer.Port != savePeer.Port {
 		t.Error("Port not equal")
 	}
-	if getPeer.LastSeen != savePeer.LastSeen {
+	if getPeer.LastSeen != time.Now().Unix() {
 		t.Error("LastSeen not equal")
 	}
 
@@ -46,7 +46,7 @@ func TestSaveDrop(t *testing.T) {
 
 func benchmarkSave(b *testing.B, db *Memory, peer storage.Peer, hash storage.Hash, peerid storage.PeerID) {
 	for n := 0; n < b.N; n++ {
-		db.Save(&peer, hash, peerid)
+		db.Save(peer.IP, peer.Port, peer.Complete, hash, peerid)
 	}
 }
 
@@ -90,7 +90,7 @@ func BenchmarkDrop(b *testing.B) {
 
 func benchmarkSaveDrop(b *testing.B, db *Memory, peer storage.Peer, hash storage.Hash, peerid storage.PeerID) {
 	for n := 0; n < b.N; n++ {
-		db.Save(&peer, hash, peerid)
+		db.Save(peer.IP, peer.Port, peer.Complete, hash, peerid)
 		db.Drop(hash, peerid)
 	}
 }
@@ -133,7 +133,7 @@ func benchmarkSaveDropParallel(b *testing.B, routines int) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			db.Save(&peer, hash, peerid)
+			db.Save(peer.IP, peer.Port, peer.Complete, hash, peerid)
 			db.Drop(hash, peerid)
 		}
 	})

@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"math/rand"
 	"net"
-	"time"
 
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
@@ -111,17 +110,12 @@ func (u *UDPTracker) announce(announce *announce, remote *net.UDPAddr, addr [4]b
 		return
 	}
 
-	peer := storage.PeerChan.Get()
-	peer.IP = addr
-	peer.Port = announce.Port
-	peer.LastSeen = time.Now().Unix()
+	peerComplete := false
 	if announce.Event == completed || announce.Left == 0 {
-		peer.Complete = true
-	} else {
-		peer.Complete = false
+		peerComplete = true
 	}
 
-	u.peerdb.Save(peer, announce.InfoHash, announce.PeerID)
+	u.peerdb.Save(addr, announce.Port, peerComplete, announce.InfoHash, announce.PeerID)
 	complete, incomplete := u.peerdb.HashStats(announce.InfoHash)
 
 	peerlist := u.peerdb.PeerListBytes(announce.InfoHash, int(announce.NumWant))

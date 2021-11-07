@@ -5,7 +5,7 @@ module github.com/crimist/trakx
 go 1.13
 
 require (
-	github.com/cbeuw/connutil v0.0.0-20200411215123-966bfaa51ee3 // indirect
+	github.com/cbeuw/connutil v0.0.0-20200411215123-966bfaa51ee3
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-torrent/bencode v0.0.0-20150403200907-4318e12a955c
 	github.com/heroku/x v0.0.28

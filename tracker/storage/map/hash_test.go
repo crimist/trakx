@@ -31,7 +31,7 @@ func dbWithHashesAndPeers(hashes, peers int) *Memory {
 
 		for i := 0; i < peers; i++ {
 			rand.Read(peerid[:])
-			db.Save(&peer, h, peerid)
+			db.Save(peer.IP, peer.Port, peer.Complete, h, peerid)
 		}
 	}
 
@@ -57,7 +57,7 @@ func dbWithHashes(count int) *Memory {
 		rand.Read(hash)
 		copy(h[:], hash)
 
-		db.Save(&peer, h, peerid)
+		db.Save(peer.IP, peer.Port, peer.Complete, h, peerid)
 	}
 
 	return &db
@@ -83,7 +83,7 @@ func dbWithPeers(count int) (*Memory, storage.Hash) {
 		rand.Read(peerid)
 		copy(p[:], peerid)
 
-		db.Save(&peer, hash, p)
+		db.Save(peer.IP, peer.Port, peer.Complete, hash, p)
 	}
 
 	return &db, hash
