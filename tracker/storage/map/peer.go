@@ -18,8 +18,11 @@ func (db *Memory) Save(peer *storage.Peer, h storage.Hash, id storage.PeerID) {
 	}
 
 	// assign the peer
-	peermap.Lock()
+	peermap.RLock()
 	oldpeer, peerExists := peermap.peers[id]
+	peermap.RUnlock()
+
+	peermap.Lock()
 	peermap.peers[id] = peer
 
 	if peerExists {
