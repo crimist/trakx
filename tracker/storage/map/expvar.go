@@ -16,7 +16,7 @@ func (db *Memory) Expvar() error {
 	for _, peermap := range db.hashmap {
 		for _, peer := range peermap.peers {
 			storage.Expvar.IPs.Inc(peer.IP)
-			if peer.Complete == true {
+			if peer.Complete {
 				seeds++
 			} else {
 				leeches++

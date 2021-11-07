@@ -45,7 +45,7 @@ func (bck *FileBackup) Load() error {
 		return errors.Wrap(err, "failed to load file")
 	}
 
-	config.Logger.Info("Loaded database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("took", time.Now().Sub(start)))
+	config.Logger.Info("Loaded database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("took", time.Since(start)))
 
 	return nil
 }
@@ -95,7 +95,7 @@ func (bck *FileBackup) Save() error {
 		return errors.Wrap(err, "failed to save database")
 	}
 
-	config.Logger.Info("Wrote database", zap.Int("size (bytes)", size), zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Now().Sub(start)))
+	config.Logger.Info("Wrote database", zap.Int("size (bytes)", size), zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Since(start)))
 
 	return nil
 }

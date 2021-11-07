@@ -176,10 +176,10 @@ func TestHTTPAnnounceCompact(t *testing.T) {
 	if len(peerBytes) != 6 {
 		t.Fatal("len(peers) should be 6 got", len(peerBytes))
 	}
-	if bytes.Compare(peerBytes[0:4], []byte{127, 0, 0, 1}) != 0 {
+	if !bytes.Equal(peerBytes[0:4], []byte{127, 0, 0, 1}) {
 		t.Error("ip should be [127, 0, 0, 1] got", peerBytes[4:6])
 	}
-	if bytes.Compare(peerBytes[4:6], []byte{0x04, 0xD2}) != 0 {
+	if !bytes.Equal(peerBytes[4:6], []byte{0x04, 0xD2}) {
 		t.Error("port should be [4, 210] got", peerBytes[4:6])
 	}
 }
@@ -365,7 +365,7 @@ func TestUDPBadAction(t *testing.T) {
 	e := protocol.Error{}
 	e.Unmarshall(packet, s)
 
-	if bytes.Compare(e.ErrorString, []byte("bad action")) != 0 {
+	if !bytes.Equal(e.ErrorString, []byte("bad action")) {
 		t.Error("Tracker err should be 'bad action' but got:", string(e.ErrorString))
 	}
 }
@@ -412,7 +412,7 @@ func TestUDPBadConnID(t *testing.T) {
 	e := protocol.Error{}
 	e.Unmarshall(packet, s)
 
-	if bytes.Compare(e.ErrorString, []byte("bad connid")) != 0 {
+	if !bytes.Equal(e.ErrorString, []byte("bad connid")) {
 		t.Error("Tracker err should be 'bad connid' but got:", string(e.ErrorString))
 	}
 }
@@ -487,7 +487,7 @@ func TestUDPBadPort(t *testing.T) {
 	e := protocol.Error{}
 	e.Unmarshall(packet, s)
 
-	if bytes.Compare(e.ErrorString, []byte("bad port")) != 0 {
+	if !bytes.Equal(e.ErrorString, []byte("bad port")) {
 		t.Error("Tracker err should be 'bad port' but got:", string(e.ErrorString))
 	}
 }

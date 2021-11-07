@@ -33,15 +33,15 @@ func (db *Memory) Save(ip storage.PeerIP, port uint16, complete bool, h storage.
 
 	// update peermap completion counts
 	if peerExists {
-		if peer.Complete == false && complete == true {
+		if !peer.Complete && complete {
 			peermap.incomplete--
 			peermap.complete++
-		} else if peer.Complete == true && complete == false {
+		} else if peer.Complete && !complete {
 			peermap.complete--
 			peermap.incomplete++
 		}
 	} else {
-		if complete == true {
+		if complete {
 			peermap.complete++
 		} else {
 			peermap.incomplete++
@@ -53,10 +53,10 @@ func (db *Memory) Save(ip storage.PeerIP, port uint16, complete bool, h storage.
 	if !fast {
 		if peerExists {
 			// They completed
-			if peer.Complete == false && complete == true {
+			if !peer.Complete && complete {
 				storage.Expvar.Leeches.Add(-1)
 				storage.Expvar.Seeds.Add(1)
-			} else if peer.Complete == true && complete == false { // They uncompleted?
+			} else if peer.Complete && !complete { // They uncompleted?
 				storage.Expvar.Seeds.Add(-1)
 				storage.Expvar.Leeches.Add(1)
 			}
@@ -91,7 +91,7 @@ func (db *Memory) Save(ip storage.PeerIP, port uint16, complete bool, h storage.
 func (db *Memory) delete(peer *storage.Peer, pmap *PeerMap, id storage.PeerID) {
 	delete(pmap.peers, id)
 
-	if peer.Complete == true {
+	if peer.Complete {
 		pmap.complete--
 	} else {
 		pmap.incomplete--
@@ -131,7 +131,7 @@ func (db *Memory) Drop(h storage.Hash, id storage.PeerID) {
 	}
 	delete(peermap.peers, id)
 
-	if peer.Complete == true {
+	if peer.Complete {
 		peermap.complete--
 	} else {
 		peermap.incomplete--

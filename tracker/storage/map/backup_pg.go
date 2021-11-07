@@ -82,7 +82,7 @@ func (bck PgBackup) Save() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to encode binary")
 	}
-	config.Logger.Info("Encoded binary", zap.Duration("duration", time.Now().Sub(start)))
+	config.Logger.Info("Encoded binary", zap.Duration("duration", time.Since(start)))
 	start = time.Now()
 
 	_, err = bck.pg.Query("INSERT INTO trakx(bytes) VALUES($1)", data)
@@ -90,7 +90,7 @@ func (bck PgBackup) Save() error {
 		return errors.Wrap(err, "`INSERT` statement failed")
 	}
 
-	config.Logger.Info("Saved database to pg", zap.Any("hash", data[:20]), zap.Duration("pg duration", time.Now().Sub(start)))
+	config.Logger.Info("Saved database to pg", zap.Any("hash", data[:20]), zap.Duration("pg duration", time.Since(start)))
 
 	return nil
 }
@@ -118,7 +118,7 @@ attemptLoad:
 	}
 
 	// If backup is older than 20 min wait a sec for a backup to arrive
-	if time.Now().Sub(ts) > backupRecentWindow && firstTry == true {
+	if time.Since(ts) > backupRecentWindow && firstTry {
 		firstTry = false
 
 		config.Logger.Info("Failed to detect a pg backup within window, waiting...", zap.Duration("window", backupRecentWindow), zap.Duration("wait", backupRecentWait))

@@ -20,7 +20,7 @@ func TestStringToBytes(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			converted := StringToBytes(c.data)
-			if bytes.Compare([]byte(c.data), converted) != 0 {
+			if !bytes.Equal([]byte(c.data), converted) {
 				t.Fatal("Failed to convert data")
 			}
 			if c.size != len(converted) {
@@ -47,7 +47,7 @@ func TestStringToBytesFast(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			converted := StringToBytesFast(&c.data)
-			if bytes.Compare([]byte(c.data), converted) != 0 {
+			if !bytes.Equal([]byte(c.data), converted) {
 				t.Fatal("Failed to convert data")
 			}
 			if c.size != len(converted) {
