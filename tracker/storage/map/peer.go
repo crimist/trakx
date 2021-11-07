@@ -24,12 +24,11 @@ func (db *Memory) Save(ip storage.PeerIP, port uint16, complete bool, h storage.
 	peer, peerExists := peermap.peers[id]
 	peermap.RUnlock()
 
+	peermap.Lock()
 	// if peer does not exist then create
 	if !peerExists {
-		peermap.Lock()
 		peer = storage.PeerChan.Get()
 		peermap.peers[id] = peer
-		peermap.Unlock()
 	}
 
 	// update peermap completion counts
@@ -48,6 +47,7 @@ func (db *Memory) Save(ip storage.PeerIP, port uint16, complete bool, h storage.
 			peermap.incomplete++
 		}
 	}
+	peermap.Unlock()
 
 	// update metrics
 	if !fast {
