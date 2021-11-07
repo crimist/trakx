@@ -4,6 +4,8 @@ import (
 	"os"
 	"runtime"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -25,7 +27,7 @@ func TestInitPaths(t *testing.T) {
 	realHome := os.Getenv(env)
 	err := os.Setenv(env, testHomeVar)
 	if err != nil {
-		t.Fatal("Failed to set home env var")
+		t.Fatal(errors.Wrap(err, "Failed to set home env var"))
 	}
 
 	// check directory are correctly set
@@ -46,5 +48,14 @@ func TestInitPaths(t *testing.T) {
 	}
 
 	// restore real home variable
-	os.Setenv(env, realHome)
+	err = os.Setenv(env, realHome)
+	if err != nil {
+		t.Log(errors.Wrap(err, "failed to restore home env var"))
+	}
+
+	// clean up directories
+	err = os.RemoveAll("./" + testHomeVar + "/")
+	if err != nil {
+		t.Log(errors.Wrap(err, "failed to remove test directory"))
+	}
 }
