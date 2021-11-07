@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	"net"
 	"strconv"
-	"time"
 
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/config"
@@ -76,17 +75,12 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 		}
 	}
 
-	peer := storage.PeerChan.Get()
-	peer.Port = uint16(portInt)
-	peer.IP = ip
-	peer.LastSeen = time.Now().Unix()
+	peerComplete := false
 	if vals.event == "completed" || vals.noneleft {
-		peer.Complete = true
-	} else {
-		peer.Complete = false
+		peerComplete = true
 	}
 
-	t.peerdb.Save(peer, hash, peerid)
+	t.peerdb.Save(ip, uint16(portInt), peerComplete, hash, peerid)
 	complete, incomplete := t.peerdb.HashStats(hash)
 
 	d := bencoding.GetDictionary()

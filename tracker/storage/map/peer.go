@@ -1,69 +1,78 @@
 package gomap
 
 import (
+	"time"
+
 	"github.com/crimist/trakx/tracker/storage"
 )
 
-// Save writes a peer
-func (db *Memory) Save(peer *storage.Peer, h storage.Hash, id storage.PeerID) {
+func (db *Memory) Save(ip storage.PeerIP, port uint16, complete bool, h storage.Hash, id storage.PeerID) {
 	// get/create the map
 	db.mu.RLock()
 	peermap, mapExists := db.hashmap[h]
 	db.mu.RUnlock()
 
+	// if submap doesn't exist create it
 	if !mapExists {
 		db.mu.Lock()
 		peermap = db.makePeermap(h)
 		db.mu.Unlock()
 	}
 
-	// assign the peer
-	peermap.Lock()
-	oldpeer, peerExists := peermap.peers[id]
-	peermap.peers[id] = peer
+	// get peer
+	peermap.RLock()
+	peer, peerExists := peermap.peers[id]
+	peermap.RUnlock()
 
+	// if peer does not exist then create
+	if !peerExists {
+		peermap.Lock()
+		peer = storage.PeerChan.Get()
+		peermap.peers[id] = peer
+		peermap.Unlock()
+	}
+
+	// update peermap completion counts
 	if peerExists {
-		if oldpeer.Complete == false && peer.Complete == true {
+		if peer.Complete == false && complete == true {
 			peermap.incomplete--
 			peermap.complete++
-		} else if oldpeer.Complete == true && peer.Complete == false {
+		} else if peer.Complete == true && complete == false {
 			peermap.complete--
 			peermap.incomplete++
 		}
 	} else {
-		if peer.Complete == true {
+		if complete == true {
 			peermap.complete++
 		} else {
 			peermap.incomplete++
 		}
 	}
 
-	peermap.Unlock()
-
+	// update metrics
 	if !fast {
-		// metric calculation
 		if peerExists {
 			// They completed
-			if oldpeer.Complete == false && peer.Complete == true {
+			if peer.Complete == false && complete == true {
 				storage.Expvar.Leeches.Add(-1)
 				storage.Expvar.Seeds.Add(1)
-			} else if oldpeer.Complete == true && peer.Complete == false { // They uncompleted?
+			} else if peer.Complete == true && complete == false { // They uncompleted?
 				storage.Expvar.Seeds.Add(-1)
 				storage.Expvar.Leeches.Add(1)
 			}
 			// IP changed
-			if oldpeer.IP != peer.IP {
+			if peer.IP != ip {
 				storage.Expvar.IPs.Lock()
-				storage.Expvar.IPs.Remove(oldpeer.IP)
-				storage.Expvar.IPs.Inc(peer.IP)
+				storage.Expvar.IPs.Remove(peer.IP)
+				storage.Expvar.IPs.Inc(ip)
 				storage.Expvar.IPs.Unlock()
 			}
 		} else {
 			storage.Expvar.IPs.Lock()
-			storage.Expvar.IPs.Inc(peer.IP)
+			storage.Expvar.IPs.Inc(ip)
 			storage.Expvar.IPs.Unlock()
 
-			if peer.Complete {
+			if complete {
 				storage.Expvar.Seeds.Add(1)
 			} else {
 				storage.Expvar.Leeches.Add(1)
@@ -71,10 +80,11 @@ func (db *Memory) Save(peer *storage.Peer, h storage.Hash, id storage.PeerID) {
 		}
 	}
 
-	// put back the old peer if it exists
-	if peerExists {
-		storage.PeerChan.Put(oldpeer)
-	}
+	// update peer
+	peer.Complete = complete
+	peer.IP = ip
+	peer.Port = port
+	peer.LastSeen = time.Now().Unix()
 }
 
 // delete is similar to drop but doesn't lock

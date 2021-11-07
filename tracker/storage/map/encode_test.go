@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 
@@ -28,11 +29,11 @@ func TestEncodeBinary(t *testing.T) {
 	peerid := storage.PeerID{0x49, 0x44, 0x49, 0x44, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
 	peer := storage.Peer{
 		Complete: true,
-		IP:       storage.PeerIP{0x49, 0x50, 0x44, 0x52}, // IPDR
-		Port:     0x4f50,                                 // PO
-		LastSeen: 0x4e4545535453414c,                     // LASTSEEN
+		IP:       storage.PeerIP{0x49, 0x50, 0x44, 0x52},
+		Port:     0x4f50,
+		LastSeen: time.Now().Unix(),
 	}
-	db.Save(&peer, hash, peerid)
+	db.Save(peer.IP, peer.Port, peer.Complete, hash, peerid)
 
 	data, _ := db.encodeBinary()
 
@@ -45,8 +46,6 @@ func TestEncodeBinary(t *testing.T) {
 	if !reflect.DeepEqual(*dbpeer, peer) {
 		t.Fatal("Not equal!\n" + hex.Dump(data) + spew.Sdump(peer, *dbpeer))
 	}
-
-	return
 }
 
 func TestEncodeBinaryUnsafe(t *testing.T) {
@@ -59,11 +58,11 @@ func TestEncodeBinaryUnsafe(t *testing.T) {
 	peerid := storage.PeerID{0x49, 0x44, 0x49, 0x44, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
 	peer := storage.Peer{
 		Complete: true,
-		IP:       storage.PeerIP{0x49, 0x50, 0x44, 0x52}, // IPDR
-		Port:     0x4f50,                                 // PO
-		LastSeen: 0x4e4545535453414c,                     // LASTSEEN
+		IP:       storage.PeerIP{0x49, 0x50, 0x44, 0x52},
+		Port:     0x4f50,
+		LastSeen: time.Now().Unix(),
 	}
-	db.Save(&peer, hash, peerid)
+	db.Save(peer.IP, peer.Port, peer.Complete, hash, peerid)
 
 	data, _ := db.encodeBinaryUnsafe()
 	data2, _ := db.encodeBinaryUnsafeAutoalloc()
@@ -87,8 +86,6 @@ func TestEncodeBinaryUnsafe(t *testing.T) {
 	if !reflect.DeepEqual(*dbpeer, peer) {
 		t.Fatal("encodeBinaryUnsafeAutoalloc not equal!\n" + hex.Dump(data) + spew.Sdump(peer, *dbpeer))
 	}
-
-	return
 }
 
 // encode benches

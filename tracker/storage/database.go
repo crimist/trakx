@@ -41,7 +41,7 @@ type Database interface {
 	Trim()
 	Expvar() error
 
-	Save(*Peer, Hash, PeerID)
+	Save(PeerIP, uint16, bool, Hash, PeerID)
 	Drop(Hash, PeerID)
 
 	HashStats(Hash) (uint16, uint16)
