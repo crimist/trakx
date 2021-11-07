@@ -74,5 +74,4 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 
 	storage.Expvar.AnnouncesOK.Add(1)
 	u.sock.WriteToUDP(respBytes, remote)
-	return
 }

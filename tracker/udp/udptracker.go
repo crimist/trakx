@@ -15,7 +15,10 @@ import (
 	"go.uber.org/zap"
 )
 
-const errClosed = "use of closed network connection"
+const (
+	errClosed      = "use of closed network connection"
+	requestSizeMax = 1496 // 1496 is max size of a scrape with 20 hashes
+)
 
 type UDPTracker struct {
 	sock     *net.UDPConn
@@ -43,14 +46,17 @@ func (u *UDPTracker) Serve() {
 	}
 
 	pool := sync.Pool{
-		New: func() interface{} { return make([]byte, 1496, 1496) }, // 1496 is max size of a scrape with 20 hashes
+		New: func() interface{} {
+			slice := make([]byte, requestSizeMax)
+			return &slice
+		},
 	}
 
 	for i := 0; i < config.Conf.Tracker.UDP.Threads; i++ {
 		go func() {
 			for {
-				data := pool.Get().([]byte)
-				l, remote, err := u.sock.ReadFromUDP(data)
+				data := pool.Get().(*[]byte)
+				l, remote, err := u.sock.ReadFromUDP(*data)
 				if err != nil {
 					if errors.Unwrap(err).Error() == errClosed { // if socket is closed we're done
 						break
@@ -61,7 +67,7 @@ func (u *UDPTracker) Serve() {
 				}
 
 				if l > 15 { // 16 = minimum connect
-					u.process(data[:l], remote)
+					u.process((*data)[:l], remote)
 				}
 
 				pool.Put(data)
@@ -69,11 +75,9 @@ func (u *UDPTracker) Serve() {
 		}()
 	}
 
-	select {
-	case _ = <-u.shutdown:
-		config.Logger.Info("Closing UDP tracker socket")
-		u.sock.Close()
-	}
+	<-u.shutdown
+	config.Logger.Info("Closing UDP tracker socket")
+	u.sock.Close()
 }
 
 // Shutdown gracefully closes the UDP service by closing the listening connection

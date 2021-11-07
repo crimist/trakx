@@ -11,10 +11,6 @@ import (
 func (u *UDPTracker) connect(connect *protocol.Connect, remote *net.UDPAddr, addr connAddr) {
 	storage.Expvar.Connects.Add(1)
 
-	if connect.ProtcolID != 0x41727101980 {
-		// let it slide
-	}
-
 	id := rand.Int63()
 	u.conndb.add(id, addr)
 
@@ -33,5 +29,4 @@ func (u *UDPTracker) connect(connect *protocol.Connect, remote *net.UDPAddr, add
 
 	storage.Expvar.ConnectsOK.Add(1)
 	u.sock.WriteToUDP(respBytes, remote)
-	return
 }
