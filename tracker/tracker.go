@@ -48,7 +48,7 @@ func Run() {
 	// init pprof if enabled
 	if config.Conf.Debug.PprofPort != 0 {
 		config.Logger.Info("pprof enabled", zap.Int("port", config.Conf.Debug.PprofPort))
-		initpprof()
+		go runpprof()
 	}
 
 	if config.Conf.Tracker.HTTP.Mode == config.TrackerModeEnabled {
@@ -96,6 +96,7 @@ func Run() {
 	if config.Conf.Debug.ExpvarInterval > 0 {
 		publishExpvar(peerdb, &httptracker, &udptracker)
 	} else {
+		config.Logger.Debug("Finished Run() no expvar - blocking forever")
 		select {}
 	}
 }

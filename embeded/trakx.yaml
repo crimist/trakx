@@ -33,6 +33,7 @@ tracker:
   announce: 1800 # 30 min
   
   # max number of seconds to add to `announce` to smooth out request frequency
+  # announcefuzz must be <= 0
   announcefuzz: 300 # 5 min
 
   # http tracker vars
