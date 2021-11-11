@@ -17,10 +17,10 @@ const (
 )
 
 var (
-	IndexData      = defaultMessage
-	IndexDataBytes = []byte(defaultMessage)
-	DMCAData       = defaultMessage
-	DMCADataBytes  = []byte(defaultMessage)
+	IndexData      = defaultMessage         // http index page string
+	IndexDataBytes = []byte(defaultMessage) // http index page byte slice
+	DMCAData       = defaultMessage         // http dmca page string
+	DMCADataBytes  = []byte(defaultMessage) // http dmca page byte slice
 )
 
 // loadEmbed loads all the embedded files in the exe and sets up crutial filesystem

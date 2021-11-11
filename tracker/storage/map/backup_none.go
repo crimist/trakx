@@ -5,7 +5,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// NoneBackup is an empty backup driver; it simply doesn't back anything up
+// NoneBackup is an empty backup driver. It doesn't back anything up.
 type NoneBackup struct{}
 
 func (bck *NoneBackup) Init(db storage.Database) error {

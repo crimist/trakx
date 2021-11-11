@@ -28,7 +28,7 @@ func TestPeerIPSet(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.input, func(t *testing.T) {
 			var ip PeerIP
-			err := ip.Set(c.input)
+			err := ip.FromString(c.input)
 			if err != nil {
 				// if we wanted to error and they don't match
 				if c.err != nil && err.Error() != c.err.Error() {
@@ -49,7 +49,7 @@ func BenchmarkPeerIPSet(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		var ip PeerIP
-		ip.Set(benchIP)
+		ip.FromString(benchIP)
 	}
 }
 

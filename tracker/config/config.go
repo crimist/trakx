@@ -1,3 +1,6 @@
+/*
+	Config holds configuration information for trakx.
+*/
 package config
 
 import (
@@ -14,13 +17,13 @@ import (
 
 const (
 	nofileIgnore        = 0
-	TrackerModeEnabled  = "enabled"
-	TrackerModeInfo     = "info"
-	TrackerModeDisabled = "disabled"
+	TrackerModeEnabled  = "enabled"  // http tracker enabled
+	TrackerModeInfo     = "info"     // http information server, no tracker
+	TrackerModeDisabled = "disabled" // http disabled
 )
 
 var (
-	// global instance of the config and logger
+	// Global instance of config and logger
 	Conf   *Config
 	Logger *zap.Logger
 
@@ -56,14 +59,15 @@ func init() {
 	Logger.Debug("initialized paths", zap.String("config", ConfigDir), zap.String("cache", CacheDir))
 }
 
-// LogLevel is the logging level
+// LogLevel holds designated logging level
 type LogLevel string
 
-// Debug checks whether the loglevel is set to debug
+// Debug returns true if the loglevel is set to debug.
 func (l LogLevel) Debug() (dbg bool) {
 	if l == "debug" {
 		dbg = true
 	}
+
 	return
 }
 
@@ -112,13 +116,13 @@ type Config struct {
 	}
 }
 
-// Loaded returns true if the config was successfully loaded
+// Loaded returns true if the config was successfully loaded.
 func (conf *Config) Loaded() bool {
 	// Database.Type is required to run so if it's empty we know that the config isn't loaded
 	return conf.Database.Type != ""
 }
 
-// Update creates a logger with the given `config.LogLevel` and sets the desired ulimit
+// Update updates logger and ulimited based on config.
 func (conf *Config) Update() error {
 	// logger and loglvl
 	loggerAtom = zap.NewAtomicLevel()
@@ -186,8 +190,11 @@ func (conf *Config) Update() error {
 	return nil
 }
 
-// Load attempts to load the config from the disk or environment
-// It is called automatically when this package is imported
+// Load attempts to load the config from the disk or environment.
+// The config file must be named "trakx.yaml".
+// Load searches for the config file in ".", "~/.config/trakx", "./embedded", "/app/embedded" in order.
+// Environment variables overwrite file configuration, see trakx.yaml in ./embedded for examples.
+// This function is called when the config package is imported.
 func Load() (*Config, error) {
 	conf := new(Config)
 

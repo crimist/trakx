@@ -1,3 +1,7 @@
+/*
+	Map implements a trakx database through go maps in local memory. It is heavily optimized for performance but cannot be shared accross multiple trackers as it resides in local memory.
+*/
+
 package gomap
 
 import (

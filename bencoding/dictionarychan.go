@@ -10,6 +10,7 @@ func init() {
 	dictionaryChan = make(chan *Dictionary, dictionaryChanMax)
 }
 
+// GetDictionary returns a Dictionary pointer from the Dictionary pool.
 func GetDictionary() *Dictionary {
 	// if empty create new
 	if len(dictionaryChan) == 0 {
@@ -23,6 +24,7 @@ func GetDictionary() *Dictionary {
 	return d
 }
 
+// GetDictionary puts a Dictionary back in the Dictionary pool.
 func PutDictionary(d *Dictionary) {
 	// if queue is full than discard
 	if len(dictionaryChan) == cap(dictionaryChan) {

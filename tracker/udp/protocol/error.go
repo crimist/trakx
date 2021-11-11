@@ -7,12 +7,14 @@ import (
 	"github.com/pkg/errors"
 )
 
+// BitTorrent UDP tracker server error
 type Error struct {
 	Action        int32
 	TransactionID int32
 	ErrorString   []uint8
 }
 
+// Marshall encodes an Error to a byte slice.
 func (e *Error) Marshall() ([]byte, error) {
 	var buff bytes.Buffer
 	buff.Grow(8 + len(e.ErrorString))
@@ -29,8 +31,9 @@ func (e *Error) Marshall() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (e *Error) Unmarshall(data []byte, size int) error {
-	e.ErrorString = make([]uint8, (size - 8))
+// Unmarshall decodes a byte slice into an Error.
+func (e *Error) Unmarshall(data []byte) error {
+	e.ErrorString = make([]uint8, (len(data) - 8))
 	reader := bytes.NewReader(data)
 
 	if err := binary.Read(reader, binary.BigEndian, &e.Action); err != nil {

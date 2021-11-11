@@ -14,7 +14,7 @@ type Dictionary struct {
 	buf []byte
 }
 
-// NewDictionary returns a new initialized Dictionary
+// NewDictionary creates and returns a new initialized Dictionary.
 func NewDictionary() *Dictionary {
 	var d Dictionary
 	d.buf = make([]byte, 0, bufLen)
@@ -30,7 +30,7 @@ func (d *Dictionary) writeBytes(b []byte) {
 	d.buf = append(d.buf, b[:]...)
 }
 
-// Reset resets the Dictionary
+// Reset resets the Dictionary's underlying byte slice.
 func (d *Dictionary) Reset() {
 	/* TODO: Consider implementing a maximum size check to prevent large allocations from permanently increasing memory
 	if len(d.buf) > 10240 {
@@ -41,37 +41,37 @@ func (d *Dictionary) Reset() {
 	d.write("d")
 }
 
-// String writes a string to the dictionary
+// String writes a string to the dictionary.
 func (d *Dictionary) String(key string, v string) {
 	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + strconv.FormatInt(int64(len(v)), 10) + ":" + v)
 }
 
-// StringBytes writes a byte slice to the dictionary
+// StringBytes writes a byte slice to the dictionary.
 func (d *Dictionary) StringBytes(key string, v []byte) {
 	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + strconv.FormatInt(int64(len(v)), 10) + ":")
 	d.writeBytes(v)
 }
 
-// Int64 writes an int64 to the dictionary
+// Int64 writes an int64 to the dictionary.
 func (d *Dictionary) Int64(key string, v int64) {
 	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + "i" + strconv.FormatInt(v, 10) + "e")
 }
 
-// Dictionary writes an encoded dictionary to the dictionary
+// Dictionary writes an encoded dictionary to the dictionary.
 func (d *Dictionary) Dictionary(key string, v string) {
 	d.write(strconv.FormatInt(int64(len(key)), 10) + ":" + key + v)
 }
 
-// StartDict starts an embedded dictionary with the given string key.
-// It must be followed by an EndDict() call otherwise the bencode will be invalid
+// StartDictionary begins an embedded dictionary with the given string key.
+// EndDictionary() must be called to complete the embedded dictionary before Get() is called.
 func (d *Dictionary) StartDictionary(key string) {
 	d.startDictionary(len(key))
 	d.write(key)
 	d.write("d")
 }
 
-// StartDictBytes starts an embedded dictionary with the given byte slice key.
-// It must be followed by an EndDict() call otherwise the bencode will be invalid
+// StartDictionary begins an embedded dictionary with the given byte slice key.
+// EndDictionary() must be called to complete the embedded dictionary before Get() is called.
 func (d *Dictionary) StartDictionaryBytes(key []byte) {
 	d.startDictionary(len(key))
 	d.writeBytes(key)
@@ -82,12 +82,12 @@ func (d *Dictionary) startDictionary(len int) {
 	d.write(strconv.FormatInt(int64(len), 10) + ":")
 }
 
-// EndDict ends the embedded dictionary. StartDict should be called before
+// EndDictionary finishes the embedded dictionary. StartDictionary() should be called before this.
 func (d *Dictionary) EndDictionary() {
 	d.write("e")
 }
 
-// BytesliceSlice writes a list of form byte slice slice ([][]byte) to the dictionary
+// BytesliceSlice writes a list of form byte slice slice ([][]byte) to the dictionary.
 func (d *Dictionary) BytesliceSlice(key string, slice [][]byte) {
 	d.write(str(key) + "l")
 	for _, b := range slice {
@@ -97,9 +97,8 @@ func (d *Dictionary) BytesliceSlice(key string, slice [][]byte) {
 	d.write("e")
 }
 
-// Any attempts to decode all types and write them to the dictionary
-//
-// This function is far slower than the rest and should be avoided if possible
+// Any tries to write given type to dictionary. It returns an error if it is unabled to write the desired type to the dictionary.
+// Any performs far worse than specific type encoding functions and should be avoided when possible.
 func (d *Dictionary) Any(key string, v interface{}) error {
 	// Add the key
 	d.write(str(key))
@@ -139,13 +138,13 @@ func (d *Dictionary) Any(key string, v interface{}) error {
 	case uint, uint8, uint16, uint32, uint64:
 		d.write(integer(v))
 	default:
-		return errors.New("invalid type")
+		return errors.New("failed to write value to dictionary: invalid type")
 	}
 
 	return nil
 }
 
-// Get returns the encoded dictionary as a string. The dictionary cannot be used after this is called.
+// Get returns the encoded dictionary as a string. The dictionary should not be used after.
 func (d *Dictionary) Get() string {
 	d.write("e")
 	s := string(d.buf)
@@ -153,7 +152,7 @@ func (d *Dictionary) Get() string {
 	return s
 }
 
-// GetBytes returns the encoded dictionary as a byte slice. The dictionary cannot be used after this is called.
+// Get returns the encoded dictionary as a byte slice. The dictionary should not be used after.
 func (d *Dictionary) GetBytes() []byte {
 	d.write("e")
 	b := d.buf

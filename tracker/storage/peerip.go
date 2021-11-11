@@ -6,10 +6,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+// PeerIP holds an ipv4 peers IP address.
 type PeerIP [4]byte
 
-// Set sets the ip from a string
-func (ip *PeerIP) Set(s string) error {
+// FromString converts a string to a PeerIP.
+func (ip *PeerIP) FromString(s string) error {
 	var digitpos, arpos = 0, 0
 	var digitar [3]uint8
 

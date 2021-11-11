@@ -1,10 +1,12 @@
 package storage
 
 type (
-	Hash   [20]byte
+	// Hash stores a BitTorrent infohash.
+	Hash [20]byte
+	// PeerID stores a BitTorrent peer ID.
 	PeerID [20]byte
 
-	// Peer holds peer information stores in the database
+	// Peer contains requied peer information for database.
 	Peer struct {
 		Complete bool
 		IP       PeerIP

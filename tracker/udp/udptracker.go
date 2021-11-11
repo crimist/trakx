@@ -1,3 +1,7 @@
+/*
+	Contains UDP tracker for trakx.
+*/
+
 package udp
 
 import (
@@ -27,7 +31,7 @@ type UDPTracker struct {
 	shutdown chan struct{}
 }
 
-// Init sets the UDP trackers required values
+// Init sets up the UDPTracker.
 func (u *UDPTracker) Init(peerdb storage.Database) {
 	u.conndb = newConnectionDatabase(config.Conf.Database.Conn.Timeout)
 	u.peerdb = peerdb
@@ -36,7 +40,7 @@ func (u *UDPTracker) Init(peerdb storage.Database) {
 	go utils.RunOn(time.Duration(config.Conf.Database.Conn.Trim)*time.Second, u.conndb.trim)
 }
 
-// Serve starts the UDP service and begins to serve clients
+// Serve begins listening and serving clients.
 func (u *UDPTracker) Serve() {
 	var err error
 
@@ -80,7 +84,7 @@ func (u *UDPTracker) Serve() {
 	u.sock.Close()
 }
 
-// Shutdown gracefully closes the UDP service by closing the listening connection
+// Shutdown stops the UDP tracker server by closing the socket.
 func (u *UDPTracker) Shutdown() {
 	if u == nil || u.shutdown == nil {
 		return
@@ -89,7 +93,7 @@ func (u *UDPTracker) Shutdown() {
 	u.shutdown <- die
 }
 
-// ConnCount get the number of UDP connections in the UDP connection database
+// ConnCount returns the number of BitTorrent UDP protocol connections in the connection database.
 func (u *UDPTracker) ConnCount() int {
 	if u == nil || u.conndb == nil {
 		return -1
@@ -97,11 +101,12 @@ func (u *UDPTracker) ConnCount() int {
 	return u.conndb.conns()
 }
 
-// WriteConns writes the connection database to the disk
+// WriteConns writes the connection database to the disk.
 func (u *UDPTracker) WriteConns() {
 	if u == nil || u.conndb == nil {
 		return
 	}
+
 	if err := u.conndb.write(); err != nil {
 		config.Logger.Fatal("Failed to write connection database", zap.Error(err))
 	}

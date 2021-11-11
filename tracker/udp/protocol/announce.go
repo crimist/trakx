@@ -10,6 +10,7 @@ import (
 
 type event int32
 
+// tracker announce events
 const (
 	None      event = 0
 	Completed event = 1
@@ -17,6 +18,7 @@ const (
 	Stopped   event = 3
 )
 
+// BitTorrent UDP tracker announce
 type Announce struct {
 	ConnectionID  int64
 	Action        int32
@@ -34,6 +36,7 @@ type Announce struct {
 	// Extensions    uint16
 }
 
+// Marshall encodes an Announce to a byte slice.
 func (a *Announce) Marshall() ([]byte, error) {
 	var buff bytes.Buffer
 	buff.Grow(98)
@@ -43,6 +46,7 @@ func (a *Announce) Marshall() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
+// Unmarshall decodes a byte slice into an Announce.
 func (a *Announce) Unmarshall(data []byte) error {
 	if err := binary.Read(bytes.NewReader(data), binary.BigEndian, a); err != nil {
 		errors.Wrap(err, "failed to decode announce")
@@ -51,6 +55,7 @@ func (a *Announce) Unmarshall(data []byte) error {
 	return nil
 }
 
+// BitTorrent UDP tracker announce response
 type AnnounceResp struct {
 	Action        int32
 	TransactionID int32
@@ -60,6 +65,7 @@ type AnnounceResp struct {
 	Peers         []byte
 }
 
+// Marshall encodes an AnnounceResp to a byte slice.
 func (ar *AnnounceResp) Marshall() ([]byte, error) {
 	var buff bytes.Buffer
 
@@ -85,8 +91,9 @@ func (ar *AnnounceResp) Marshall() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (ar *AnnounceResp) Unmarshall(data []byte, size int) error {
-	ar.Peers = make([]byte, (size - 20))
+// Unmarshall decodes a byte slice into an AnnounceResp.
+func (ar *AnnounceResp) Unmarshall(data []byte) error {
+	ar.Peers = make([]byte, (len(data) - 20))
 
 	reader := bytes.NewReader(data)
 	if err := binary.Read(reader, binary.BigEndian, &ar.Action); err != nil {

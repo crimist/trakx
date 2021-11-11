@@ -1,3 +1,7 @@
+/*
+	Storage contains all related database interfaces, database types, type pools, and expvar logic.
+*/
+
 package storage
 
 import (
@@ -6,6 +10,7 @@ import (
 	"github.com/crimist/trakx/tracker/config"
 )
 
+// Open opens and initializes given database type through config.
 func Open() (Database, error) {
 	driver, ok := drivers[config.Conf.Database.Type]
 	if !ok {

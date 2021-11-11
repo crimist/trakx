@@ -10,9 +10,9 @@ import (
 // automatically sets up the filesys when imported
 
 const (
-	// FolderPerm is the default permission mask for folders
+	// FolderPerm holds the default permission mask for folders
 	FolderPerm = 0700
-	// FilePerm is the default permission mask for files
+	// FilePerm holds the default permission mask for files
 	FilePerm = 0644
 )
 

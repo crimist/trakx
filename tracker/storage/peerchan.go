@@ -4,7 +4,7 @@ package storage
 // once the tracker has experience a 24hr cycle
 const maxChanSize = 5e5
 
-// PeerChan holds the buffered peers like a `sync.Pool`
+// PeerChan holds buffered peers similar to `sync.Pool`
 var PeerChan peerChan
 
 func init() {

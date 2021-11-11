@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// FileBackup backs up the peer database to a local file.
 type FileBackup struct {
 	db *Memory
 }

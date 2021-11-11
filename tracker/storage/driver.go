@@ -20,7 +20,7 @@ var drivers map[string]DatabaseDriver
 
 func init() { drivers = make(map[string]DatabaseDriver) }
 
-// Register adds the given `databaseinfo` into the map of available drivers
+// Register appends `databaseinfo` into the map of available drivers.
 func Register(dbnfo DatabaseInfo) {
 	drivers[dbnfo.Name] = DatabaseDriver{
 		db:      dbnfo.DB,

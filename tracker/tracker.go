@@ -17,7 +17,7 @@ import (
 	_ "github.com/crimist/trakx/tracker/storage/map"
 )
 
-// Run runs the tracker
+// Run initializes and runs the tracker with the requested configuration settings.
 func Run() {
 	var udptracker udp.UDPTracker
 	var httptracker http.HTTPTracker

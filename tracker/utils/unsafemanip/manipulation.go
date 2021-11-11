@@ -1,6 +1,3 @@
-/*
-	All byte slice and string manipulation functions in this package use unsafe to modify the values. Use these functions with caution.
-*/
 package unsafemanip
 
 import (
@@ -8,32 +5,34 @@ import (
 	"unsafe"
 )
 
-// StringToBytes converts string to byte slice without escaping to the heap
+// StringToBytes converts string to byte slice without escaping to the heap.
 func StringToBytes(s string) []byte {
 	hdr := *(*reflect.SliceHeader)(unsafe.Pointer(&s))
 	hdr.Cap = len(s)
 	return *(*[]byte)(unsafe.Pointer(&hdr))
 }
 
-// StringToBytesFast converts string to byte slice without escaping to the heap but doesn't the cap properly
+// StringToBytesFast converts string to byte slice without escaping to the heap.
+// NOTE: It is not guarenteed to set the cap correctly.
 func StringToBytesFast(s *string) []byte {
 	return *(*[]byte)(unsafe.Pointer((*reflect.SliceHeader)(unsafe.Pointer(s))))
 }
 
-// SetSliceLen sets a byte slices length value.
-// WARNING: You should use `bytes = bytes[:length]` instead, it's just as fast.
-func SetSliceLen(s *[]byte, l int) (old int) {
-	old = len(*s)
+// SetSliceLen sets a byte slices length and returns its previous length.
+// Deprecated: You should use `bytes = bytes[:length]` instead as performance is identical.
+func SetSliceLen(s *[]byte, l int) (prevLen int) {
+	prevLen = len(*s)
 	header := (*reflect.SliceHeader)(unsafe.Pointer(s))
 	header.Len = l
-	return
+
+	return prevLen
 }
 
-// SetStringLen sets a strings length value
-func SetStringLen(s *string, l int) int {
-	oldlen := len(*s)
+// SetStringLen sets a strings length and returns its previous length.
+func SetStringLen(s *string, l int) (prevLen int) {
+	prevLen = len(*s)
 	header := (*reflect.StringHeader)(unsafe.Pointer(s))
 	header.Len = l
 
-	return oldlen
+	return prevLen
 }

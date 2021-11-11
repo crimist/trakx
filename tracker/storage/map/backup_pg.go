@@ -30,6 +30,7 @@ const (
 	backupRecentWait = 7 * time.Second
 )
 
+// PgBackup backs up the peer database to a postgres sql database.
 type PgBackup struct {
 	pg *sql.DB
 	db *Memory

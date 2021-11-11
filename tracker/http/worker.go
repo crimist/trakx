@@ -129,7 +129,7 @@ func (w *workers) work() {
 				ipStr, _, _ = net.SplitHostPort(conn.RemoteAddr().String())
 			}
 
-			if err := ip.Set(ipStr); err != nil {
+			if err := ip.FromString(ipStr); err != nil {
 				config.Logger.Warn("failed to parse ip", zap.String("ip", ipStr), zap.Error(err), zap.Any("attempt", ip))
 
 				w.tracker.clientError(conn, "failed to parse ip: "+err.Error())

@@ -5,44 +5,66 @@ import (
 	"encoding/binary"
 
 	"github.com/crimist/trakx/tracker/storage"
+	"github.com/pkg/errors"
 )
 
+// BitTorrent UDP tracker announce
 type Scrape struct {
-	Base     Connect
-	InfoHash []storage.Hash
+	ConnectionID  int64
+	Action        int32
+	TransactionID int32
+	InfoHash      []storage.Hash
 }
 
+// Unmarshall decodes a byte slice into a Scrape.
 func (s *Scrape) Unmarshall(data []byte) error {
-	if err := binary.Read(bytes.NewReader(data[:16]), binary.BigEndian, &s.Base); err != nil {
-		return err
+	s.InfoHash = make([]storage.Hash, (len(data)-16)/20)
+	reader := bytes.NewReader(data)
+
+	if err := binary.Read(reader, binary.BigEndian, &s.ConnectionID); err != nil {
+		return errors.Wrap(err, "failed to decode scrape connection id")
+	}
+	if err := binary.Read(reader, binary.BigEndian, &s.Action); err != nil {
+		return errors.Wrap(err, "failed to decode scrape action")
+	}
+	if err := binary.Read(reader, binary.BigEndian, &s.TransactionID); err != nil {
+		return errors.Wrap(err, "failed to decode scrape transaction id")
+	}
+	if err := binary.Read(reader, binary.BigEndian, &s.InfoHash); err != nil {
+		return errors.Wrap(err, "failed to decode scrape infohashes")
 	}
 
-	s.InfoHash = make([]storage.Hash, (len(data)-16)/20)
-	return binary.Read(bytes.NewReader(data[16:]), binary.BigEndian, &s.InfoHash)
+	return nil
 }
 
+// ScrapeInfo holds the information for each infohash in the scrape response
 type ScrapeInfo struct {
 	Complete   int32
 	Incomplete int32
 	Downloaded int32
 }
 
+// BitTorrent UDP tracker scrape response
 type ScrapeResp struct {
 	Action        int32
 	TransactionID int32
 	Info          []ScrapeInfo
 }
 
+// Marshall encodes a ScrapeResp to a byte slice.
 func (sr *ScrapeResp) Marshall() ([]byte, error) {
 	buff := new(bytes.Buffer)
+	buff.Grow(8 + len(sr.Info)*12) // TODO: benchmark
+
 	if err := binary.Write(buff, binary.BigEndian, sr.Action); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to encode scrape response action")
 	}
 	if err := binary.Write(buff, binary.BigEndian, sr.TransactionID); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to encode scrape response transaction id")
 	}
 	if err := binary.Write(buff, binary.BigEndian, sr.Info); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to encode scrape response info")
 	}
+
 	return buff.Bytes(), nil
 }

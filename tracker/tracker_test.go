@@ -214,7 +214,7 @@ func TestUDPAnnounce(t *testing.T) {
 	if _, err = conn.Write(data); err != nil {
 		t.Fatal(err)
 	}
-	s, err := conn.Read(packet)
+	_, err = conn.Read(packet)
 	if err != nil {
 		if strings.Contains(err.Error(), "i/o timeout") || strings.Contains(err.Error(), "connection refused") {
 			t.Skip(udptimeoutmsg)
@@ -227,7 +227,7 @@ func TestUDPAnnounce(t *testing.T) {
 
 	if cr.Action == 3 {
 		e := protocol.Error{}
-		e.Unmarshall(packet, s)
+		e.Unmarshall(packet)
 		t.Error("Tracker err:", string(e.ErrorString))
 	}
 
@@ -261,17 +261,17 @@ func TestUDPAnnounce(t *testing.T) {
 	if _, err = conn.Write(data); err != nil {
 		t.Error(err)
 	}
-	s, err = conn.Read(packet)
+	_, err = conn.Read(packet)
 	if err != nil {
 		t.Error(err)
 	}
 
 	ar := protocol.AnnounceResp{}
-	ar.Unmarshall(packet, s)
+	ar.Unmarshall(packet)
 
 	if ar.Action == 3 {
 		e := protocol.Error{}
-		e.Unmarshall(packet, s)
+		e.Unmarshall(packet)
 		t.Error("Tracker err:", string(e.ErrorString))
 		return
 	}
@@ -363,7 +363,7 @@ func TestUDPBadAction(t *testing.T) {
 	}
 
 	e := protocol.Error{}
-	e.Unmarshall(packet, s)
+	e.Unmarshall(packet[:s])
 
 	if !bytes.Equal(e.ErrorString, []byte("bad action")) {
 		t.Error("Tracker err should be 'bad action' but got:", string(e.ErrorString))
@@ -410,7 +410,7 @@ func TestUDPBadConnID(t *testing.T) {
 	}
 
 	e := protocol.Error{}
-	e.Unmarshall(packet, s)
+	e.Unmarshall(packet[:s])
 
 	if !bytes.Equal(e.ErrorString, []byte("bad connid")) {
 		t.Error("Tracker err should be 'bad connid' but got:", string(e.ErrorString))
@@ -485,7 +485,7 @@ func TestUDPBadPort(t *testing.T) {
 	}
 
 	e := protocol.Error{}
-	e.Unmarshall(packet, s)
+	e.Unmarshall(packet[:s])
 
 	if !bytes.Equal(e.ErrorString, []byte("bad port")) {
 		t.Error("Tracker err should be 'bad port' but got:", string(e.ErrorString))
@@ -535,7 +535,7 @@ func TestUDPTransactionID(t *testing.T) {
 
 		if size != 16 {
 			e := protocol.Error{}
-			e.Unmarshall(packet, size)
+			e.Unmarshall(packet)
 			t.Error(i, "Tracker err:", string(e.ErrorString))
 		}
 
@@ -624,7 +624,7 @@ func BenchmarkUDPAnnounceStress(b *testing.B) {
 				if _, err = conn.Write(data); err != nil {
 					b.Error(err)
 				}
-				s, err := conn.Read(packet)
+				_, err = conn.Read(packet)
 				if err != nil {
 					if strings.Contains(err.Error(), "i/o timeout") {
 						b.Skip(udptimeoutmsg)
@@ -637,7 +637,7 @@ func BenchmarkUDPAnnounceStress(b *testing.B) {
 
 				if cr.Action == 3 {
 					e := protocol.Error{}
-					e.Unmarshall(packet, s)
+					e.Unmarshall(packet)
 					b.Error("Tracker err:", string(e.ErrorString))
 				}
 

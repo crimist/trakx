@@ -19,13 +19,13 @@ type HTTPTracker struct {
 	shutdown chan struct{}
 }
 
-// Init sets the HTTP trackers required values
+// Init sets up the HTTPTracker.
 func (t *HTTPTracker) Init(peerdb storage.Database) {
 	t.peerdb = peerdb
 	t.shutdown = make(chan struct{})
 }
 
-// Serve starts the HTTP service and begins to serve clients
+// Serve begins listening and serving clients.
 func (t *HTTPTracker) Serve() {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", config.Conf.Tracker.HTTP.Port))
 	if err != nil {
@@ -44,7 +44,7 @@ func (t *HTTPTracker) Serve() {
 	ln.Close()
 }
 
-// Shutdown gracefully closes the HTTP service by closing the listening connection
+// Shutdown stops the HTTP tracker server by closing the socket.
 func (t *HTTPTracker) Shutdown() {
 	if t == nil || t.shutdown == nil {
 		return
