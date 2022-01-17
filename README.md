@@ -14,7 +14,7 @@ cd trakx
 go install .
 trakx start # starting...
 
-# or you can build it
+# or build
 go build .
 ./trakx start # starting...
 ```
@@ -29,11 +29,11 @@ The following performance information was collected on Heroku free tier running 
 
 ![performance](img/performance.png)
 
-### Database stats:
+### Database stats
 
 ![performance](img/stats.png)
 
-### Flamegraph:
+### Flamegraph
 
 ![flame](img/flame.png)
 
@@ -72,7 +72,7 @@ $ TRAKX_LOGLEVEL=DEBUG trakx run
 
 Trakx attempts to load the config file from the following directories in this order `"./", "~/.config/trakx/", "./embeded/", "/app/embeded/"`.
 
-As such you can override the config file located in `~/.config/trakx/` by placing a `trakx.yaml` in the directory trakx runs in (`./`).
+For example, you can override the config file located in `~/.config/trakx/` by placing a `trakx.yaml` in the directory trakx runs in (`./`).
 
 ### Modifying HTML pages / default config
 
@@ -94,7 +94,7 @@ You can build with different tags with `go build/install -tags <tag> .`
 
 **Tags**
 * `fast` will build without IP, seed, and leech metrics which will reduce cpu and memory usage
-* `heroku` will build trakx for app engines. This means the controller will not be built and trakx will run immediately when the binary is ran. 
+* `heroku` will build trakx for app engines. This means the controller will not be built and trakx will run immediately when the binary is executed. 
 
 ## Netdata graphs install
 
