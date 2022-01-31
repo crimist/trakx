@@ -6,7 +6,6 @@ package udp
 
 import (
 	"encoding/binary"
-	"errors"
 	"net"
 	"sync"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp/protocol"
 	"github.com/crimist/trakx/tracker/utils"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -41,12 +41,12 @@ func (u *UDPTracker) Init(peerdb storage.Database) {
 }
 
 // Serve begins listening and serving clients.
-func (u *UDPTracker) Serve() {
+func (u *UDPTracker) Serve() error {
 	var err error
 
 	u.sock, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: config.Conf.Tracker.UDP.Port, Zone: ""})
 	if err != nil {
-		panic(err)
+		return errors.Wrap(err, "Failed to open UDP listen socket")
 	}
 
 	pool := sync.Pool{
@@ -60,18 +60,20 @@ func (u *UDPTracker) Serve() {
 		go func() {
 			for {
 				data := pool.Get().(*[]byte)
-				l, remote, err := u.sock.ReadFromUDP(*data)
+				size, remoteAddr, err := u.sock.ReadFromUDP(*data)
 				if err != nil {
-					if errors.Unwrap(err).Error() == errClosed { // if socket is closed we're done
+					// if socket is closed exit loop
+					if errors.Unwrap(err).Error() == errClosed {
 						break
 					}
-					config.Logger.Error("ReadFromUDP()", zap.Error(err))
+
+					config.Logger.Error("Failed to read from UDP socket", zap.Error(err))
 					pool.Put(data)
 					continue
 				}
 
-				if l > 15 { // 16 = minimum connect
-					u.process((*data)[:l], remote)
+				if size > 15 { // 16 = minimum connect
+					u.process((*data)[:size], remoteAddr)
 				}
 
 				pool.Put(data)
@@ -81,7 +83,11 @@ func (u *UDPTracker) Serve() {
 
 	<-u.shutdown
 	config.Logger.Info("Closing UDP tracker socket")
-	u.sock.Close()
+	if err = u.sock.Close(); err != nil {
+		return errors.Wrap(err, "Failed to close UDP listen socket")
+	}
+
+	return nil
 }
 
 // Shutdown stops the UDP tracker server by closing the socket.
@@ -102,14 +108,16 @@ func (u *UDPTracker) ConnCount() int {
 }
 
 // WriteConns writes the connection database to the disk.
-func (u *UDPTracker) WriteConns() {
+func (u *UDPTracker) WriteConns() error {
 	if u == nil || u.conndb == nil {
-		return
+		return nil
 	}
 
 	if err := u.conndb.write(); err != nil {
-		config.Logger.Fatal("Failed to write connection database", zap.Error(err))
+		return errors.Wrap(err, "Failed to write connections database to disk")
 	}
+
+	return nil
 }
 
 func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {

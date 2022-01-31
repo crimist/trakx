@@ -19,42 +19,44 @@ var SigStop = os.Interrupt
 const exitSuccess = 0
 
 func signalHandler(peerdb storage.Database, udptracker *udp.UDPTracker, httptracker *http.HTTPTracker) {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
 
 	for {
-		sig := <-c
+		sig := <-signalChannel
 
 		switch sig {
-		case os.Interrupt, syscall.SIGTERM:
-			// Exit
-			config.Logger.Info("Got exit signal", zap.Any("sig", sig))
+		case os.Interrupt, syscall.SIGTERM: // Exit
+			config.Logger.Info("Received exit signal", zap.Any("signal", sig))
 
 			udptracker.Shutdown()
 			httptracker.Shutdown()
 
 			if err := peerdb.Backup().Save(); err != nil {
-				config.Logger.Info("Failed to backup the database on exit")
+				config.Logger.Error("Database save failed", zap.Error(err))
 			}
 
-			udptracker.WriteConns()
+			if err := udptracker.WriteConns(); err != nil {
+				config.Logger.Error("UDP connections save failed", zap.Error(err))
+			}
 
-			config.Logger.Info("Exiting")
 			os.Exit(exitSuccess)
-		case syscall.SIGUSR1:
-			// Save
-			config.Logger.Info("Got save signal", zap.Any("sig", sig))
+
+		case syscall.SIGUSR1: // Save
+			config.Logger.Info("Received save signal", zap.Any("signal", sig))
 
 			if err := peerdb.Backup().Save(); err != nil {
-				config.Logger.Info("Failed to backup the database on save")
+				config.Logger.Error("Database save failed", zap.Error(err))
 			}
 
-			udptracker.WriteConns()
+			if err := udptracker.WriteConns(); err != nil {
+				config.Logger.Error("UDP connections save failed", zap.Error(err))
+			}
 
-			config.Logger.Info("Saved")
+			config.Logger.Info("Saves successful")
+
 		default:
-			config.Logger.Info("Got unknown sig", zap.Any("sig", sig))
+			config.Logger.Info("Received unknown signal, ignoring", zap.Any("signal", sig))
 		}
-		// os.Exit(128 + int(sig.(syscall.Signal)))
 	}
 }

@@ -26,7 +26,7 @@ func Run() {
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 
 	if !config.Conf.Loaded() {
-		config.Logger.Fatal("Config failed to load critical values")
+		config.Logger.Fatal("Config failed to load critical values", zap.Any("config", config.Conf))
 	}
 
 	config.Logger.Info("Loaded configuration, starting trakx...")
@@ -47,15 +47,18 @@ func Run() {
 
 	// init pprof if enabled
 	if config.Conf.Debug.PprofPort != 0 {
-		config.Logger.Info("pprof enabled", zap.Int("port", config.Conf.Debug.PprofPort))
-		go runpprof()
+		go servePprof()
 	}
 
 	if config.Conf.Tracker.HTTP.Mode == config.TrackerModeEnabled {
-		config.Logger.Info("http tracker enabled", zap.Int("port", config.Conf.Tracker.HTTP.Port))
+		config.Logger.Info("HTTP tracker enabled", zap.Int("port", config.Conf.Tracker.HTTP.Port))
 
 		httptracker.Init(peerdb)
-		go httptracker.Serve()
+		go func() {
+			if err := httptracker.Serve(); err != nil {
+				config.Logger.Fatal("Failed to serve HTTP tracker", zap.Error(err))
+			}
+		}()
 	} else if config.Conf.Tracker.HTTP.Mode == config.TrackerModeInfo {
 		// serve basic html server with index and dmca pages
 		d := bencoding.NewDictionary()
@@ -81,16 +84,21 @@ func Run() {
 
 		go func() {
 			if err := server.ListenAndServe(); err != nil {
-				config.Logger.Error("ListenAndServe()", zap.Error(err))
+				config.Logger.Error("Failed to start HTTP server", zap.Error(err))
 			}
 		}()
 	}
 
 	// UDP tracker
 	if config.Conf.Tracker.UDP.Enabled {
-		config.Logger.Info("udp tracker enabled", zap.Int("port", config.Conf.Tracker.UDP.Port))
+		config.Logger.Info("UDP tracker enabled", zap.Int("port", config.Conf.Tracker.UDP.Port))
 		udptracker.Init(peerdb)
-		go udptracker.Serve()
+
+		go func() {
+			if err := udptracker.Serve(); err != nil {
+				config.Logger.Fatal("Failed to serve UDP tracker", zap.Error(err))
+			}
+		}()
 	}
 
 	if config.Conf.Debug.ExpvarInterval > 0 {

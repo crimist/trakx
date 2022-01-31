@@ -112,7 +112,7 @@ func (db *connectionDatabase) write() (err error) {
 	db.mu.Unlock()
 
 	if err := ioutil.WriteFile(config.CacheDir+"conn.db", buff, 0644); err != nil {
-		return errors.Wrap(err, "Failed to write connection database to file")
+		return errors.Wrap(err, "WriteFile failed")
 	}
 
 	config.Logger.Info("Wrote connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Since(start)))

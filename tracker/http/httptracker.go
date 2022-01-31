@@ -6,7 +6,7 @@ import (
 
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
-	"go.uber.org/zap"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -26,10 +26,10 @@ func (t *HTTPTracker) Init(peerdb storage.Database) {
 }
 
 // Serve begins listening and serving clients.
-func (t *HTTPTracker) Serve() {
+func (t *HTTPTracker) Serve() error {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", config.Conf.Tracker.HTTP.Port))
 	if err != nil {
-		config.Logger.Panic("net.Listen()", zap.Error(err))
+		return errors.Wrap(err, "Failed to open TCP listen socket")
 	}
 
 	t.workers = workers{
@@ -40,8 +40,11 @@ func (t *HTTPTracker) Serve() {
 	t.workers.startWorkers(config.Conf.Tracker.HTTP.Threads)
 
 	<-t.shutdown
-	config.Logger.Info("Closing HTTP tracker listen socket")
-	ln.Close()
+	if err := ln.Close(); err != nil {
+		return errors.Wrap(err, "Failed to close tcp listen socket")
+	}
+
+	return nil
 }
 
 // Shutdown stops the HTTP tracker server by closing the socket.
