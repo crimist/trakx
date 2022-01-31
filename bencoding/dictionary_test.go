@@ -35,7 +35,7 @@ func TestBencodingString(t *testing.T) {
 		result string
 	}{
 		{"short", "hello", "d5:short5:helloe"},
-		{"long", "really_long_string_that_has_lots_of_shit_in_it", "d4:long46:really_long_string_that_has_lots_of_shit_in_ite"},
+		{"long", "really_long_string_that_has_lots_in_it", "d4:long38:really_long_string_that_has_lots_in_ite"},
 		{"specialchars", "this\xFFhas\xFFcontr\x00lchars\n", "d12:specialchars22:this\xFFhas\xFFcontr\x00lchars\ne"},
 	}
 
