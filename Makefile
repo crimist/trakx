@@ -4,11 +4,11 @@ setup:
 
 # embed generates the statik file for embedding files in trakx
 embed:
-	statik -src embeded/ -include "*.html,*.yaml" -f -dest embeded/
+	statik -src embedded/ -include "*.html,*.yaml" -f -dest embeded/
 
 # install runs embed, builds, and installs trakx 
 install:
-	statik -src embeded/ -include "*.html,*.yaml" -f -dest embeded/
+	statik -src embedded/ -include "*.html,*.yaml" -f -dest embeded/
 	go install -v
 
 # build builds trakx
