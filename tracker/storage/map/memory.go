@@ -84,11 +84,7 @@ func (db *Memory) Trim() {
 	start := time.Now()
 	config.Logger.Info("Trimming database")
 	peers, hashes := db.trim()
-	if peers < 1 && hashes < 1 {
-		config.Logger.Info("Can't trim database: database empty")
-	} else {
-		config.Logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Since(start)))
-	}
+	config.Logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Since(start)))
 }
 
 func (db *Memory) trim() (peers, hashes int) {

@@ -64,6 +64,7 @@ func parse(data []byte, size int) (parsed, error) {
 		return parsed{}, invalidParse
 	}
 
+	// pathstart should come before URLend
 	if p.pathstart > p.URLend {
 		return parsed{}, invalidParse
 	}
