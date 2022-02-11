@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/kkyr/fig"
@@ -57,18 +58,6 @@ func init() {
 	}
 
 	Logger.Debug("initialized paths", zap.String("config", ConfigDir), zap.String("cache", CacheDir))
-}
-
-// LogLevel holds designated logging level
-type LogLevel string
-
-// Debug returns true if the loglevel is set to debug.
-func (l LogLevel) Debug() (dbg bool) {
-	if l == "debug" {
-		dbg = true
-	}
-
-	return
 }
 
 type Config struct {
@@ -122,25 +111,11 @@ func (conf *Config) Loaded() bool {
 	return conf.Database.Type != ""
 }
 
-// Update updates logger and ulimited based on config.
-func (conf *Config) Update() error {
-	// logger and loglvl
-	loggerAtom = zap.NewAtomicLevel()
-	cfg := zap.NewDevelopmentConfig()
+// SetLogLevel sets the desired loglevel in the in memory configuration and logger
+func (conf *Config) SetLogLevel(level LogLevel) {
+	conf.LogLevel = level
 
-	// set LogLevel to lower case (casting nightmare)
-	conf.LogLevel = LogLevel(strings.ToLower(string(conf.LogLevel)))
-	conf.Tracker.HTTP.Mode = strings.ToLower(conf.Tracker.HTTP.Mode)
-
-	if conf.LogLevel.Debug() {
-		cfg.Development = true
-	} else {
-		cfg.Development = false
-	}
-
-	Logger = zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(cfg.EncoderConfig), zapcore.Lock(os.Stdout), loggerAtom))
-
-	switch conf.LogLevel {
+	switch level {
 	case "debug":
 		loggerAtom.SetLevel(zap.DebugLevel)
 		Logger.Debug("Debug level enabled, debug panics are on")
@@ -157,7 +132,33 @@ func (conf *Config) Update() error {
 		loggerAtom.SetLevel(zap.WarnLevel)
 	}
 
-	Logger.Debug("logger created", zap.Any("loglevel", conf.LogLevel))
+	Logger.Debug("Set log level", zap.Any("level", level))
+}
+
+var oneTimeSetup sync.Once
+
+// Update updates logger and ulimited based on config.
+func (conf *Config) Update() error {
+	oneTimeSetup.Do(func() {
+		loggerAtom = zap.NewAtomicLevelAt(zap.DebugLevel)
+	})
+
+	cfg := zap.NewDevelopmentConfig()
+
+	// set LogLevel to lower case (casting nightmare)
+	conf.LogLevel = LogLevel(strings.ToLower(string(conf.LogLevel)))
+	conf.Tracker.HTTP.Mode = strings.ToLower(conf.Tracker.HTTP.Mode)
+
+	if conf.LogLevel.Debug() {
+		cfg.Development = true
+	} else {
+		cfg.Development = false
+	}
+
+	Logger = zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(cfg.EncoderConfig), zapcore.Lock(os.Stdout), loggerAtom))
+	Logger.Debug("logger created")
+
+	conf.SetLogLevel(conf.LogLevel)
 
 	// limits
 	if conf.Debug.NofileLimit != nofileIgnore {
