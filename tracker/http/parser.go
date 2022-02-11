@@ -32,7 +32,8 @@ type (
 // only supports GET request and up to `maxparams` params but uses no heap memory
 func parse(data []byte, size int) (parsed, error) {
 	// uTorrent sometimes encodes scrape req in b64
-	if bytes.HasPrefix(data, []byte("R0VU")) { // R0VUIC9zY3JhcGU/aW5mb19oYXNoPS = GET /scrape?info_hash=
+	// Example: R0VUIC9zY3JhcGU/aW5mb19oYXNoPS = GET /scrape?info_hash=
+	if bytes.HasPrefix(data, []byte("R0VU")) {
 		decoded, err := base64.StdEncoding.Decode(data, data[:size])
 		if err != nil {
 			return parsed{}, errors.Wrap(err, "failed to decode base64 encoded request")
@@ -58,11 +59,17 @@ func parse(data []byte, size int) (parsed, error) {
 		return parsed{}, invalidParse
 	}
 
-	if p.URLend < 5 { // less than "GET / HTTP..."
+	// less than "GET / HTTP..."
+	if p.URLend < 5 {
 		return parsed{}, invalidParse
 	}
 
-	if p.pathend != -1 && p.pathend < p.URLend { // if the ? is part of a query then parse it
+	if p.pathstart > p.URLend {
+		return parsed{}, invalidParse
+	}
+
+	// if the ? is part of a query then parse it
+	if p.pathend != -1 && p.pathend < p.URLend {
 		if p.pathend < p.pathstart {
 			return parsed{}, invalidParse
 		}

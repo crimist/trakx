@@ -52,6 +52,13 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestParseInvalid(t *testing.T) {
+	_, err := parse([]byte("00000 HTTP/GET /"), 16)
+	if err == nil {
+		t.Error("Invalid parse passed")
+	}
+}
+
 func TestUnescapeFast(t *testing.T) {
 	var cases = []struct {
 		name     string
