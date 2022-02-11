@@ -6,19 +6,31 @@
 		background-color: black;
 		font-family: arial;
 		color: #9b9ea3;
-		font-size: 25px;
+		font-size: 40px;
 		text-align: center;
 		align-items: center;
 		display: flex;
 		justify-content: center;
 	}
-	#dmca {
-		font-size: 18px;
+	#footer {
+		font-size: 32px;
+		width: 100%;
+		left: 0;
+		bottom: 0;
+		text-align: center;
 		position: absolute;
-		bottom: 5px;
+	}
+	#footer-text {
+		margin: 0 10px;
+	}
+	a {
+		color: #4d2287;
 	}
 </style>
 <div>
-	<p><a href="https://github.com/crimist/trakx">trakx</a> is an open bittorrent tracker by <a href="https://github.com/crimist">crimist</a></p>
-	<a href='/dmca' id="dmca">dmca</a>
+	<p><a href="https://github.com/crimist/trakx">Trakx</a> is an open BitTorrent tracker by <a href="https://github.com/crimist">Crimist</a></p>
+	<div id="footer">
+		<a href='/dmca' id="footer-text">/dmca</a>
+		<a href='/stats' id="footer-text">/stats</a>	
+	</div>
 </div>
