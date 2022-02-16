@@ -17,10 +17,8 @@ const (
 )
 
 var (
-	IndexData      = defaultMessage         // http index page string
-	IndexDataBytes = []byte(defaultMessage) // http index page byte slice
-	DMCAData       = defaultMessage         // http dmca page string
-	DMCADataBytes  = []byte(defaultMessage) // http dmca page byte slice
+	IndexData = defaultMessage // http index page string
+	DMCAData  = defaultMessage // http dmca page string
 )
 
 // loadEmbed loads all the embedded files in the exe and sets up crutial filesystem
@@ -46,15 +44,15 @@ func loadEmbed() {
 	}
 
 	// load HTML
-	if IndexDataBytes, err = fs.ReadFile(fileSys, "/index.html"); err != nil {
+	if indexTmp, err := fs.ReadFile(fileSys, "/index.html"); err != nil {
 		Logger.Error("failed to read index file from statik fs", zap.Error(err))
 	} else {
-		IndexData = string(IndexDataBytes)
+		IndexData = string(indexTmp)
 	}
-	if DMCADataBytes, err = fs.ReadFile(fileSys, "/dmca.html"); err != nil {
+	if dmcaTmp, err := fs.ReadFile(fileSys, "/dmca.html"); err != nil {
 		Logger.Error("failed to read dmca file from statik fs", zap.Error(err))
 	} else {
-		DMCAData = string(DMCADataBytes)
+		DMCAData = string(dmcaTmp)
 	}
 
 	// trim whitespace to save bandwidth

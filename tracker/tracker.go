@@ -65,9 +65,20 @@ func Run() {
 		d.Int64("interval", 86400) // 1 day
 		errResp := d.GetBytes()
 
+		indexData := []byte(config.IndexData)
+		dmcaData := []byte(config.DMCAData)
+		statsData := []byte("{\"error\": \"Trakx HTTP tracker not running\"}}")
+
 		mux := gohttp.NewServeMux()
-		mux.HandleFunc("/", index)
-		mux.HandleFunc("/dmca", dmca)
+		mux.HandleFunc("/", func(w gohttp.ResponseWriter, r *gohttp.Request) {
+			w.Write(indexData)
+		})
+		mux.HandleFunc("/dmca", func(w gohttp.ResponseWriter, r *gohttp.Request) {
+			w.Write(dmcaData)
+		})
+		mux.HandleFunc("/stats", func(w gohttp.ResponseWriter, r *gohttp.Request) {
+			w.Write(statsData)
+		})
 		mux.HandleFunc("/scrape", func(w gohttp.ResponseWriter, r *gohttp.Request) {})
 		mux.HandleFunc("/announce", func(w gohttp.ResponseWriter, r *gohttp.Request) {
 			w.Write(errResp)
