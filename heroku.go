@@ -1,5 +1,7 @@
+//go:build heroku
 // +build heroku
-// Trakx direct run for use with appengines
+
+// Trakx tracker run entrypoint for heroku (or any app engine)
 
 package main
 

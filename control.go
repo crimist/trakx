@@ -1,5 +1,7 @@
+//go:build !heroku
 // +build !heroku
-// Trakx controller
+
+// Trakx controller entrypoint
 
 package main
 
@@ -31,6 +33,11 @@ func printHelp() {
 }
 
 func main() {
+	writeFatal := func(err error) {
+		fmt.Fprintf(os.Stderr, err.Error()+"\n")
+		os.Exit(-1)
+	}
+
 	if len(os.Args) < 2 {
 		printHelp()
 		return
@@ -49,8 +56,7 @@ func main() {
 		for {
 			if !c.Running() {
 				if err := c.Start(); err != nil {
-					fmt.Fprintf(os.Stderr, err.Error()+"\n")
-					os.Exit(-1)
+					writeFatal(err)
 				}
 
 				// Wait to let it set up
@@ -62,30 +68,25 @@ func main() {
 		c.Run()
 	case "start":
 		if err := c.Start(); err != nil {
-			fmt.Fprintf(os.Stderr, err.Error()+"\n")
-			os.Exit(-1)
+			writeFatal(err)
 		}
 	case "stop":
 		if err := c.Stop(); err != nil {
-			fmt.Fprintf(os.Stderr, err.Error()+"\n")
-			os.Exit(-1)
+			writeFatal(err)
 		}
 	case "restart", "reboot":
 		fmt.Println("rebooting...")
 		if err := c.Stop(); err != nil {
-			fmt.Fprintf(os.Stderr, err.Error()+"\n")
-			os.Exit(-1)
+			writeFatal(err)
 		}
 		if err := c.Start(); err != nil {
-			fmt.Fprintf(os.Stderr, err.Error()+"\n")
-			os.Exit(-1)
+			writeFatal(err)
 		}
 		fmt.Println("rebooted!")
 	case "reset":
 		fmt.Println("wiping pid file...")
 		if err := c.Wipe(); err != nil {
-			fmt.Fprintf(os.Stderr, err.Error()+"\n")
-			os.Exit(-1)
+			writeFatal(err)
 		}
 		fmt.Println("wiped!")
 	default:
