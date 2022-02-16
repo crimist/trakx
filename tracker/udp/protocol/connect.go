@@ -7,9 +7,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	UDPTrackerMagic = 0x41727101980
+)
+
 // BitTorrent UDP tracker connect
 type Connect struct {
-	ProtcolID     int64 // Magic number required: 0x41727101980
+	ProtcolID     int64
 	Action        int32
 	TransactionID int32
 }
