@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"expvar"
 	"fmt"
 	"math/rand"
 	gohttp "net/http"
@@ -67,7 +68,7 @@ func Run() {
 
 		indexData := []byte(config.IndexData)
 		dmcaData := []byte(config.DMCAData)
-		statsData := []byte("{\"error\": \"Trakx HTTP tracker not running\"}}")
+		expvarHandler := expvar.Handler()
 
 		mux := gohttp.NewServeMux()
 		mux.HandleFunc("/", func(w gohttp.ResponseWriter, r *gohttp.Request) {
@@ -77,7 +78,7 @@ func Run() {
 			w.Write(dmcaData)
 		})
 		mux.HandleFunc("/stats", func(w gohttp.ResponseWriter, r *gohttp.Request) {
-			w.Write(statsData)
+			expvarHandler.ServeHTTP(w, r)
 		})
 		mux.HandleFunc("/scrape", func(w gohttp.ResponseWriter, r *gohttp.Request) {})
 		mux.HandleFunc("/announce", func(w gohttp.ResponseWriter, r *gohttp.Request) {
