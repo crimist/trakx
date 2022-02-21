@@ -1,6 +1,15 @@
-# [trakx](http://u4.trakx.crim.ist)
+# Trakx
 
 Performance focused HTTP & UDP BitTorrent tracker.
+
+## Instances
+
+Try me! These instances are hosted on Oracles always free tier.
+
+| Status      | Protocol | URL                               |
+|-------------|----------|-----------------------------------|
+| ✅Ok         | UDP      | udp://u4.trakx.crim.ist:1337/     |
+| ❌Deprecated | HTTP     | http://h4.trakx.crim.ist/announce |
 
 ## Install
 
