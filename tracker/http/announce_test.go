@@ -23,7 +23,7 @@ func TestHTTPAnnounce(t *testing.T) {
 
 	// setup config
 	config.Conf.Tracker.Announce = 10 * time.Second
-	config.Conf.Tracker.AnnounceFuzz = 5 * time.Second
+	config.Conf.Tracker.AnnounceFuzz = 0
 
 	// setup db
 	db, err := storage.Open()
@@ -63,7 +63,7 @@ func TestHTTPAnnounce(t *testing.T) {
 				numwant:  "10",
 			},
 			storage.PeerIP{1, 1, 1, 1},
-			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali11e8:completei0e10:incompletei1e5:peersl"),
+			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei1e5:peersl"),
 			[][]byte{
 				[]byte("59:d7:peer id20:111111111111111111112:ip7:1.1.1.14:porti1234eeee"),
 			},
@@ -81,7 +81,7 @@ func TestHTTPAnnounce(t *testing.T) {
 				numwant:  "10",
 			},
 			storage.PeerIP{2, 2, 2, 2},
-			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali12e8:completei0e10:incompletei2e5:peersl"),
+			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peersl"),
 			[][]byte{
 				[]byte("59:d7:peer id20:111111111111111111112:ip7:1.1.1.14:porti1234ee59:d7:peer id20:222222222222222222222:ip7:2.2.2.24:porti4321eeee"),
 				[]byte("59:d7:peer id20:222222222222222222222:ip7:2.2.2.24:porti4321ee59:d7:peer id20:111111111111111111112:ip7:1.1.1.14:porti1234eeee"),
@@ -100,7 +100,7 @@ func TestHTTPAnnounce(t *testing.T) {
 				numwant:  "10",
 			},
 			storage.PeerIP{1, 1, 1, 1},
-			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali12e8:completei0e10:incompletei1e5:peersl"),
+			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei1e5:peersl"),
 			[][]byte{
 				[]byte("27:d2:ip7:1.1.1.14:porti1234eeee"),
 			},
@@ -118,7 +118,7 @@ func TestHTTPAnnounce(t *testing.T) {
 				numwant:  "10",
 			},
 			storage.PeerIP{2, 2, 2, 2},
-			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali14e8:completei0e10:incompletei2e5:peersl"),
+			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peersl"),
 			[][]byte{
 				[]byte("27:d2:ip7:1.1.1.14:porti1234ee27:d2:ip7:2.2.2.24:porti4321eeee"),
 				[]byte("27:d2:ip7:2.2.2.24:porti4321ee27:d2:ip7:1.1.1.14:porti1234eeee"),
@@ -137,7 +137,7 @@ func TestHTTPAnnounce(t *testing.T) {
 				numwant:  "10",
 			},
 			storage.PeerIP{1, 1, 1, 1},
-			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali11e8:completei0e10:incompletei1e5:peers6:"),
+			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei1e5:peers6:"),
 			[][]byte{
 				[]byte("\x01\x01\x01\x01\x04\xd2e"),
 			},
@@ -155,7 +155,7 @@ func TestHTTPAnnounce(t *testing.T) {
 				numwant:  "10",
 			},
 			storage.PeerIP{2, 2, 2, 2},
-			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali13e8:completei0e10:incompletei2e5:peers12:"),
+			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peers12:"),
 			[][]byte{
 				[]byte("\x01\x01\x01\x01\x04\xd2\x02\x02\x02\x02\x10\xe1e"),
 				[]byte("\x02\x02\x02\x02\x10\xe1\x01\x01\x01\x01\x04\xd2e"),
