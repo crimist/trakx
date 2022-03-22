@@ -83,8 +83,13 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	t.peerdb.Save(ip, uint16(portInt), peerComplete, hash, peerid)
 	complete, incomplete := t.peerdb.HashStats(hash)
 
+	interval := int64(config.Conf.Tracker.Announce.Seconds())
+	if int32(config.Conf.Tracker.AnnounceFuzz.Seconds()) > 0 {
+		interval += rand.Int63n(int64(config.Conf.Tracker.AnnounceFuzz.Seconds()))
+	}
+
 	d := bencoding.GetDictionary()
-	d.Int64("interval", int64(config.Conf.Tracker.Announce+rand.Int31n(config.Conf.Tracker.AnnounceFuzz)))
+	d.Int64("interval", interval)
 	d.Int64("complete", int64(complete))
 	d.Int64("incomplete", int64(incomplete))
 	if vals.compact {

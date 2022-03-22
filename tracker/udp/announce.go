@@ -30,7 +30,7 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 		resp := protocol.AnnounceResp{
 			Action:        1,
 			TransactionID: announce.TransactionID,
-			Interval:      config.Conf.Tracker.Announce + rand.Int31n(config.Conf.Tracker.AnnounceFuzz),
+			Interval:      int32(config.Conf.Tracker.Announce.Seconds()) + rand.Int31n(int32(config.Conf.Tracker.AnnounceFuzz.Seconds())),
 			Leechers:      0,
 			Seeders:       0,
 			Peers:         []byte{},
@@ -56,16 +56,22 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 	complete, incomplete := u.peerdb.HashStats(announce.InfoHash)
 
 	peerlist := u.peerdb.PeerListBytes(announce.InfoHash, int(announce.NumWant))
+	interval := int32(config.Conf.Tracker.Announce.Seconds())
+	if int32(config.Conf.Tracker.AnnounceFuzz.Seconds()) > 0 {
+		interval += rand.Int31n(int32(config.Conf.Tracker.AnnounceFuzz.Seconds()))
+	}
+
 	resp := protocol.AnnounceResp{
 		Action:        1,
 		TransactionID: announce.TransactionID,
-		Interval:      config.Conf.Tracker.Announce + rand.Int31n(config.Conf.Tracker.AnnounceFuzz),
+		Interval:      interval,
 		Leechers:      int32(incomplete),
 		Seeders:       int32(complete),
 		Peers:         peerlist.Data,
 	}
 	respBytes, err := resp.Marshall()
 	peerlist.Put()
+
 	if err != nil {
 		msg := u.newServerError("AnnounceResp.Marshall()", err, announce.TransactionID)
 		u.sock.WriteToUDP(msg, remote)

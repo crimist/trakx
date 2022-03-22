@@ -2,15 +2,13 @@ package tracker
 
 import (
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/crimist/trakx/tracker/config"
 )
 
 func init() {
-	intMax := int(math.Pow(2, 32))
-	int64Max := int64(math.Pow(2, 32))
+	longDuration := 9999 * time.Second
 
 	// mock config
 	config.Conf.LogLevel = "debug"
@@ -22,7 +20,7 @@ func init() {
 	config.Conf.Debug.CheckConnIDs = true
 
 	config.Conf.Tracker.Announce = 0
-	config.Conf.Tracker.AnnounceFuzz = 1
+	config.Conf.Tracker.AnnounceFuzz = 1 * time.Second
 	config.Conf.Tracker.HTTP.Mode = "enabled"
 	config.Conf.Tracker.HTTP.Port = 1337
 	config.Conf.Tracker.HTTP.ReadTimeout = 2
@@ -36,11 +34,11 @@ func init() {
 
 	config.Conf.Database.Type = "gomap"
 	config.Conf.Database.Backup = "none"
-	config.Conf.Database.Peer.Trim = intMax
+	config.Conf.Database.Peer.Trim = longDuration
 	config.Conf.Database.Peer.Write = 0
-	config.Conf.Database.Peer.Timeout = int64Max
-	config.Conf.Database.Conn.Trim = intMax
-	config.Conf.Database.Conn.Timeout = int64Max
+	config.Conf.Database.Peer.Timeout = longDuration
+	config.Conf.Database.Conn.Trim = longDuration
+	config.Conf.Database.Conn.Timeout = longDuration
 
 	// run tracker
 	fmt.Print("Starting mock tracker... ")

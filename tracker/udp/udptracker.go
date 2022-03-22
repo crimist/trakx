@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"net"
 	"sync"
-	"time"
 	"unsafe"
 
 	"github.com/crimist/trakx/tracker/config"
@@ -37,7 +36,7 @@ func (u *UDPTracker) Init(peerdb storage.Database) {
 	u.peerdb = peerdb
 	u.shutdown = make(chan struct{})
 
-	go utils.RunOn(time.Duration(config.Conf.Database.Conn.Trim)*time.Second, u.conndb.trim)
+	go utils.RunOn(config.Conf.Database.Conn.Trim, u.conndb.trim)
 }
 
 // Serve begins listening and serving clients.

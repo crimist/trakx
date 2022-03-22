@@ -29,9 +29,9 @@ type connectionDatabase struct {
 	timeout int64
 }
 
-func newConnectionDatabase(timeout int64) *connectionDatabase {
+func newConnectionDatabase(timeout time.Duration) *connectionDatabase {
 	db := connectionDatabase{
-		timeout: timeout,
+		timeout: int64(timeout.Seconds()),
 	}
 
 	if err := db.load(); err != nil {

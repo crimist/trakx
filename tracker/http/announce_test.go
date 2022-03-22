@@ -7,6 +7,7 @@ import (
 	"net"
 	"runtime/debug"
 	"testing"
+	"time"
 
 	"github.com/cbeuw/connutil"
 	"github.com/crimist/trakx/tracker/config"
@@ -21,8 +22,8 @@ func TestHTTPAnnounce(t *testing.T) {
 	rand.Seed(1) // golang default
 
 	// setup config
-	config.Conf.Tracker.Announce = 10
-	config.Conf.Tracker.AnnounceFuzz = 5
+	config.Conf.Tracker.Announce = 10 * time.Second
+	config.Conf.Tracker.AnnounceFuzz = 5 * time.Second
 
 	// setup db
 	db, err := storage.Open()
@@ -229,7 +230,7 @@ func BenchmarkHTTPAnnounceCompact200(b *testing.B) {
 	tracker := HTTPTracker{}
 	config.Conf.Database.Type = "gomap"
 	config.Conf.Database.Backup = "none"
-	config.Conf.Tracker.AnnounceFuzz = 1
+	config.Conf.Tracker.AnnounceFuzz = 1 * time.Second
 	config.Conf.Tracker.Numwant.Limit = 300 // for peerlistpool
 
 	// setup db
@@ -314,7 +315,7 @@ func BenchmarkHTTPAnnounce200(b *testing.B) {
 	tracker := HTTPTracker{}
 	config.Conf.Database.Type = "gomap"
 	config.Conf.Database.Backup = "none"
-	config.Conf.Tracker.AnnounceFuzz = 1
+	config.Conf.Tracker.AnnounceFuzz = 1 * time.Second
 	config.Conf.Tracker.Numwant.Limit = 300 // for peerlistpool
 
 	// setup db

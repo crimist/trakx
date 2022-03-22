@@ -28,8 +28,6 @@ func (w *workers) startWorkers(num int) {
 func (w *workers) work() {
 	expvarHandler := expvar.Handler()
 	statRespWriter := fakeRespWriter{}
-	maxread := time.Duration(config.Conf.Tracker.HTTP.ReadTimeout) * time.Second
-	maxwrite := time.Duration(config.Conf.Tracker.HTTP.WriteTimeout) * time.Second
 	data := make([]byte, httpRequestMax)
 
 	for {
@@ -47,8 +45,8 @@ func (w *workers) work() {
 		}
 
 		now := time.Now()
-		conn.SetReadDeadline(now.Add(maxread))
-		conn.SetWriteDeadline(now.Add(maxwrite))
+		conn.SetReadDeadline(now.Add(config.Conf.Tracker.HTTP.ReadTimeout))
+		conn.SetWriteDeadline(now.Add(config.Conf.Tracker.HTTP.WriteTimeout))
 
 		size, err := conn.Read(data)
 		if err != nil {

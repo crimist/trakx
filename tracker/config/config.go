@@ -1,82 +1,34 @@
-/*
-	Config holds configuration information for trakx.
-*/
 package config
 
 import (
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
-	"github.com/kkyr/fig"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-const (
-	nofileIgnore        = 0
-	TrackerModeEnabled  = "enabled"  // http tracker enabled
-	TrackerModeInfo     = "info"     // http information server, no tracker
-	TrackerModeDisabled = "disabled" // http disabled
-)
-
-var (
-	// Global instance of config and logger
-	Conf   *Config
-	Logger *zap.Logger
-
-	loggerAtom zap.AtomicLevel
-)
-
-func init() {
-	// create temporary logger
-	var err error
-	Logger, err = zap.NewDevelopment()
-	if err != nil {
-		panic("failed to init initial zap logger")
-	}
-
-	// load paths
-	initPaths()
-
-	// load embedded filesystem
-	loadEmbed()
-
-	// load config
-	Conf, err = Load()
-	if err != nil {
-		Logger.Error("Failed to load a config", zap.Any("config", Conf), zap.Error(err))
-	} else {
-		if Conf.LogLevel.Debug() {
-			Logger.Debug("Loaded config", zap.Any("config", Conf))
-		} else {
-			Logger.Info("Loaded config")
-		}
-	}
-
-	Logger.Debug("initialized paths", zap.String("config", ConfigDir), zap.String("cache", CacheDir))
-}
-
 type Config struct {
 	LogLevel LogLevel
 	Debug    struct {
 		PprofPort      int
-		ExpvarInterval int
+		ExpvarInterval time.Duration
 		NofileLimit    uint64
 		PeerChanInit   uint64
 		CheckConnIDs   bool
 	}
 	Tracker struct {
-		Announce     int32
-		AnnounceFuzz int32
+		Announce     time.Duration
+		AnnounceFuzz time.Duration
 		HTTP         struct {
 			Mode         string
 			Port         int
-			ReadTimeout  int
-			WriteTimeout int
+			ReadTimeout  time.Duration
+			WriteTimeout time.Duration
 			Threads      int
 		}
 		UDP struct {
@@ -94,13 +46,13 @@ type Config struct {
 		Backup  string
 		Address string
 		Peer    struct {
-			Trim    int
-			Write   int
-			Timeout int64
+			Trim    time.Duration
+			Write   time.Duration
+			Timeout time.Duration
 		}
 		Conn struct {
-			Trim    int
-			Timeout int64
+			Trim    time.Duration
+			Timeout time.Duration
 		}
 	}
 }
@@ -189,40 +141,4 @@ func (conf *Config) Update() error {
 	}
 
 	return nil
-}
-
-// Load attempts to load the config from the disk or environment.
-// The config file must be named "trakx.yaml".
-// Load searches for the config file in ".", "~/.config/trakx", "./embedded", "/app/embedded" in order.
-// Environment variables overwrite file configuration, see trakx.yaml in ./embedded for examples.
-// This function is called when the config package is imported.
-func Load() (*Config, error) {
-	conf := new(Config)
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		Logger.Error("Failed to get user home dir, attempting to continue config load", zap.Error(err))
-	}
-
-	err = fig.Load(conf,
-		fig.File("trakx.yaml"),
-		fig.UseEnv("trakx"),
-		fig.Dirs(".", home+"/.config/trakx", "./embedded", "/app/embedded"),
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "fig failed to load a config")
-	}
-
-	// If $PORT var set override port for appengines (like heroku)
-	if appenginePort := os.Getenv("PORT"); appenginePort != "" {
-		appPort, err := strconv.Atoi(appenginePort)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to parse $PORT env variable (not an int)")
-		}
-
-		Logger.Info("PORT env variable detected. Overriding config...", zap.Int("$PORT", appPort))
-		conf.Tracker.HTTP.Port = appPort
-	}
-
-	return conf, conf.Update()
 }
