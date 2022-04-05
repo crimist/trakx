@@ -14,8 +14,9 @@ import (
 )
 
 type workers struct {
-	tracker  *HTTPTracker
-	listener net.Listener
+	tracker   *HTTPTracker
+	listener  net.Listener
+	fileCache config.EmbeddedCache
 }
 
 func (w *workers) startWorkers(num int) {
@@ -150,10 +151,6 @@ func (w *workers) work() {
 				break
 			}
 			w.tracker.scrape(conn, p.Params)
-		case "/":
-			writeData(conn, config.IndexData)
-		case "/dmca":
-			writeData(conn, config.DMCAData)
 		case "/stats":
 			// Serves expvar handler but it's hacky af
 			statRespWriter.conn = conn
@@ -161,7 +158,13 @@ func (w *workers) work() {
 			conn.Write(statsHeader)
 			expvarHandler.ServeHTTP(statRespWriter, nil)
 		default:
-			writeStatus(conn, "404")
+			// check if file is embedded
+			if data, ok := w.fileCache[p.Path]; ok {
+				writeData(conn, data)
+			} else {
+				// otherwise return 404
+				writeStatus(conn, "404")
+			}
 		}
 
 		conn.Close()

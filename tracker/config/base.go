@@ -32,7 +32,7 @@ func init() {
 	initPaths()
 
 	// load embedded filesystem
-	loadEmbed()
+	initEmbedded()
 
 	// load config
 	Conf, err = Load()

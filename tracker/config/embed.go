@@ -1,37 +1,26 @@
 package config
 
 import (
+	"embed"
+	_ "embed"
 	"io/ioutil"
 	"os"
 	"strings"
 
-	_ "github.com/crimist/trakx/embedded/statik"
-	"github.com/rakyll/statik/fs"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
-// generate with `statik -src ./embedded -include "*.html,*.yaml"`
+//go:embed embedded/*
+var Embedded embed.FS
 
-const (
-	defaultMessage = "n/a"
-)
+type EmbeddedCache map[string]string
 
-var (
-	IndexData = defaultMessage // http index page string
-	DMCAData  = defaultMessage // http dmca page string
-)
-
-// loadEmbed loads all the embedded files in the exe and sets up crutial filesystem
-func loadEmbed() {
-	fileSys, err := fs.New()
-	if err != nil {
-		Logger.Panic("failed to open statik fs", zap.Error(err))
-	}
-
+func initEmbedded() {
 	// create config if it doesn't exist
-	_, err = os.Stat(ConfigDir + "trakx.yaml")
+	_, err := os.Stat(ConfigDir + "trakx.yaml")
 	if os.IsNotExist(err) {
-		cfgData, err := fs.ReadFile(fileSys, "/trakx.yaml")
+		cfgData, err := Embedded.ReadFile("embedded/trakx.yaml")
 		if err != nil {
 			Logger.Error("failed to read embedded config", zap.Error(err))
 		}
@@ -42,26 +31,53 @@ func loadEmbed() {
 	} else if err != nil {
 		Logger.Error("failed to stat config file", zap.Error(err))
 	}
+}
 
-	// load HTML
-	if indexTmp, err := fs.ReadFile(fileSys, "/index.html"); err != nil {
-		Logger.Error("failed to read index file from statik fs", zap.Error(err))
-	} else {
-		IndexData = string(indexTmp)
-	}
-	if dmcaTmp, err := fs.ReadFile(fileSys, "/dmca.html"); err != nil {
-		Logger.Error("failed to read dmca file from statik fs", zap.Error(err))
-	} else {
-		DMCAData = string(dmcaTmp)
-	}
-
-	// trim whitespace to save bandwidth
+func GenerateEmbeddedCache() (EmbeddedCache, error) {
 	strip := func(data string) string {
 		data = strings.ReplaceAll(data, "\t", "")
 		data = strings.ReplaceAll(data, "\n", "")
 		return data
 	}
 
-	IndexData = strip(IndexData)
-	DMCAData = strip(DMCAData)
+	dir, err := Embedded.ReadDir("embedded")
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read embed directory to populate cache")
+	}
+
+	cache := make(EmbeddedCache, len(dir))
+
+	for _, entry := range dir {
+		if entry.IsDir() {
+			continue
+		}
+
+		filename := entry.Name()
+
+		// don't expose configuration
+		if filename == "trakx.yaml" {
+			continue
+		}
+
+		data, err := Embedded.ReadFile("embedded/" + filename)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to open file %v from embedded", "embedded/"+filename)
+		}
+
+		// trim data from html files to save bandwidth
+		dataStr := string(data)
+		if strings.HasSuffix(filename, ".html") {
+			dataStr = strip(dataStr)
+		}
+
+		Logger.Debug("adding file to embedded cache", zap.String("filename", filename))
+		cache["/"+filename] = dataStr
+	}
+
+	// if index exists copy to /
+	if indexData, ok := cache["/index.html"]; ok {
+		cache["/"] = indexData
+	}
+
+	return cache, nil
 }

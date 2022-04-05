@@ -61,29 +61,34 @@ func Run() {
 			}
 		}()
 	} else if config.Conf.Tracker.HTTP.Mode == config.TrackerModeInfo {
-		// serve basic html server with index and dmca pages
+		// serve basic html server
+		cache, err := config.GenerateEmbeddedCache()
+		if err != nil {
+			config.Logger.Fatal("failed to generate embedded cache", zap.Error(err))
+		}
+
+		// create big interval for announce response to reduce load
 		d := bencoding.NewDictionary()
 		d.Int64("interval", 86400) // 1 day
-		errResp := d.GetBytes()
+		announceResponse := d.GetBytes()
 
-		indexData := []byte(config.IndexData)
-		dmcaData := []byte(config.DMCAData)
 		expvarHandler := expvar.Handler()
 
 		mux := gohttp.NewServeMux()
-		mux.HandleFunc("/", func(w gohttp.ResponseWriter, r *gohttp.Request) {
-			w.Write(indexData)
-		})
-		mux.HandleFunc("/dmca", func(w gohttp.ResponseWriter, r *gohttp.Request) {
-			w.Write(dmcaData)
-		})
 		mux.HandleFunc("/stats", func(w gohttp.ResponseWriter, r *gohttp.Request) {
 			expvarHandler.ServeHTTP(w, r)
 		})
 		mux.HandleFunc("/scrape", func(w gohttp.ResponseWriter, r *gohttp.Request) {})
 		mux.HandleFunc("/announce", func(w gohttp.ResponseWriter, r *gohttp.Request) {
-			w.Write(errResp)
+			w.Write(announceResponse)
 		})
+
+		for filepath, data := range cache {
+			dataBytes := []byte(data)
+			mux.HandleFunc(filepath, func(w gohttp.ResponseWriter, r *gohttp.Request) {
+				w.Write(dataBytes)
+			})
+		}
 
 		server := gohttp.Server{
 			Addr:         fmt.Sprintf(":%d", config.Conf.Tracker.HTTP.Port),

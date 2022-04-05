@@ -32,9 +32,15 @@ func (t *HTTPTracker) Serve() error {
 		return errors.Wrap(err, "Failed to open TCP listen socket")
 	}
 
+	cache, err := config.GenerateEmbeddedCache()
+	if err != nil {
+		return errors.Wrap(err, "failed to generate embedded cache")
+	}
+
 	t.workers = workers{
-		tracker:  t,
-		listener: ln,
+		tracker:   t,
+		listener:  ln,
+		fileCache: cache,
 	}
 
 	t.workers.startWorkers(config.Conf.Tracker.HTTP.Threads)

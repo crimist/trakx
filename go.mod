@@ -2,7 +2,7 @@
 
 module github.com/crimist/trakx
 
-go 1.13
+go 1.16
 
 require (
 	github.com/cbeuw/connutil v0.0.0-20200411215123-966bfaa51ee3
@@ -14,7 +14,6 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/pelletier/go-toml v1.9.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/rakyll/statik v0.1.7
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
