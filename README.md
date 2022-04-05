@@ -56,9 +56,18 @@ For example, you can override the config file located in `~/.config/trakx/` by p
 
 ### Modifying default config & HTML pages
 
-You can modify the default config and pages served by the HTML server by editing/adding them in the `embeded/` folder.
+You can modify the default config and pages served by the HTML server by editing/adding them in the `tracker/config/embeded/` folder.
 
-**WARNING:** Due to the performance focused implementation trakx will only serve files at their full path. Example: `file` will 404, `file.html` will 200.
+**WARNING:** Due to the performance focused implementation trakx will only serve files at their full path. Example: `dmca` will 404, `dmca.html` will 200.
+
+### Binding to privileged ports
+
+To bind to privileged ports you'll have to use `sudo -E` to preserve any configuration variables and read the config from the correct $HOME directory.
+
+```
+$ TRAKX_TRACKER_HTTP_PORT=321 sudo -E ./trakx run
+2022-04-05T16:18:05.847-0700    INFO    HTTP tracker enabled    {"port": 321}
+```
 
 ### Build Tags
 
