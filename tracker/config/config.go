@@ -89,7 +89,7 @@ func (conf *Config) SetLogLevel(level LogLevel) {
 
 var oneTimeSetup sync.Once
 
-// Update updates logger and ulimited based on config.
+// Update updates logger and limits based on the configuration settings.
 func (conf *Config) Update() error {
 	oneTimeSetup.Do(func() {
 		loggerAtom = zap.NewAtomicLevelAt(zap.DebugLevel)
@@ -115,16 +115,14 @@ func (conf *Config) Update() error {
 	// limits
 	if conf.Debug.NofileLimit != nofileIgnore {
 		var rLimit syscall.Rlimit
-		err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-		if err != nil {
+		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
 			return errors.Wrap(err, "failed to get the NOFILE limit")
 		}
+		Logger.Debug("Got nofile limits", zap.Any("limit", rLimit))
 
-		Logger.Debug("Got nofile limit", zap.Any("limit", rLimit))
-
-		// Bugged on OSX & WSL
+		// Limit is bugged on WSL and Darwin systems, to avoid bug keep limit below 10_000
 		if ulimitBugged() && conf.Debug.NofileLimit > 10000 {
-			Logger.Debug("Detected bugged rlimit, capping to 10'000")
+			Logger.Warn("Detected bugged nofile limit, you are on Darwin or WSL based systen. Capping nofile limit to 10_000.")
 			rLimit.Max = 10000
 			rLimit.Cur = 10000
 		} else {
@@ -133,9 +131,7 @@ func (conf *Config) Update() error {
 		}
 
 		Logger.Debug("Setting nofile limit", zap.Any("limit", rLimit))
-
-		err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-		if err != nil {
+		if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
 			return errors.Wrap(err, "failed to set the NOFILE limit")
 		}
 	}

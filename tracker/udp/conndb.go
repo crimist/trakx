@@ -111,7 +111,7 @@ func (db *connectionDatabase) write() (err error) {
 	}
 	db.mu.Unlock()
 
-	if err := ioutil.WriteFile(config.CacheDir+"conn.db", buff, 0644); err != nil {
+	if err := ioutil.WriteFile(config.CachePath+"conn.db", buff, 0644); err != nil {
 		return errors.Wrap(err, "WriteFile failed")
 	}
 
@@ -130,7 +130,7 @@ func (db *connectionDatabase) load() (err error) {
 		}
 	}()
 
-	data, err := ioutil.ReadFile(config.CacheDir + "conn.db")
+	data, err := ioutil.ReadFile(config.CachePath + "conn.db")
 	if err != nil {
 		return errors.Wrap(err, "failed to read connection database file from disk")
 	}

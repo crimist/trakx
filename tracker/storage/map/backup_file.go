@@ -27,7 +27,7 @@ func (bck *FileBackup) Init(db storage.Database) error {
 func (bck *FileBackup) Load() error {
 	config.Logger.Info("Loading database from file")
 	start := time.Now()
-	path := config.CacheDir + "peers.db"
+	path := config.CachePath + "peers.db"
 
 	_, err := os.Stat(path)
 	if err != nil {
@@ -79,7 +79,7 @@ func (bck *FileBackup) writeFile() (int, error) {
 		return 0, errors.Wrap(err, "failed to encode data")
 	}
 
-	if err := ioutil.WriteFile(config.CacheDir+"peers.db", encoded, 0644); err != nil {
+	if err := ioutil.WriteFile(config.CachePath+"peers.db", encoded, 0644); err != nil {
 		return 0, errors.Wrap(err, "failed to write file to disk")
 	}
 

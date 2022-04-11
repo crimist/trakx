@@ -12,19 +12,16 @@ import (
 )
 
 //go:embed embedded/*
-var Embedded embed.FS
+var embeddedFileSystem embed.FS
 
-type EmbeddedCache map[string]string
-
-func initEmbedded() {
-	// create config if it doesn't exist
-	_, err := os.Stat(ConfigDir + "trakx.yaml")
-	if os.IsNotExist(err) {
-		cfgData, err := Embedded.ReadFile("embedded/trakx.yaml")
+func generateConfig() {
+	if _, err := os.Stat(configPath + "trakx.yaml"); os.IsNotExist(err) {
+		configData, err := embeddedFileSystem.ReadFile("embedded/trakx.yaml")
 		if err != nil {
 			Logger.Error("failed to read embedded config", zap.Error(err))
+			return
 		}
-		err = ioutil.WriteFile(ConfigDir+"trakx.yaml", cfgData, FilePerm)
+		err = ioutil.WriteFile(configPath+"trakx.yaml", configData, FilePerm)
 		if err != nil {
 			Logger.Error("failed to write config file", zap.Error(err))
 		}
@@ -33,14 +30,16 @@ func initEmbedded() {
 	}
 }
 
-func GenerateEmbeddedCache() (EmbeddedCache, error) {
-	strip := func(data string) string {
-		data = strings.ReplaceAll(data, "\t", "")
-		data = strings.ReplaceAll(data, "\n", "")
-		return data
-	}
+type EmbeddedCache map[string]string
 
-	dir, err := Embedded.ReadDir("embedded")
+func stripNewlineTabs(data string) string {
+	data = strings.ReplaceAll(data, "\t", "")
+	data = strings.ReplaceAll(data, "\n", "")
+	return data
+}
+
+func GenerateEmbeddedCache() (EmbeddedCache, error) {
+	dir, err := embeddedFileSystem.ReadDir("embedded")
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read embed directory to populate cache")
 	}
@@ -59,7 +58,7 @@ func GenerateEmbeddedCache() (EmbeddedCache, error) {
 			continue
 		}
 
-		data, err := Embedded.ReadFile("embedded/" + filename)
+		data, err := embeddedFileSystem.ReadFile("embedded/" + filename)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to open file %v from embedded", "embedded/"+filename)
 		}
@@ -67,7 +66,7 @@ func GenerateEmbeddedCache() (EmbeddedCache, error) {
 		// trim data from html files to save bandwidth
 		dataStr := string(data)
 		if strings.HasSuffix(filename, ".html") {
-			dataStr = strip(dataStr)
+			dataStr = stripNewlineTabs(dataStr)
 		}
 
 		Logger.Debug("adding file to embedded cache", zap.String("filename", filename))

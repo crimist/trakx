@@ -31,8 +31,7 @@ func init() {
 	// load paths
 	initPaths()
 
-	// load embedded filesystem
-	initEmbedded()
+	generateConfig()
 
 	// load config
 	Conf, err = Load()
@@ -46,5 +45,5 @@ func init() {
 		}
 	}
 
-	Logger.Debug("initialized paths", zap.String("config", ConfigDir), zap.String("cache", CacheDir))
+	Logger.Debug("initialized paths", zap.String("config", configPath), zap.String("cache", CachePath))
 }

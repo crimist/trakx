@@ -17,10 +17,10 @@ const (
 )
 
 var (
-	// ConfigDir stores the absolute path of the config directory
-	ConfigDir string
-	// CacheDir stores the absolute path of the cache directory
-	CacheDir string
+	// configPath stores the absolute path of the config directory
+	configPath string
+	// CachePath stores the absolute path of the cache directory
+	CachePath string
 )
 
 func initPaths() {
@@ -29,16 +29,16 @@ func initPaths() {
 		Logger.Panic("failed to get user home dir", zap.Error(err))
 	}
 
-	ConfigDir = home + "/.config/trakx/"
-	CacheDir = home + "/.cache/trakx/"
+	configPath = home + "/.config/trakx/"
+	CachePath = home + "/.cache/trakx/"
 
 	syscall.Umask(0)
 
-	err = os.MkdirAll(CacheDir, FolderPerm)
+	err = os.MkdirAll(CachePath, FolderPerm)
 	if err != nil {
 		Logger.Panic("failed to create cache dir", zap.Error(err))
 	}
-	err = os.MkdirAll(ConfigDir, FolderPerm)
+	err = os.MkdirAll(configPath, FolderPerm)
 	if err != nil {
 		Logger.Panic("failed to create config dir", zap.Error(err))
 	}
