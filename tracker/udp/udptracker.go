@@ -43,7 +43,10 @@ func (u *UDPTracker) Init(peerdb storage.Database) {
 func (u *UDPTracker) Serve() error {
 	var err error
 
-	u.sock, err = net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: config.Conf.Tracker.UDP.Port, Zone: ""})
+	u.sock, err = net.ListenUDP("udp4", &net.UDPAddr{
+		IP:   net.ParseIP(config.Conf.Tracker.UDP.IP),
+		Port: config.Conf.Tracker.UDP.Port,
+	})
 	if err != nil {
 		return errors.Wrap(err, "Failed to open UDP listen socket")
 	}

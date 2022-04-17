@@ -52,7 +52,7 @@ func Run() {
 	}
 
 	if config.Conf.Tracker.HTTP.Mode == config.TrackerModeEnabled {
-		config.Logger.Info("HTTP tracker enabled", zap.Int("port", config.Conf.Tracker.HTTP.Port))
+		config.Logger.Info("HTTP tracker enabled", zap.Int("port", config.Conf.Tracker.HTTP.Port), zap.String("ip", config.Conf.Tracker.HTTP.IP))
 
 		httptracker.Init(peerdb)
 		go func() {
@@ -108,7 +108,7 @@ func Run() {
 
 	// UDP tracker
 	if config.Conf.Tracker.UDP.Enabled {
-		config.Logger.Info("UDP tracker enabled", zap.Int("port", config.Conf.Tracker.UDP.Port))
+		config.Logger.Info("UDP tracker enabled", zap.Int("port", config.Conf.Tracker.UDP.Port), zap.String("ip", config.Conf.Tracker.UDP.IP))
 		udptracker.Init(peerdb)
 
 		go func() {

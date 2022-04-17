@@ -26,6 +26,7 @@ type Config struct {
 		AnnounceFuzz time.Duration
 		HTTP         struct {
 			Mode         string
+			IP           string
 			Port         int
 			ReadTimeout  time.Duration
 			WriteTimeout time.Duration
@@ -33,6 +34,7 @@ type Config struct {
 		}
 		UDP struct {
 			Enabled bool
+			IP      string
 			Port    int
 			Threads int
 		}

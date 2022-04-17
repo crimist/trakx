@@ -27,7 +27,7 @@ func (t *HTTPTracker) Init(peerdb storage.Database) {
 
 // Serve begins listening and serving clients.
 func (t *HTTPTracker) Serve() error {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", config.Conf.Tracker.HTTP.Port))
+	ln, err := net.Listen("tcp", fmt.Sprintf("%v:%v", config.Conf.Tracker.HTTP.IP, config.Conf.Tracker.HTTP.Port))
 	if err != nil {
 		return errors.Wrap(err, "Failed to open TCP listen socket")
 	}
