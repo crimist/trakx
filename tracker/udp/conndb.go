@@ -2,6 +2,7 @@ package udp
 
 import (
 	"io/ioutil"
+	"net/netip"
 	"sync"
 	"time"
 	"unsafe"
@@ -12,58 +13,54 @@ import (
 )
 
 const (
-	conndbAlloc = 50000
-	connIDSize  = int(unsafe.Sizeof(connID{}))
+	connectionIdSize = int(unsafe.Sizeof(connectionInfo{}))
+	addrPortSize     = 26 // netip.Addr + uint16 = 24 + 2
+	entrySize        = connectionIdSize + addrPortSize
 )
 
-type connAddr [6]byte
-type connID struct {
-	ID int64
-	ts int64
+type connectionInfo struct {
+	id        int64
+	timeStamp int64
 }
 
 type connectionDatabase struct {
-	mu sync.RWMutex
-	db map[connAddr]connID
-
-	timeout int64
+	mutex         sync.RWMutex
+	connectionMap map[netip.AddrPort]connectionInfo
+	timeout       int64
 }
 
 func newConnectionDatabase(timeout time.Duration) *connectionDatabase {
-	db := connectionDatabase{
+	connDb := connectionDatabase{
 		timeout: int64(timeout.Seconds()),
 	}
 
-	if err := db.load(); err != nil {
-		config.Logger.Warn("Failed to load connection database, creating empty db", zap.Error(err))
-		db.make()
-	}
+	connDb.make()
 
-	return &db
+	return &connDb
 }
 
-func (db *connectionDatabase) conns() (count int) {
-	db.mu.RLock()
-	count = len(db.db)
-	db.mu.RUnlock()
+func (db *connectionDatabase) size() (count int) {
+	db.mutex.RLock()
+	count = len(db.connectionMap)
+	db.mutex.RUnlock()
 	return
 }
 
-func (db *connectionDatabase) add(id int64, addr connAddr) {
-	db.mu.Lock()
-	db.db[addr] = connID{
-		ID: id,
-		ts: time.Now().Unix(),
+func (db *connectionDatabase) add(id int64, addr netip.AddrPort) {
+	db.mutex.Lock()
+	db.connectionMap[addr] = connectionInfo{
+		id:        id,
+		timeStamp: time.Now().Unix(),
 	}
-	db.mu.Unlock()
+	db.mutex.Unlock()
 }
 
-func (db *connectionDatabase) check(id int64, addr connAddr) bool {
-	db.mu.RLock()
-	cid, ok := db.db[addr]
-	db.mu.RUnlock()
+func (db *connectionDatabase) check(id int64, addr netip.AddrPort) bool {
+	db.mutex.RLock()
+	cid, ok := db.connectionMap[addr]
+	db.mutex.RUnlock()
 
-	if ok && cid.ID == id {
+	if ok && cid.id == id {
 		return true
 	}
 	return false
@@ -77,22 +74,55 @@ func (db *connectionDatabase) trim() {
 	epoch := start.Unix()
 	trimmed := 0
 
-	db.mu.Lock()
-	for key, conn := range db.db {
-		if epoch-conn.ts > db.timeout {
-			delete(db.db, key)
+	db.mutex.Lock()
+	for key, conn := range db.connectionMap {
+		if epoch-conn.timeStamp > db.timeout {
+			delete(db.connectionMap, key)
 			trimmed++
 		}
 	}
-	db.mu.Unlock()
+	db.mutex.Unlock()
 
-	config.Logger.Info("Trimmed connection database", zap.Int("removed", trimmed), zap.Int("left", db.conns()), zap.Duration("duration", time.Since(start)))
+	config.Logger.Info("Trimmed connection database", zap.Int("removed", trimmed), zap.Int("left", db.size()), zap.Duration("duration", time.Since(start)))
 }
 
-func (db *connectionDatabase) write() (err error) {
+func (connDb *connectionDatabase) writeToFile(path string) error {
 	config.Logger.Info("Writing connection database")
 	start := time.Now()
 
+	encoded, err := connDb.marshallBinary()
+	if err != nil {
+		return errors.Wrap(err, "failed to marshall connection database")
+	}
+
+	if err := ioutil.WriteFile(path, encoded, 0644); err != nil {
+		return errors.Wrap(err, "failed to write file")
+	}
+
+	config.Logger.Info("Wrote connection database", zap.Int("connections", connDb.size()), zap.Duration("duration", time.Since(start)))
+	return nil
+
+}
+
+func (db *connectionDatabase) loadFromFile(path string) error {
+	config.Logger.Info("Loading connection database")
+	start := time.Now()
+
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return errors.Wrap(err, "failed to read connection database file from disk")
+	}
+
+	if err := db.unmarshallBinary(data); err != nil {
+		return errors.Wrap(err, "failed to unmarshall binary data")
+
+	}
+
+	config.Logger.Info("Loaded connection database", zap.Int("connections", db.size()), zap.Duration("duration", time.Since(start)))
+	return nil
+}
+
+func (db *connectionDatabase) marshallBinary() (buff []byte, err error) {
 	defer func() {
 		// recover any oob slice panics
 		if tmp := recover(); tmp != nil {
@@ -101,28 +131,20 @@ func (db *connectionDatabase) write() (err error) {
 	}()
 
 	var pos int
-	buff := make([]byte, len(db.db)*22)
+	buff = make([]byte, len(db.connectionMap)*entrySize)
 
-	db.mu.Lock()
-	for addr, id := range db.db {
-		copy(buff[pos:pos+6], addr[:])
-		copy(buff[pos+6:pos+22], (*(*[connIDSize]byte)(unsafe.Pointer(&id)))[:])
-		pos += 22
+	db.mutex.Lock()
+	for addr, id := range db.connectionMap {
+		copy(buff[pos:pos+addrPortSize], (*(*[addrPortSize]byte)(unsafe.Pointer(&addr)))[:])
+		copy(buff[pos+addrPortSize:pos+entrySize], (*(*[connectionIdSize]byte)(unsafe.Pointer(&id)))[:])
+		pos += entrySize
 	}
-	db.mu.Unlock()
+	db.mutex.Unlock()
 
-	if err := ioutil.WriteFile(config.CachePath+"conn.db", buff, 0644); err != nil {
-		return errors.Wrap(err, "WriteFile failed")
-	}
-
-	config.Logger.Info("Wrote connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Since(start)))
-	return nil
+	return buff, nil
 }
 
-func (db *connectionDatabase) load() (err error) {
-	config.Logger.Info("Loading connection database")
-	start := time.Now()
-
+func (db *connectionDatabase) unmarshallBinary(data []byte) (err error) {
 	defer func() {
 		// recover any oob slice panics
 		if tmp := recover(); tmp != nil {
@@ -130,27 +152,21 @@ func (db *connectionDatabase) load() (err error) {
 		}
 	}()
 
-	data, err := ioutil.ReadFile(config.CachePath + "conn.db")
-	if err != nil {
-		return errors.Wrap(err, "failed to read connection database file from disk")
-	}
-
 	db.make()
 
-	for pos := 0; pos < len(data); pos += 22 {
-		var addr connAddr
-		var id connID
+	for pos := 0; pos < len(data); pos += entrySize {
+		var addr netip.AddrPort
+		var id connectionInfo
 
-		copy(addr[:], data[pos:pos+6])
-		copy((*(*[connIDSize]byte)(unsafe.Pointer(&id)))[:], data[pos+6:pos+22])
+		copy((*(*[addrPortSize]byte)(unsafe.Pointer(&addr)))[:], data[pos:pos+addrPortSize])
+		copy((*(*[connectionIdSize]byte)(unsafe.Pointer(&id)))[:], data[pos+addrPortSize:pos+entrySize])
 
-		db.db[addr] = id
+		db.connectionMap[addr] = id
 	}
 
-	config.Logger.Info("Loaded connection database", zap.Int("connections", db.conns()), zap.Duration("duration", time.Since(start)))
 	return nil
 }
 
 func (db *connectionDatabase) make() {
-	db.db = make(map[connAddr]connID, conndbAlloc)
+	db.connectionMap = make(map[netip.AddrPort]connectionInfo, config.Conf.Database.Conn.Min)
 }

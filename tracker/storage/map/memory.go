@@ -28,7 +28,7 @@ type PeerMap struct {
 }
 
 type Memory struct {
-	mu      sync.RWMutex
+	mutex   sync.RWMutex
 	hashmap map[storage.Hash]*PeerMap
 
 	backup storage.Backup
@@ -91,9 +91,9 @@ func (db *Memory) trim() (peers, hashes int) {
 	now := time.Now().Unix()
 	peerTimeout := int64(config.Conf.Database.Peer.Timeout.Seconds())
 
-	db.mu.RLock()
+	db.mutex.RLock()
 	for hash, peermap := range db.hashmap {
-		db.mu.RUnlock()
+		db.mutex.RUnlock()
 
 		peermap.Lock()
 		for id, peer := range peermap.peers {
@@ -106,14 +106,14 @@ func (db *Memory) trim() (peers, hashes int) {
 		peermap.Unlock()
 
 		if peersize == 0 {
-			db.mu.Lock()
+			db.mutex.Lock()
 			delete(db.hashmap, hash)
-			db.mu.Unlock()
+			db.mutex.Unlock()
 			hashes++
 		}
-		db.mu.RLock()
+		db.mutex.RLock()
 	}
-	db.mu.RUnlock()
+	db.mutex.RUnlock()
 
 	return
 }

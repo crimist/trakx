@@ -2,6 +2,7 @@ package gomap
 
 import (
 	"math/rand"
+	"net/netip"
 	"testing"
 
 	"github.com/crimist/trakx/tracker/storage"
@@ -18,7 +19,7 @@ func dbWithHashesAndPeers(hashes, peers int) *Memory {
 	peerid := storage.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	peer := storage.Peer{
 		Complete: true,
-		IP:       storage.PeerIP{1, 2, 3, 4},
+		IP:       netip.MustParseAddr("1.2.3.4"),
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
@@ -46,7 +47,7 @@ func dbWithHashes(count int) *Memory {
 	peerid := storage.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	peer := storage.Peer{
 		Complete: true,
-		IP:       storage.PeerIP{1, 2, 3, 4},
+		IP:       netip.MustParseAddr("1.2.3.4"),
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
@@ -72,7 +73,7 @@ func dbWithPeers(count int) (*Memory, storage.Hash) {
 	hash := storage.Hash(bytes)
 	peer := storage.Peer{
 		Complete: true,
-		IP:       storage.PeerIP{1, 2, 3, 4},
+		IP:       netip.MustParseAddr("1.2.3.4"),
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
@@ -106,7 +107,7 @@ func BenchmarkHashes500000(b *testing.B) { benchmarkHashes(b, 500000) }
 // more/less peers doesn't change performance
 const numPeers = 1000
 
-func benchmarkPeerList(b *testing.B, cap int) {
+func benchmarkPeerList(b *testing.B, cap uint) {
 	db, hash := dbWithPeers(numPeers)
 
 	b.ResetTimer()
@@ -120,7 +121,7 @@ func BenchmarkPeerList100(b *testing.B) { benchmarkPeerList(b, 100) }
 func BenchmarkPeerList200(b *testing.B) { benchmarkPeerList(b, 200) }
 func BenchmarkPeerList400(b *testing.B) { benchmarkPeerList(b, 400) }
 
-func benchmarkPeerListNopeerid(b *testing.B, cap int) {
+func benchmarkPeerListNopeerid(b *testing.B, cap uint) {
 	db, hash := dbWithPeers(numPeers)
 
 	b.ResetTimer()
@@ -134,7 +135,7 @@ func BenchmarkPeerListNopeerid100(b *testing.B) { benchmarkPeerListNopeerid(b, 1
 func BenchmarkPeerListNopeerid200(b *testing.B) { benchmarkPeerListNopeerid(b, 200) }
 func BenchmarkPeerListNopeerid400(b *testing.B) { benchmarkPeerListNopeerid(b, 400) }
 
-func benchmarkPeerListBytes(b *testing.B, cap int) {
+func benchmarkPeerListBytes(b *testing.B, cap uint) {
 	db, hash := dbWithPeers(numPeers)
 
 	b.ResetTimer()

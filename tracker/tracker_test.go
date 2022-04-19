@@ -16,7 +16,7 @@ func init() {
 	config.Conf.Debug.PprofPort = 0
 	config.Conf.Debug.ExpvarInterval = 0
 	config.Conf.Debug.NofileLimit = 0
-	config.Conf.Debug.PeerChanInit = 0
+	config.Conf.Debug.PeerChanMin = 0
 	config.Conf.Debug.CheckConnIDs = true
 
 	config.Conf.Tracker.Announce = 0

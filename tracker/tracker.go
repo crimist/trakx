@@ -41,7 +41,7 @@ func Run() {
 	}
 
 	// init the peerchan with minimum
-	storage.PeerChan.Add(config.Conf.Debug.PeerChanInit)
+	storage.PeerChan.Add(config.Conf.Debug.PeerChanMin)
 
 	// run signal handler
 	go signalHandler(peerdb, &udptracker, &httptracker)

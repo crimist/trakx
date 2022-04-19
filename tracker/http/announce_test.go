@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"math/rand"
 	"net"
+	"net/netip"
 	"runtime/debug"
 	"testing"
 	"time"
@@ -44,11 +45,10 @@ func TestHTTPAnnounce(t *testing.T) {
 	}()
 
 	var cases = []struct {
-		name          string
-		params        announceParams
-		ip            storage.PeerIP
-		expectedStart []byte
-		expectedEnds  [][]byte
+		name              string
+		params            announceParams
+		ip                netip.Addr
+		expectedResponses [][]byte
 	}{
 		{
 			"full",
@@ -62,14 +62,13 @@ func TestHTTPAnnounce(t *testing.T) {
 				peerid:   "11111111111111111111",
 				numwant:  "10",
 			},
-			storage.PeerIP{1, 1, 1, 1},
-			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei1e5:peersl"),
+			netip.MustParseAddr("1.1.1.1"),
 			[][]byte{
-				[]byte("59:d7:peer id20:111111111111111111112:ip7:1.1.1.14:porti1234eeee"),
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei1e5:peersl59:d7:peer id20:111111111111111111112:ip7:1.1.1.14:porti1234eeee"),
 			},
 		},
 		{
-			"full",
+			"fullMulti",
 			announceParams{
 				compact:  false,
 				nopeerid: false,
@@ -80,11 +79,63 @@ func TestHTTPAnnounce(t *testing.T) {
 				peerid:   "22222222222222222222",
 				numwant:  "10",
 			},
-			storage.PeerIP{2, 2, 2, 2},
-			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peersl"),
+			netip.MustParseAddr("2.2.2.2"),
 			[][]byte{
-				[]byte("59:d7:peer id20:111111111111111111112:ip7:1.1.1.14:porti1234ee59:d7:peer id20:222222222222222222222:ip7:2.2.2.24:porti4321eeee"),
-				[]byte("59:d7:peer id20:222222222222222222222:ip7:2.2.2.24:porti4321ee59:d7:peer id20:111111111111111111112:ip7:1.1.1.14:porti1234eeee"),
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peersl59:d7:peer id20:111111111111111111112:ip7:1.1.1.14:porti1234ee59:d7:peer id20:222222222222222222222:ip7:2.2.2.24:porti4321eeee"),
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peersl59:d7:peer id20:222222222222222222222:ip7:2.2.2.24:porti4321ee59:d7:peer id20:111111111111111111112:ip7:1.1.1.14:porti1234eeee"),
+			},
+		},
+		{
+			"fullIPv6",
+			announceParams{
+				compact:  false,
+				nopeerid: false,
+				noneleft: false,
+				event:    "started",
+				port:     "1234",
+				hash:     "00000000000000000002",
+				peerid:   "11111111111111111111",
+				numwant:  "10",
+			},
+			netip.MustParseAddr("::1234"),
+			[][]byte{
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei1e5:peersl58:d7:peer id20:111111111111111111112:ip6:::12344:porti1234eeee"),
+			},
+		},
+		{
+			"fullIPv6Multi",
+			announceParams{
+				compact:  false,
+				nopeerid: false,
+				noneleft: false,
+				event:    "started",
+				port:     "4321",
+				hash:     "00000000000000000002",
+				peerid:   "22222222222222222222",
+				numwant:  "10",
+			},
+			netip.MustParseAddr("::5678"),
+			[][]byte{
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peersl58:d7:peer id20:111111111111111111112:ip6:::12344:porti1234ee58:d7:peer id20:222222222222222222222:ip6:::56784:porti4321eeee"),
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peersl58:d7:peer id20:222222222222222222222:ip6:::56784:porti4321ee58:d7:peer id20:111111111111111111112:ip6:::12344:porti1234eeee"),
+			},
+		},
+		{
+			"fullMixedMulti",
+			announceParams{
+				compact:  false,
+				nopeerid: false,
+				noneleft: false,
+				event:    "started",
+				port:     "4321",
+				hash:     "00000000000000000002",
+				peerid:   "22222222222222222222",
+				numwant:  "10",
+			},
+			netip.MustParseAddr("1.1.1.1"),
+			[][]byte{
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peersl58:d7:peer id20:111111111111111111112:ip6:::12344:porti1234ee59:d7:peer id20:222222222222222222222:ip7:1.1.1.14:porti4321eeee"),
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peersl59:d7:peer id20:222222222222222222222:ip7:1.1.1.14:porti4321ee58:d7:peer id20:111111111111111111112:ip6:::12344:porti1234eeee"),
 			},
 		},
 		{
@@ -99,14 +150,13 @@ func TestHTTPAnnounce(t *testing.T) {
 				peerid:   "11111111111111111111",
 				numwant:  "10",
 			},
-			storage.PeerIP{1, 1, 1, 1},
-			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei1e5:peersl"),
+			netip.MustParseAddr("1.1.1.1"),
 			[][]byte{
-				[]byte("27:d2:ip7:1.1.1.14:porti1234eeee"),
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei1e5:peersl27:d2:ip7:1.1.1.14:porti1234eeee"),
 			},
 		},
 		{
-			"nopeerid",
+			"nopeeridMulti",
 			announceParams{
 				compact:  false,
 				nopeerid: true,
@@ -117,11 +167,10 @@ func TestHTTPAnnounce(t *testing.T) {
 				peerid:   "22222222222222222222",
 				numwant:  "10",
 			},
-			storage.PeerIP{2, 2, 2, 2},
-			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peersl"),
+			netip.MustParseAddr("2.2.2.2"),
 			[][]byte{
-				[]byte("27:d2:ip7:1.1.1.14:porti1234ee27:d2:ip7:2.2.2.24:porti4321eeee"),
-				[]byte("27:d2:ip7:2.2.2.24:porti4321ee27:d2:ip7:1.1.1.14:porti1234eeee"),
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peersl27:d2:ip7:1.1.1.14:porti1234ee27:d2:ip7:2.2.2.24:porti4321eeee"),
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peersl27:d2:ip7:2.2.2.24:porti4321ee27:d2:ip7:1.1.1.14:porti1234eeee"),
 			},
 		},
 		{
@@ -136,14 +185,13 @@ func TestHTTPAnnounce(t *testing.T) {
 				peerid:   "11111111111111111111",
 				numwant:  "10",
 			},
-			storage.PeerIP{1, 1, 1, 1},
-			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei1e5:peers6:"),
+			netip.MustParseAddr("1.1.1.1"),
 			[][]byte{
-				[]byte("\x01\x01\x01\x01\x04\xd2e"),
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei1e5:peers6:\x01\x01\x01\x01\x04\xd26:peers60:e"),
 			},
 		},
 		{
-			"compact",
+			"compactMulti",
 			announceParams{
 				compact:  true,
 				nopeerid: false,
@@ -154,42 +202,89 @@ func TestHTTPAnnounce(t *testing.T) {
 				peerid:   "22222222222222222222",
 				numwant:  "10",
 			},
-			storage.PeerIP{2, 2, 2, 2},
-			[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peers12:"),
+			netip.MustParseAddr("2.2.2.2"),
 			[][]byte{
-				[]byte("\x01\x01\x01\x01\x04\xd2\x02\x02\x02\x02\x10\xe1e"),
-				[]byte("\x02\x02\x02\x02\x10\xe1\x01\x01\x01\x01\x04\xd2e"),
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peers12:\x01\x01\x01\x01\x04\xd2\x02\x02\x02\x02\x10\xe16:peers60:e"),
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peers12:\x02\x02\x02\x02\x10\xe1\x01\x01\x01\x01\x04\xd26:peers60:e"),
+			},
+		},
+		{
+			"compactIPv6",
+			announceParams{
+				compact:  true,
+				nopeerid: false,
+				noneleft: false,
+				event:    "started",
+				port:     "1234",
+				hash:     "33333333333333333333",
+				peerid:   "11111111111111111111",
+				numwant:  "10",
+			},
+			netip.MustParseAddr("::1234"),
+			[][]byte{
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei1e5:peers0:6:peers618:\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x12\x34\x04\xd2e"),
+			},
+		},
+		{
+			"compactIPv6Multi",
+			announceParams{
+				compact:  true,
+				nopeerid: false,
+				noneleft: false,
+				event:    "started",
+				port:     "1234",
+				hash:     "33333333333333333333",
+				peerid:   "22222222222222222222",
+				numwant:  "10",
+			},
+			netip.MustParseAddr("::5678"),
+			[][]byte{
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peers0:6:peers636:\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x12\x34\x04\xd2\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x56\x78\x04\xd2e"),
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peers0:6:peers636:\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x56\x78\x04\xd2\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x12\x34\x04\xd2e"),
+			},
+		},
+		{
+			"compactMixedMulti",
+			announceParams{
+				compact:  true,
+				nopeerid: false,
+				noneleft: false,
+				event:    "started",
+				port:     "1234",
+				hash:     "33333333333333333333",
+				peerid:   "22222222222222222222",
+				numwant:  "10",
+			},
+			netip.MustParseAddr("1.1.1.1"),
+			[][]byte{
+				[]byte("HTTP/1.1 200\r\n\r\nd8:intervali10e8:completei0e10:incompletei2e5:peers6:\x01\x01\x01\x01\x04\xd26:peers618:\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x12\x34\x04\xd2e"),
 			},
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			tracker.announce(client, &c.params, c.ip)
-
 			resp := make([]byte, 0xFFFF)
-			n, err := server.Read(resp)
+
+			tracker.announce(client, &c.params, c.ip)
+			respSize, err := server.Read(resp)
 			if err != nil {
 				t.Error("Error reading asyncpipe")
 			}
-			resp = resp[:n]
+			resp = resp[:respSize]
 
-			if i := bytes.Index(resp, c.expectedStart); i == -1 {
-				t.Errorf("Bad announce start\nGot:\n%v\nExpected:\n%v", hex.Dump(resp), hex.Dump(c.expectedStart))
-			} else {
-				i += len(c.expectedStart)
-				ok := false
-				for _, ends := range c.expectedEnds {
-					if bytes.Equal(resp[i:n], ends) {
-						ok = true
-						break
-					}
-				}
-
-				if !ok {
-					t.Errorf("Bad announce end\nGot:\n%v\nExpected:\n%#v", hex.Dump(resp[i:n]), c.expectedEnds)
+			for _, expectedResp := range c.expectedResponses {
+				if bytes.Equal(expectedResp, resp) {
+					return
 				}
 			}
+
+			var expectedDump string
+			for _, expectedResp := range c.expectedResponses {
+				expectedDump += "\n" + hex.Dump(expectedResp)
+			}
+
+			t.Errorf("bad announce for %v\nresp:\n%v\nexpected:%v", c.name, hex.Dump(resp), expectedDump)
 		})
 	}
 }
@@ -252,7 +347,7 @@ func BenchmarkHTTPAnnounceCompact200(b *testing.B) {
 		peerid:   "01234567890123456789",
 		numwant:  "200",
 	}
-	ip := storage.PeerIP{123, 123, 123, 123}
+	ip := netip.MustParseAddr("123.123.123.123")
 
 	random20 := func() string {
 		var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -337,7 +432,7 @@ func BenchmarkHTTPAnnounce200(b *testing.B) {
 		peerid:   "01234567890123456789",
 		numwant:  "200",
 	}
-	ip := storage.PeerIP{123, 123, 123, 123}
+	ip := netip.MustParseAddr("123.123.123.123")
 
 	random20 := func() string {
 		var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")

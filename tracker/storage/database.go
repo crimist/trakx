@@ -5,6 +5,8 @@
 package storage
 
 import (
+	"net/netip"
+
 	"github.com/pkg/errors"
 
 	"github.com/crimist/trakx/tracker/config"
@@ -46,12 +48,12 @@ type Database interface {
 	Trim()
 	Expvar() error
 
-	Save(PeerIP, uint16, bool, Hash, PeerID)
+	Save(netip.Addr, uint16, bool, Hash, PeerID)
 	Drop(Hash, PeerID)
 
 	HashStats(Hash) (uint16, uint16)
-	PeerList(Hash, int, bool) [][]byte
-	PeerListBytes(Hash, int) *Peerlist
+	PeerList(Hash, uint, bool) [][]byte
+	PeerListBytes(Hash, uint) (*Peerlist, *Peerlist)
 
 	// Only used for expvar
 	Hashes() int

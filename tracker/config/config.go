@@ -18,7 +18,7 @@ type Config struct {
 		PprofPort      int
 		ExpvarInterval time.Duration
 		NofileLimit    uint64
-		PeerChanInit   uint64
+		PeerChanMin    uint64
 		CheckConnIDs   bool
 	}
 	Tracker struct {
@@ -39,8 +39,8 @@ type Config struct {
 			Threads int
 		}
 		Numwant struct {
-			Default int32
-			Limit   int32
+			Default uint
+			Limit   uint
 		}
 	}
 	Database struct {
@@ -53,6 +53,7 @@ type Config struct {
 			Timeout time.Duration
 		}
 		Conn struct {
+			Min     uint64
 			Trim    time.Duration
 			Timeout time.Duration
 		}

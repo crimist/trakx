@@ -16,9 +16,9 @@ func (db *Memory) encodeBinary() ([]byte, error) {
 	var buff bytes.Buffer
 	w := bufio.NewWriter(&buff)
 
-	db.mu.RLock()
+	db.mutex.RLock()
 	for hash, submap := range db.hashmap {
-		db.mu.RUnlock()
+		db.mutex.RUnlock()
 
 		binary.Write(w, binary.LittleEndian, &hash)
 		binary.Write(w, binary.LittleEndian, uint32(len(submap.peers)))
@@ -30,9 +30,9 @@ func (db *Memory) encodeBinary() ([]byte, error) {
 		}
 		submap.RUnlock()
 
-		db.mu.RLock()
+		db.mutex.RLock()
 	}
-	db.mu.RUnlock()
+	db.mutex.RUnlock()
 
 	if err := w.Flush(); err != nil {
 		return nil, err
@@ -90,9 +90,9 @@ const peersz = int(unsafe.Sizeof(storage.Peer{}))
 func (db *Memory) encodeBinaryUnsafe() ([]byte, error) {
 	var buff []byte
 
-	db.mu.RLock()
+	db.mutex.RLock()
 	for hash, submap := range db.hashmap {
-		db.mu.RUnlock()
+		db.mutex.RUnlock()
 
 		buff = append(buff, hash[:]...)
 
@@ -107,9 +107,9 @@ func (db *Memory) encodeBinaryUnsafe() ([]byte, error) {
 		}
 		submap.RUnlock()
 
-		db.mu.RLock()
+		db.mutex.RLock()
 	}
-	db.mu.RUnlock()
+	db.mutex.RUnlock()
 
 	return buff, nil
 }
@@ -125,7 +125,7 @@ func (db *Memory) encodeBinaryUnsafeAutoalloc() (buff []byte, err error) {
 
 	var pos int
 
-	db.mu.Lock()
+	db.mutex.Lock()
 	buff = make([]byte, len(db.hashmap)*24+int(storage.Expvar.Seeds.Value()+storage.Expvar.Leeches.Value())*36)
 
 	for hash, submap := range db.hashmap {
@@ -139,7 +139,7 @@ func (db *Memory) encodeBinaryUnsafeAutoalloc() (buff []byte, err error) {
 			pos += 36
 		}
 	}
-	db.mu.Unlock()
+	db.mutex.Unlock()
 
 	return buff, nil
 }

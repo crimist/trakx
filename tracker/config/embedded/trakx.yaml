@@ -20,7 +20,7 @@ debug:
   nofilelimit: 0
 
   # number of peer pointers to initialize at startup, max: 500'000
-  peerchaninit: 5000
+  peerchanmin: 5000
 
   # whether udp tracker validates connection IDs
   # only disable for debug purposes - if disabled tracker can be abused for UDP amplification
@@ -103,6 +103,10 @@ database:
   
   # udp connection database vars
   conn:
+    # Minimum size of connection database map
+    # Set to your maximum conndb size to reduce memory usage (preallocate)
+    min: 0
+
     # How often to check and remove expired UDP connection IDs
     trim: 10m
 

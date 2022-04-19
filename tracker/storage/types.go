@@ -1,5 +1,7 @@
 package storage
 
+import "net/netip"
+
 type (
 	// Hash stores a BitTorrent infohash.
 	Hash [20]byte
@@ -9,7 +11,7 @@ type (
 	// Peer contains requied peer information for database.
 	Peer struct {
 		Complete bool
-		IP       PeerIP
+		IP       netip.Addr
 		Port     uint16
 		LastSeen int64
 	}

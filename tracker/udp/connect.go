@@ -3,12 +3,13 @@ package udp
 import (
 	"math/rand"
 	"net"
+	"net/netip"
 
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp/protocol"
 )
 
-func (u *UDPTracker) connect(connect *protocol.Connect, remote *net.UDPAddr, addr connAddr) {
+func (u *UDPTracker) connect(connect *protocol.Connect, remote *net.UDPAddr, addr netip.AddrPort) {
 	storage.Expvar.Connects.Add(1)
 
 	id := rand.Int63()

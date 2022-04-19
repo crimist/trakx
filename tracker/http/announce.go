@@ -3,6 +3,7 @@ package http
 import (
 	"math/rand"
 	"net"
+	"net/netip"
 	"strconv"
 
 	"github.com/crimist/trakx/bencoding"
@@ -21,7 +22,7 @@ type announceParams struct {
 	numwant  string
 }
 
-func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.PeerIP) {
+func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip netip.Addr) {
 	storage.Expvar.Announces.Add(1)
 
 	// get vars
@@ -58,7 +59,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	}
 
 	// numwant
-	numwant := int(config.Conf.Tracker.Numwant.Default)
+	numwant := config.Conf.Tracker.Numwant.Default
 
 	if vals.numwant != "" {
 		numwantInt, err := strconv.Atoi(vals.numwant)
@@ -66,12 +67,13 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 			t.clientError(conn, "Invalid numwant")
 			return
 		}
+		numwantUint := uint(numwantInt)
 
 		// if numwant is within our limit than listen to the client
-		if numwantInt <= int(config.Conf.Tracker.Numwant.Limit) {
-			numwant = numwantInt
+		if numwantUint <= config.Conf.Tracker.Numwant.Limit {
+			numwant = numwantUint
 		} else {
-			numwant = int(config.Conf.Tracker.Numwant.Limit)
+			numwant = config.Conf.Tracker.Numwant.Limit
 		}
 	}
 
@@ -93,11 +95,14 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip storage.P
 	d.Int64("complete", int64(complete))
 	d.Int64("incomplete", int64(incomplete))
 	if vals.compact {
-		peerlist := t.peerdb.PeerListBytes(hash, numwant)
-		d.StringBytes("peers", peerlist.Data)
-		peerlist.Put()
+		peers4, peers6 := t.peerdb.PeerListBytes(hash, numwant)
+		d.StringBytes("peers", peers4.Data)
+		d.StringBytes("peers6", peers6.Data)
+
+		peers4.Put()
+		peers6.Put()
 	} else {
-		// Escapes to heap but isn't used in prod much
+		// TODO: Optimize, escapes to heap
 		d.BytesliceSlice("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
 	}
 

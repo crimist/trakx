@@ -1,11 +1,17 @@
 package gomap
 
 import (
-	"bytes"
+	"net/netip"
 	"testing"
 	"time"
 
 	"github.com/crimist/trakx/tracker/storage"
+)
+
+var (
+	testIP   = netip.AddrFrom4([4]byte{1, 2, 3, 4})
+	testHash = storage.Hash([20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+	testId   = storage.PeerID([20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 )
 
 func TestSaveDrop(t *testing.T) {
@@ -13,35 +19,36 @@ func TestSaveDrop(t *testing.T) {
 	db.make()
 	db.Expvar()
 
-	exbytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := storage.Hash(exbytes)
-	peerid := storage.PeerID(exbytes)
-
-	savePeer := storage.Peer{
+	peerWrite := storage.Peer{
 		Complete: true,
-		IP:       storage.PeerIP{1, 2, 3, 4},
+		IP:       testIP,
 		Port:     4321,
 	}
-	db.Save(savePeer.IP, savePeer.Port, savePeer.Complete, hash, peerid)
+	db.Save(peerWrite.IP, peerWrite.Port, peerWrite.Complete, testHash, testId)
+	peerRead, ok := db.hashmap[testHash].peers[testId]
 
-	getPeer, ok := db.hashmap[hash].peers[peerid]
 	if !ok {
-		t.Error("Getting peer not ok")
+		t.Error("Failed to read peer from database map")
 	}
-	if getPeer.Complete != savePeer.Complete {
-		t.Error("Complete not equal")
+	if peerRead.Complete != peerWrite.Complete {
+		t.Errorf("Peer complete not equal %v:%v", peerRead.Complete, peerWrite.Complete)
 	}
-	if !bytes.Equal(getPeer.IP[:], savePeer.IP[:]) {
-		t.Error("IP not equal")
+	if peerRead.IP != peerWrite.IP {
+		t.Errorf("Peer IP not equal %v:%v", peerRead.IP, peerWrite.IP)
 	}
-	if getPeer.Port != savePeer.Port {
-		t.Error("Port not equal")
+	if peerRead.Port != peerWrite.Port {
+		t.Errorf("Peer port not equal %v:%v", peerRead.Port, peerWrite.Port)
 	}
-	if getPeer.LastSeen != time.Now().Unix() {
-		t.Error("LastSeen not equal")
+	if peerRead.LastSeen != time.Now().Unix() {
+		t.Errorf("Peer LastSeen not correct %v:%v", peerRead.LastSeen, time.Now().Unix())
 	}
 
-	db.Drop(hash, peerid)
+	db.Drop(testHash, testId)
+	_, ok = db.hashmap[testHash].peers[testId]
+
+	if ok {
+		t.Error("Failed top drop peer from database")
+	}
 }
 
 func benchmarkSave(b *testing.B, db *Memory, peer storage.Peer, hash storage.Hash, peerid storage.PeerID) {
@@ -60,7 +67,7 @@ func BenchmarkSave(b *testing.B) {
 	peerid := storage.PeerID(bytes)
 	peer := storage.Peer{
 		Complete: true,
-		IP:       storage.PeerIP{1, 2, 3, 4},
+		IP:       testIP,
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
@@ -105,7 +112,7 @@ func BenchmarkSaveDrop(b *testing.B) {
 	peerid := storage.PeerID(bytes)
 	peer := storage.Peer{
 		Complete: true,
-		IP:       storage.PeerIP{1, 2, 3, 4},
+		IP:       testIP,
 		Port:     4321,
 		LastSeen: 1234567890,
 	}
@@ -124,7 +131,7 @@ func benchmarkSaveDropParallel(b *testing.B, routines int) {
 	peerid := storage.PeerID(bytes)
 	peer := storage.Peer{
 		Complete: true,
-		IP:       storage.PeerIP{1, 2, 3, 4},
+		IP:       testIP,
 		Port:     4321,
 		LastSeen: 1234567890,
 	}

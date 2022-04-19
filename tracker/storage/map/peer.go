@@ -1,22 +1,23 @@
 package gomap
 
 import (
+	"net/netip"
 	"time"
 
 	"github.com/crimist/trakx/tracker/storage"
 )
 
-func (db *Memory) Save(ip storage.PeerIP, port uint16, complete bool, h storage.Hash, id storage.PeerID) {
+func (memoryDb *Memory) Save(ip netip.Addr, port uint16, complete bool, hash storage.Hash, id storage.PeerID) {
 	// get/create the map
-	db.mu.RLock()
-	peermap, mapExists := db.hashmap[h]
-	db.mu.RUnlock()
+	memoryDb.mutex.RLock()
+	peermap, ok := memoryDb.hashmap[hash]
+	memoryDb.mutex.RUnlock()
 
 	// if submap doesn't exist create it
-	if !mapExists {
-		db.mu.Lock()
-		peermap = db.makePeermap(h)
-		db.mu.Unlock()
+	if !ok {
+		memoryDb.mutex.Lock()
+		peermap = memoryDb.makePeermap(hash)
+		memoryDb.mutex.Unlock()
 	}
 
 	// get peer
@@ -32,6 +33,7 @@ func (db *Memory) Save(ip storage.PeerIP, port uint16, complete bool, h storage.
 	}
 
 	// update peermap completion counts
+	// TODO: consider using atomic package instead of locking peermap?
 	if peerExists {
 		if !peer.Complete && complete {
 			peermap.incomplete--
@@ -88,13 +90,13 @@ func (db *Memory) Save(ip storage.PeerIP, port uint16, complete bool, h storage.
 }
 
 // delete is similar to drop but doesn't lock
-func (db *Memory) delete(peer *storage.Peer, pmap *PeerMap, id storage.PeerID) {
-	delete(pmap.peers, id)
+func (db *Memory) delete(peer *storage.Peer, peermap *PeerMap, id storage.PeerID) {
+	delete(peermap.peers, id)
 
 	if peer.Complete {
-		pmap.complete--
+		peermap.complete--
 	} else {
-		pmap.incomplete--
+		peermap.incomplete--
 	}
 
 	if !fast {
@@ -113,11 +115,11 @@ func (db *Memory) delete(peer *storage.Peer, pmap *PeerMap, id storage.PeerID) {
 }
 
 // Drop deletes peer
-func (db *Memory) Drop(h storage.Hash, id storage.PeerID) {
+func (db *Memory) Drop(hash storage.Hash, id storage.PeerID) {
 	// get the peermap
-	db.mu.RLock()
-	peermap, ok := db.hashmap[h]
-	db.mu.RUnlock()
+	db.mutex.RLock()
+	peermap, ok := db.hashmap[hash]
+	db.mutex.RUnlock()
 	if !ok {
 		return
 	}

@@ -2,6 +2,7 @@ package gomap
 
 import (
 	"encoding/hex"
+	"net/netip"
 	"reflect"
 	"runtime"
 	"runtime/debug"
@@ -13,6 +14,8 @@ import (
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
 )
+
+// TODO: refactor these, deepequal the whole database (or at least the hashmap)
 
 func TestEncodeBinary(t *testing.T) {
 	config.Conf.LogLevel = "debug"
@@ -29,7 +32,7 @@ func TestEncodeBinary(t *testing.T) {
 	peerid := storage.PeerID{0x49, 0x44, 0x49, 0x44, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
 	peer := storage.Peer{
 		Complete: true,
-		IP:       storage.PeerIP{0x49, 0x50, 0x44, 0x52},
+		IP:       netip.MustParseAddr("127.0.0.1"),
 		Port:     0x4f50,
 		LastSeen: time.Now().Unix(),
 	}
@@ -41,7 +44,11 @@ func TestEncodeBinary(t *testing.T) {
 
 	db.decodeBinary(data)
 	submap := db.hashmap[hash]
-	dbpeer := submap.peers[peerid]
+	dbpeer, ok := submap.peers[peerid]
+
+	if !ok {
+
+	}
 
 	if !reflect.DeepEqual(*dbpeer, peer) {
 		t.Fatal("Not equal!\n" + hex.Dump(data) + spew.Sdump(peer, *dbpeer))
@@ -58,7 +65,7 @@ func TestEncodeBinaryUnsafe(t *testing.T) {
 	peerid := storage.PeerID{0x49, 0x44, 0x49, 0x44, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
 	peer := storage.Peer{
 		Complete: true,
-		IP:       storage.PeerIP{0x49, 0x50, 0x44, 0x52},
+		IP:       netip.MustParseAddr("127.0.0.1"),
 		Port:     0x4f50,
 		LastSeen: time.Now().Unix(),
 	}

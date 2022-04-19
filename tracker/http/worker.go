@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"expvar"
 	"net"
+	"net/netip"
 	"time"
 	"unsafe"
 
@@ -112,26 +113,24 @@ func (w *workers) work() {
 				}
 			}
 
-			var ip storage.PeerIP
+			var ip netip.Addr
 			var ipStr string
 
-			forwarded, forwardedIP := getForwarded(data)
+			forwarded, forwardedIP := parseForwarded(data)
 			if forwarded {
-				// Appeng (heroku)
 				if forwardedIP == nil {
-					w.tracker.clientError(conn, "Bad IP, potentially heroku issue")
+					w.tracker.clientError(conn, "Failed to parse X-Forwarded-For")
 					break
 				}
 				ipStr = *(*string)(unsafe.Pointer(&forwardedIP))
 			} else {
-				// Not appeng
 				ipStr, _, _ = net.SplitHostPort(conn.RemoteAddr().String())
 			}
 
-			if err := ip.FromString(ipStr); err != nil {
-				config.Logger.Warn("failed to parse ip", zap.String("ip", ipStr), zap.Error(err), zap.Any("attempt", ip))
-
-				w.tracker.clientError(conn, "failed to parse ip: "+err.Error())
+			ip, err := netip.ParseAddr(ipStr)
+			if err != nil {
+				config.Logger.Warn("Failed to parse value from X-Forwarded-For", zap.String("ip string", ipStr), zap.Error(err))
+				w.tracker.clientError(conn, "Failed to parse forwarded IP")
 				break
 			}
 

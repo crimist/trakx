@@ -7,8 +7,8 @@ package udp
 import (
 	"encoding/binary"
 	"net"
+	"net/netip"
 	"sync"
-	"unsafe"
 
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
@@ -35,6 +35,11 @@ func (u *UDPTracker) Init(peerdb storage.Database) {
 	u.conndb = newConnectionDatabase(config.Conf.Database.Conn.Timeout)
 	u.peerdb = peerdb
 	u.shutdown = make(chan struct{})
+
+	if err := u.conndb.loadFromFile(config.CachePath + "conn.db"); err != nil {
+		config.Logger.Warn("Failed to load connection database, creating empty db", zap.Error(err))
+		u.conndb.make()
+	}
 
 	go utils.RunOn(config.Conf.Database.Conn.Trim, u.conndb.trim)
 }
@@ -106,7 +111,7 @@ func (u *UDPTracker) ConnCount() int {
 	if u == nil || u.conndb == nil {
 		return -1
 	}
-	return u.conndb.conns()
+	return u.conndb.size()
 }
 
 // WriteConns writes the connection database to the disk.
@@ -115,7 +120,7 @@ func (u *UDPTracker) WriteConns() error {
 		return nil
 	}
 
-	if err := u.conndb.write(); err != nil {
+	if err := u.conndb.writeToFile(config.CachePath + "conn.db"); err != nil {
 		return errors.Wrap(err, "Failed to write connections database to disk")
 	}
 
@@ -124,24 +129,18 @@ func (u *UDPTracker) WriteConns() error {
 
 func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 	storage.Expvar.Hits.Add(1)
-	var cAddr connAddr
-	ip := remote.IP.To4()
-
-	copy(cAddr[0:4], ip)
-	binary.LittleEndian.PutUint16(cAddr[4:6], uint16(remote.Port))
-	addr := *(*[4]byte)(unsafe.Pointer(&cAddr))
 
 	action := protocol.Action(data[11])
 	txid := int32(binary.BigEndian.Uint32(data[12:16]))
 
-	if ip == nil {
-		msg := u.newClientError("IPv6?", txid, cerrFields{"ip": remote.IP.String()})
-		u.sock.WriteToUDP(msg, remote)
-		return
+	addr, ok := netip.AddrFromSlice(remote.IP)
+	if !ok {
+		u.newServerError("failed to parse ip", errors.New("failed to parse remote ip slice as netip"), txid)
 	}
+	addrPort := netip.AddrPortFrom(addr, uint16(remote.Port))
 
 	if action > 2 {
-		msg := u.newClientError("bad action", txid, cerrFields{"action": data[11], "addr": addr})
+		msg := u.newClientError("bad action", txid, cerrFields{"action": data[11], "addrPort": addrPort})
 		u.sock.WriteToUDP(msg, remote)
 		return
 	}
@@ -152,13 +151,13 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 			msg := u.newServerError("base.unmarshall()", err, txid)
 			u.sock.WriteToUDP(msg, remote)
 		}
-		u.connect(&c, remote, cAddr)
+		u.connect(&c, remote, addrPort)
 		return
 	}
 
 	connid := int64(binary.BigEndian.Uint64(data[0:8]))
-	if ok := u.conndb.check(connid, cAddr); !ok && config.Conf.Debug.CheckConnIDs {
-		msg := u.newClientError("bad connid", txid, cerrFields{"clientID": connid, "ip": ip})
+	if ok := u.conndb.check(connid, addrPort); !ok && config.Conf.Debug.CheckConnIDs {
+		msg := u.newClientError("bad connid", txid, cerrFields{"clientID": connid, "addrPort": addrPort})
 		u.sock.WriteToUDP(msg, remote)
 		return
 	}
@@ -178,7 +177,7 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 			return
 		}
 
-		u.announce(&announce, remote, addr)
+		u.announce(&announce, remote, addrPort)
 	case protocol.ActionScrape:
 		scrape := protocol.Scrape{}
 		if err := scrape.Unmarshall(data); err != nil {

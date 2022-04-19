@@ -2,7 +2,6 @@ package gomap
 
 import (
 	"encoding/binary"
-	"net"
 
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/storage"
@@ -15,10 +14,10 @@ func (db *Memory) Hashes() int {
 }
 
 // HashStats returns number of complete and incomplete peers associated with the hash
-func (db *Memory) HashStats(h storage.Hash) (complete, incomplete uint16) {
-	db.mu.RLock()
-	peermap, ok := db.hashmap[h]
-	db.mu.RUnlock()
+func (db *Memory) HashStats(hash storage.Hash) (complete, incomplete uint16) {
+	db.mutex.RLock()
+	peermap, ok := db.hashmap[hash]
+	db.mutex.RUnlock()
 	if !ok {
 		return
 	}
@@ -32,44 +31,44 @@ func (db *Memory) HashStats(h storage.Hash) (complete, incomplete uint16) {
 }
 
 // PeerList returns a peer list for the given hash capped at max
-func (db *Memory) PeerList(h storage.Hash, max int, noPeerID bool) [][]byte {
-	db.mu.RLock()
-	peermap, ok := db.hashmap[h]
-	db.mu.RUnlock()
+func (db *Memory) PeerList(hash storage.Hash, numWant uint, removePeerId bool) (peers [][]byte) {
+	db.mutex.RLock()
+	peermap, ok := db.hashmap[hash]
+	db.mutex.RUnlock()
 	if !ok {
-		return [][]byte{}
+		return
 	}
 
 	peermap.RLock()
 
-	if mlen := len(peermap.peers); max > mlen {
-		max = mlen
+	if numPeers := uint(len(peermap.peers)); numWant > numPeers {
+		numWant = numPeers
 	}
 
-	if max == 0 {
+	if numWant == 0 {
 		peermap.RUnlock()
-		return [][]byte{}
+		return
 	}
 
-	var i int
-	peerList := make([][]byte, max)
+	var i uint
+	peers = make([][]byte, numWant)
 	dict := bencoding.GetDictionary()
 
 	for id, peer := range peermap.peers {
-		if !noPeerID {
+		if !removePeerId {
 			dict.String("peer id", string(id[:]))
 		}
-		dict.String("ip", net.IP(peer.IP[:]).String())
+		dict.String("ip", peer.IP.String())
 		dict.Int64("port", int64(peer.Port))
 
-		b := dict.GetBytes()
-		peerList[i] = make([]byte, len(b))
-		copy(peerList[i], b)
+		dictBytes := dict.GetBytes()
+		peers[i] = make([]byte, len(dictBytes))
+		copy(peers[i], dictBytes)
 
 		dict.Reset()
 
 		i++
-		if i == max {
+		if i == numWant {
 			break
 		}
 	}
@@ -77,44 +76,53 @@ func (db *Memory) PeerList(h storage.Hash, max int, noPeerID bool) [][]byte {
 	peermap.RUnlock()
 	bencoding.PutDictionary(dict)
 
-	return peerList
+	return
 }
 
 // PeerListBytes returns a byte encoded peer list for the given hash capped at num
-func (db *Memory) PeerListBytes(h storage.Hash, max int) *storage.Peerlist {
-	plist := storage.GetPeerList()
+func (db *Memory) PeerListBytes(hash storage.Hash, numWant uint) (peers4 *storage.Peerlist, peers6 *storage.Peerlist) {
+	peers4 = storage.GetPeerList()
+	peers6 = storage.GetPeerList()
 
-	db.mu.RLock()
-	peermap, ok := db.hashmap[h]
-	db.mu.RUnlock()
+	db.mutex.RLock()
+	peermap, ok := db.hashmap[hash]
+	db.mutex.RUnlock()
 	if !ok {
-		return plist
+		return
 	}
-
-	var pos int
 
 	peermap.RLock()
-	if mlen := len(peermap.peers); max > mlen {
-		max = mlen
+	if numPeers := uint(len(peermap.peers)); numWant > numPeers {
+		numWant = numPeers
 	}
 
-	if max == 0 {
+	if numWant == 0 {
 		peermap.RUnlock()
-		return plist
+		return
 	}
 
-	size := 6 * max
-	plist.Data = plist.Data[:size]
+	var pos4, pos6 int
 	for _, peer := range peermap.peers {
-		copy(plist.Data[pos:pos+4], peer.IP[:])
-		binary.BigEndian.PutUint16(plist.Data[pos+4:pos+6], peer.Port)
-
-		pos += 6
-		if pos == size {
-			break
+		if peer.IP.Is6() {
+			copy(peers6.Data[pos6:pos6+16], peer.IP.AsSlice())
+			binary.BigEndian.PutUint16(peers6.Data[pos6+16:pos6+18], peer.Port)
+			pos6 += 18
+			if pos6+18 > cap(peers6.Data) {
+				break
+			}
+		} else {
+			copy(peers4.Data[pos4:pos4+4], peer.IP.AsSlice())
+			binary.BigEndian.PutUint16(peers4.Data[pos4+4:pos4+6], peer.Port)
+			pos4 += 6
+			if pos4+6 > cap(peers4.Data) {
+				break
+			}
 		}
 	}
 	peermap.RUnlock()
 
-	return plist
+	peers4.Data = peers4.Data[:pos4]
+	peers6.Data = peers6.Data[:pos6]
+
+	return
 }

@@ -1,9 +1,11 @@
+//go:build !fast
 // +build !fast
 
 package storage
 
 import (
 	"expvar"
+	"net/netip"
 	"sync"
 )
 
@@ -38,7 +40,7 @@ var (
 )
 
 func init() {
-	Expvar.IPs.submap = make(map[PeerIP]int16, ipmapAlloc)
+	Expvar.IPs.submap = make(map[netip.Addr]int16, ipmapAlloc)
 	Expvar.Hits = expvar.NewInt("trakx.performance.hits")
 	Expvar.Connects = expvar.NewInt("trakx.performance.connects")
 	Expvar.ConnectsOK = expvar.NewInt("trakx.performance.connectsok")
@@ -57,27 +59,27 @@ func init() {
 
 type expvarIPMap struct {
 	sync.Mutex
-	submap map[PeerIP]int16
+	submap map[netip.Addr]int16
 }
 
 func (ipmap *expvarIPMap) Len() int {
 	return len(ipmap.submap)
 }
 
-func (ipmap *expvarIPMap) Delete(ip PeerIP) {
+func (ipmap *expvarIPMap) Delete(ip netip.Addr) {
 	delete(ipmap.submap, ip)
 }
 
-func (ipmap *expvarIPMap) Inc(ip PeerIP) {
+func (ipmap *expvarIPMap) Inc(ip netip.Addr) {
 	ipmap.submap[ip]++
 }
 
-func (ipmap *expvarIPMap) Dec(ip PeerIP) {
+func (ipmap *expvarIPMap) Dec(ip netip.Addr) {
 	ipmap.submap[ip]--
 }
 
 // Remove decrements the IP and removes it if it's dead
-func (ipmap *expvarIPMap) Remove(ip PeerIP) {
+func (ipmap *expvarIPMap) Remove(ip netip.Addr) {
 	ipmap.submap[ip]--
 	if ipmap.submap[ip] < 1 {
 		delete(ipmap.submap, ip)
