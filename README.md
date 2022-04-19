@@ -62,11 +62,12 @@ You can modify the default config and pages served by the HTML server by editing
 
 ### Binding to privileged ports
 
-To bind to privileged ports you'll have to use `sudo -E` to preserve any configuration variables and read the config from the correct $HOME directory.
+To bind to privileged ports I recommend using the `CAP_NET_BIND_SERVICE` capability. More information about this can be found [here](https://stackoverflow.com/a/414258/6389542).
 
 ```
-$ TRAKX_TRACKER_HTTP_PORT=321 sudo -E ./trakx run
-2022-04-05T16:18:05.847-0700    INFO    HTTP tracker enabled    {"port": 321}
+$ sudo setcap 'cap_net_bind_service=+ep' ./trakx
+$ TRAKX_TRACKER_HTTP_PORT=80 ./trakx run
+2022-04-05T16:18:05.847-0700    INFO    HTTP tracker enabled    {"port": 80}
 ```
 
 ### Build Tags
