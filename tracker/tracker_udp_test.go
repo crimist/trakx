@@ -33,7 +33,7 @@ func TestUDPAnnounce(t *testing.T) {
 
 	c := protocol.Connect{
 		ProtcolID:     protocol.UDPTrackerMagic,
-		Action:        0,
+		Action:        protocol.ActionConnect,
 		TransactionID: 1337,
 	}
 
@@ -55,7 +55,7 @@ func TestUDPAnnounce(t *testing.T) {
 	cr := protocol.ConnectResp{}
 	cr.Unmarshall(packet)
 
-	if cr.Action == 3 {
+	if cr.Action == protocol.ActionError {
 		e := protocol.Error{}
 		e.Unmarshall(packet)
 		t.Error("Tracker err:", string(e.ErrorString))
@@ -64,13 +64,13 @@ func TestUDPAnnounce(t *testing.T) {
 	if cr.TransactionID != c.TransactionID {
 		t.Error("Invalid transactionID should be", c.TransactionID, "but got", cr.TransactionID)
 	}
-	if cr.Action != 0 {
+	if cr.Action != protocol.ActionConnect {
 		t.Error("Invalid action should be 0 but got", cr.Action)
 	}
 
 	a := protocol.Announce{
 		ConnectionID:  cr.ConnectionID,
-		Action:        1,
+		Action:        protocol.ActionAnnounce,
 		TransactionID: 7331,
 		InfoHash:      [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14},
 		PeerID:        [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14},
@@ -99,7 +99,7 @@ func TestUDPAnnounce(t *testing.T) {
 	ar := protocol.AnnounceResp{}
 	ar.Unmarshall(packet)
 
-	if ar.Action == 3 {
+	if ar.Action == protocol.ActionError {
 		e := protocol.Error{}
 		e.Unmarshall(packet)
 		t.Error("Tracker err:", string(e.ErrorString))
@@ -109,7 +109,7 @@ func TestUDPAnnounce(t *testing.T) {
 	if ar.TransactionID != a.TransactionID {
 		t.Error("Invalid transactionID should be", a.TransactionID, "but got", ar.TransactionID)
 	}
-	if ar.Action != 1 {
+	if ar.Action != protocol.ActionAnnounce {
 		t.Error("Invalid action should be 1 but got", ar.Action)
 	}
 	if ar.Leechers != 1 {
@@ -149,7 +149,7 @@ func TestUDPBadAction(t *testing.T) {
 
 	c := protocol.Connect{
 		ProtcolID:     protocol.UDPTrackerMagic,
-		Action:        0,
+		Action:        protocol.ActionConnect,
 		TransactionID: 1337,
 	}
 
@@ -217,7 +217,7 @@ func TestUDPBadConnID(t *testing.T) {
 
 	a := protocol.Announce{
 		ConnectionID:  0xBAD, // bad connid
-		Action:        1,
+		Action:        protocol.ActionAnnounce,
 		TransactionID: 0xDEAD,
 	}
 
@@ -264,7 +264,7 @@ func TestUDPBadPort(t *testing.T) {
 
 	c := protocol.Connect{
 		ProtcolID:     protocol.UDPTrackerMagic,
-		Action:        0,
+		Action:        protocol.ActionConnect,
 		TransactionID: 1337,
 	}
 
@@ -288,7 +288,7 @@ func TestUDPBadPort(t *testing.T) {
 
 	a := protocol.Announce{
 		ConnectionID:  cr.ConnectionID,
-		Action:        1,
+		Action:        protocol.ActionAnnounce,
 		TransactionID: 7331,
 		InfoHash:      [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14},
 		PeerID:        [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14},
@@ -339,7 +339,7 @@ func TestUDPTransactionID(t *testing.T) {
 
 	c := protocol.Connect{
 		ProtcolID:     protocol.UDPTrackerMagic,
-		Action:        0,
+		Action:        protocol.ActionConnect,
 		TransactionID: 0xBAD,
 	}
 	data, err := c.Marshall()
