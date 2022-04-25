@@ -10,18 +10,18 @@ import (
 func (u *UDPTracker) scrape(scrape *protocol.Scrape, remote *net.UDPAddr) {
 	storage.Expvar.Scrapes.Add(1)
 
-	if len(scrape.InfoHash) > 74 {
+	if len(scrape.InfoHashes) > 74 {
 		msg := u.newClientError("74 hashes max", scrape.TransactionID)
 		u.sock.WriteToUDP(msg, remote)
 		return
 	}
 
 	resp := protocol.ScrapeResp{
-		Action:        2,
+		Action:        protocol.ActionScrape,
 		TransactionID: scrape.TransactionID,
 	}
 
-	for _, hash := range scrape.InfoHash {
+	for _, hash := range scrape.InfoHashes {
 		if len(hash) != 20 {
 			msg := u.newClientError("bad hash", scrape.TransactionID)
 			u.sock.WriteToUDP(msg, remote)

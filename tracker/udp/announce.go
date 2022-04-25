@@ -24,15 +24,15 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 		announce.NumWant = config.Conf.Tracker.Numwant.Limit
 	}
 
-	if announce.Event == protocol.Stopped {
+	if announce.Event == protocol.EventStopped {
 		u.peerdb.Drop(announce.InfoHash, announce.PeerID)
 
 		resp := protocol.AnnounceResp{
-			Action:        1,
+			Action:        protocol.ActionAnnounce,
 			TransactionID: announce.TransactionID,
-			Interval:      int32(config.Conf.Tracker.Announce.Seconds()) + rand.Int31n(int32(config.Conf.Tracker.AnnounceFuzz.Seconds())),
-			Leechers:      0,
-			Seeders:       0,
+			Interval:      -1,
+			Leechers:      -1,
+			Seeders:       -1,
 			Peers:         []byte{},
 		}
 		respBytes, err := resp.Marshall()
@@ -48,7 +48,7 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 	}
 
 	peerComplete := false
-	if announce.Event == protocol.Completed || announce.Left == 0 {
+	if announce.Event == protocol.EventCompleted || announce.Left == 0 {
 		peerComplete = true
 	}
 
@@ -62,7 +62,7 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 	}
 
 	resp := protocol.AnnounceResp{
-		Action:        1,
+		Action:        protocol.ActionAnnounce,
 		TransactionID: announce.TransactionID,
 		Interval:      interval,
 		Leechers:      int32(incomplete),

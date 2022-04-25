@@ -9,7 +9,7 @@ import (
 
 // BitTorrent UDP tracker server error
 type Error struct {
-	Action        int32
+	Action        Action
 	TransactionID int32
 	ErrorString   []uint8
 }

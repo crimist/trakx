@@ -14,7 +14,7 @@ const (
 // BitTorrent UDP tracker connect
 type Connect struct {
 	ProtcolID     int64
-	Action        int32
+	Action        Action
 	TransactionID int32
 }
 
@@ -39,7 +39,7 @@ func (c *Connect) Unmarshall(data []byte) error {
 
 // BitTorrent UDP tracker connect response
 type ConnectResp struct {
-	Action        int32
+	Action        Action
 	TransactionID int32
 	ConnectionID  int64
 }

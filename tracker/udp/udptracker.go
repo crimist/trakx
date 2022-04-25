@@ -131,7 +131,7 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 	binary.LittleEndian.PutUint16(cAddr[4:6], uint16(remote.Port))
 	addr := *(*[4]byte)(unsafe.Pointer(&cAddr))
 
-	action := data[11]
+	action := protocol.Action(data[11])
 	txid := int32(binary.BigEndian.Uint32(data[12:16]))
 
 	if ip == nil {
@@ -146,7 +146,7 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 		return
 	}
 
-	if action == 0 {
+	if action == protocol.ActionConnect {
 		c := protocol.Connect{}
 		if err := c.Unmarshall(data); err != nil {
 			msg := u.newServerError("base.unmarshall()", err, txid)
@@ -164,26 +164,29 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 	}
 
 	switch action {
-	case 1:
+	case protocol.ActionAnnounce:
 		if len(data) < 98 {
 			msg := u.newClientError("bad announce size", txid, cerrFields{"size": len(data)})
 			u.sock.WriteToUDP(msg, remote)
 			return
 		}
+
 		announce := protocol.Announce{}
 		if err := announce.Unmarshall(data); err != nil {
 			msg := u.newServerError("announce.unmarshall()", err, txid)
 			u.sock.WriteToUDP(msg, remote)
 			return
 		}
+
 		u.announce(&announce, remote, addr)
-	case 2:
+	case protocol.ActionScrape:
 		scrape := protocol.Scrape{}
 		if err := scrape.Unmarshall(data); err != nil {
 			msg := u.newServerError("scrape.unmarshall()", err, txid)
 			u.sock.WriteToUDP(msg, remote)
 			return
 		}
+
 		u.scrape(&scrape, remote)
 	}
 }

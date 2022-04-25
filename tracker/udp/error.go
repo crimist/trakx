@@ -24,7 +24,7 @@ func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ..
 	}
 
 	e := protocol.Error{
-		Action:        3,
+		Action:        protocol.ActionError,
 		TransactionID: TransactionID,
 		ErrorString:   []byte(msg),
 	}
@@ -40,7 +40,7 @@ func (u *UDPTracker) newServerError(msg string, err error, TransactionID int32) 
 	storage.Expvar.Errors.Add(1)
 
 	e := protocol.Error{
-		Action:        3,
+		Action:        protocol.ActionError,
 		TransactionID: TransactionID,
 		ErrorString:   []byte("internal err"),
 	}

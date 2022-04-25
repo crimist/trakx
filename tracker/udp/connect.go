@@ -15,7 +15,7 @@ func (u *UDPTracker) connect(connect *protocol.Connect, remote *net.UDPAddr, add
 	u.conndb.add(id, addr)
 
 	resp := protocol.ConnectResp{
-		Action:        0,
+		Action:        protocol.ActionConnect,
 		TransactionID: connect.TransactionID,
 		ConnectionID:  id,
 	}

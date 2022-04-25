@@ -11,14 +11,14 @@ import (
 // BitTorrent UDP tracker announce
 type Scrape struct {
 	ConnectionID  int64
-	Action        int32
+	Action        Action
 	TransactionID int32
-	InfoHash      []storage.Hash
+	InfoHashes    []storage.Hash
 }
 
 // Unmarshall decodes a byte slice into a Scrape.
 func (s *Scrape) Unmarshall(data []byte) error {
-	s.InfoHash = make([]storage.Hash, (len(data)-16)/20)
+	s.InfoHashes = make([]storage.Hash, (len(data)-16)/20)
 	reader := bytes.NewReader(data)
 
 	if err := binary.Read(reader, binary.BigEndian, &s.ConnectionID); err != nil {
@@ -30,7 +30,7 @@ func (s *Scrape) Unmarshall(data []byte) error {
 	if err := binary.Read(reader, binary.BigEndian, &s.TransactionID); err != nil {
 		return errors.Wrap(err, "failed to decode scrape transaction id")
 	}
-	if err := binary.Read(reader, binary.BigEndian, &s.InfoHash); err != nil {
+	if err := binary.Read(reader, binary.BigEndian, &s.InfoHashes); err != nil {
 		return errors.Wrap(err, "failed to decode scrape infohashes")
 	}
 
@@ -46,7 +46,7 @@ type ScrapeInfo struct {
 
 // BitTorrent UDP tracker scrape response
 type ScrapeResp struct {
-	Action        int32
+	Action        Action
 	TransactionID int32
 	Info          []ScrapeInfo
 }

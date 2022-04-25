@@ -10,18 +10,24 @@ import (
 
 type event int32
 
-// tracker announce events
+type Action int32
+
 const (
-	None      event = 0
-	Completed event = 1
-	Started   event = 2
-	Stopped   event = 3
+	EventNone      event = 0
+	EventCompleted event = 1
+	EventStarted   event = 2
+	EventStopped   event = 3
+
+	ActionConnect  Action = 0
+	ActionAnnounce Action = 1
+	ActionScrape   Action = 2
+	ActionError    Action = 3
 )
 
 // BitTorrent UDP tracker announce
 type Announce struct {
 	ConnectionID  int64
-	Action        int32
+	Action        Action
 	TransactionID int32
 	InfoHash      storage.Hash
 	PeerID        storage.PeerID
@@ -57,7 +63,7 @@ func (a *Announce) Unmarshall(data []byte) error {
 
 // BitTorrent UDP tracker announce response
 type AnnounceResp struct {
-	Action        int32
+	Action        Action
 	TransactionID int32
 	Interval      int32
 	Leechers      int32
