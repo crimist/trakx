@@ -1,0 +1,9 @@
+services:
+  trakx:
+    build: .
+    ports:
+      - "1337:1337"
+      - "1337:1337/udp"
+    restart: "on-failure:3"
+    environment:
+      - "TRAKX_LOGLEVEL=debug"
