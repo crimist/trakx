@@ -6,10 +6,12 @@ Performance focused HTTP & UDP BitTorrent tracker.
 
 Try me! These instances are hosted on Oracles always free tier.
 
-| Status      | Protocol | URL                               |
-|-------------|----------|-----------------------------------|
-| ✅Ok         | UDP      | udp://u4.trakx.crim.ist:1337/     |
-| ❌Deprecated | HTTP     | http://h4.trakx.crim.ist/announce |
+| Status       | Protocol  | URL                                 |
+|--------------|-----------|-------------------------------------|
+| ✅Ok         | IPv4 UDP  | udp://u4.trakx.crim.ist:1337/       |
+| ✅Ok         | IPv6 UDP  | udp://u6.trakx.crim.ist:1337/       |
+| ❌Deprecated | IPv4 HTTP | <http://h4.trakx.crim.ist/announce> |
+| ❌Deprecated | IPv6 HTTP | <http://h6.trakx.crim.ist/announce> |
 
 ## Install
 
