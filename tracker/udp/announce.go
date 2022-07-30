@@ -70,11 +70,10 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 		Seeders:       int32(complete),
 	}
 
-	// ipv4 or ipv6 response
-	if remote.AddrPort().Addr().Is6() {
-		resp.Peers = peers6.Data
-	} else {
+	if addrPort.Addr().Is4() {
 		resp.Peers = peers4.Data
+	} else {
+		resp.Peers = peers6.Data
 	}
 
 	respBytes, err := resp.Marshall()

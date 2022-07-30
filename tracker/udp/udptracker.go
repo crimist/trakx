@@ -48,7 +48,7 @@ func (u *UDPTracker) Init(peerdb storage.Database) {
 func (u *UDPTracker) Serve() error {
 	var err error
 
-	u.sock, err = net.ListenUDP("udp4", &net.UDPAddr{
+	u.sock, err = net.ListenUDP("udp", &net.UDPAddr{
 		IP:   net.ParseIP(config.Conf.Tracker.UDP.IP),
 		Port: config.Conf.Tracker.UDP.Port,
 	})
@@ -137,6 +137,7 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 	if !ok {
 		u.newServerError("failed to parse ip", errors.New("failed to parse remote ip slice as netip"), txid)
 	}
+	addr = addr.Unmap() // use ipv4 instead of ipv6 mapped ipv4
 	addrPort := netip.AddrPortFrom(addr, uint16(remote.Port))
 
 	if action > 2 {
