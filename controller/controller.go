@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"net/http"
@@ -12,138 +13,153 @@ import (
 
 	"github.com/crimist/trakx/tracker"
 	"github.com/crimist/trakx/tracker/config"
+	udpprotocol "github.com/crimist/trakx/tracker/udp/protocol"
 	"github.com/pkg/errors"
 )
 
 const (
-	perms = 0644
+	logFilePermissions = 0644
 )
 
 var (
-	pidFile = "~/.cache/trakx/trakx.pid"
-	logFile = "~/.cache/trakx/trakx.log"
+	// TODO: put these in the config
+	pidFilePath = "~/.cache/trakx/trakx.pid"
+	logFilePath = "~/.cache/trakx/trakx.log"
 )
 
 func init() {
+	// set home directory
 	home, err := os.UserHomeDir()
 	if err != nil {
 		panic(err)
 	}
-	pidFile = strings.ReplaceAll(pidFile, "~", home)
-	logFile = strings.ReplaceAll(logFile, "~", home)
+	pidFilePath = strings.ReplaceAll(pidFilePath, "~", home)
+	logFilePath = strings.ReplaceAll(logFilePath, "~", home)
 }
 
-type controller struct {
-	permissions uint
-	pID         *pID
-	logPath     string
+type Controller struct {
+	processIDFile *ProcessIDFile
+	logPath       string
 }
 
-func NewController() *controller {
-	c := &controller{
-		permissions: perms,
-		pID:         newPID(pidFile, perms),
-		logPath:     logFile,
+func NewController() *Controller {
+	c := &Controller{
+		processIDFile: NewProcessIDFile(pidFilePath),
+		logPath:       logFilePath,
 	}
 
 	return c
 }
 
-// Run runs trakx
-func (c *controller) Run() {
-	fmt.Println("Running...")
+// Execute executes trakx in the current process
+func (controller *Controller) Execute() {
 	tracker.Run()
-	fmt.Println("Ran!")
 }
 
 // Start starts trakx as a service
-func (c *controller) Start() error {
-	fmt.Println("starting...")
-	if c.Running() {
-		return errors.New("Trakx is already running")
+func (controller *Controller) Start() error {
+	pidFileExists, processAlive, heartbeat := controller.Status()
+	if pidFileExists || processAlive || heartbeat {
+		return errors.New("trakx is already running")
 	}
 
-	logFile, err := os.OpenFile(c.logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.FileMode(c.permissions))
+	logFile, err := os.OpenFile(controller.logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, logFilePermissions)
 	if err != nil {
 		return errors.Wrap(err, "failed to open log file")
 	}
 	defer logFile.Close()
 
-	cmd := exec.Command(os.Args[0], "run")
+	// TODO: decouple this from control.go ("the execute")
+	// maybe by integrating the two or finding another way to execute trakx
+	cmd := exec.Command(os.Args[0], "execute")
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 	if err := cmd.Start(); err != nil {
-		return errors.Wrap(err, "failed to start process")
+		return errors.Wrap(err, "failed to start trakx process")
 	}
 
-	if err := c.pID.write(cmd.Process.Pid); err != nil {
-		return errors.Wrap(err, "failed to write pid to file")
+	if err := controller.processIDFile.Write(cmd.Process.Pid); err != nil {
+		return errors.Wrap(err, "failed to write process id to file")
 	}
 
-	fmt.Println("started!")
+	fmt.Println("started trakx!")
 	return nil
 }
 
-// Stop stops the trakx service
-func (c *controller) Stop() error {
-	fmt.Println("stopping...")
-
-	process, err := c.pID.Process()
+// Stop gracefully stops the process by sending a stop signal
+func (controller *Controller) Stop() error {
+	process, err := controller.processIDFile.Process()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to get process from process id file")
 	}
 	if err := process.Signal(tracker.SigStop); err != nil {
-		return err
-	}
-	if err := process.Release(); err != nil {
-		return err
+		return errors.Wrap(err, "failed to send stop signal to process")
 	}
 
-	pid, err := c.pID.read()
+	processid, err := controller.processIDFile.Read()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to read process id file")
 	}
 
-	// process.Wait() fails on most systems since it's not a child
-	// As such we just have to keep checking if the process died
-
-	start := time.Now()
-	for ; err == nil; err = syscall.Kill(pid, syscall.Signal(0)) {
-		fmt.Println("Waiting for death", time.Since(start))
-		time.Sleep(50 * time.Millisecond)
+	fmt.Print("waiting for process to exit")
+	i := 0
+	for ; err == nil || i == 100; err = syscall.Kill(processid, syscall.Signal(0)) {
+		time.Sleep(100 * time.Millisecond)
+		fmt.Print(".")
+		i++
+	}
+	if i == 100 {
+		return errors.New(" trakx has not stopped in 10s")
 	}
 	if err.Error() != "no such process" {
-		return err
+		return errors.Wrap(err, "failed to kill trakx process id")
 	}
 
-	fmt.Println("stopped!")
-	return c.pID.clear()
+	fmt.Println(" stopped trakx!")
+	return errors.Wrap(controller.processIDFile.Clear(), "failed to clear trakx process id file")
 }
 
-// Wipe clears the trakx pid file
-func (c *controller) Wipe() error {
-	return c.pID.clear()
+// Clear clears the trakx process id file
+func (controller *Controller) Clear() error {
+	return errors.Wrap(controller.processIDFile.Clear(), "failed to clear trakx process id file")
 }
 
-// Running checks if trakx is running using bind
-func (c *controller) Running() bool {
+// Status returns the status of trakx by checking the following:
+// process id file exists, process id file has pid, proces is alive, heartbeat to trakx
+func (controller *Controller) Status() (pidFileExists bool, processAlive bool, heartbeat bool) {
+	// then use this last ping check // TODO: make a heartbeet check in trakx UDP and HTTP
+
+	// check process id file exists
+	processid, _ := controller.processIDFile.Read()
+	if processid != ProcessIDFailed {
+		pidFileExists = true
+
+		// check process is alive
+		if err := syscall.Kill(processid, syscall.Signal(0)); err == nil {
+			processAlive = true
+		}
+	}
+
+	// heartbeat check
 	if config.Conf.Tracker.UDP.Enabled {
-		conn, err := net.ListenUDP("udp4", &net.UDPAddr{IP: []byte{0, 0, 0, 0}, Port: config.Conf.Tracker.UDP.Port, Zone: ""})
-		if err != nil {
-			if strings.Contains(err.Error(), "address already in use") {
-				return true
+		conn, err := net.Dial("udp", fmt.Sprintf("localhost:%d", config.Conf.Tracker.UDP.Port))
+		if err == nil {
+			conn.Write(udpprotocol.HeartbeatRequest)
+			data := make([]byte, 1)
+			size, err := conn.Read(data)
+
+			if err == nil {
+				if size == 1 && bytes.Equal(data, udpprotocol.HeartbeatOk) {
+					heartbeat = true
+				}
 			}
-		} else {
-			conn.Close()
 		}
-	}
-
-	if config.Conf.Tracker.HTTP.Mode == config.TrackerModeEnabled {
-		resp, err := http.Get(fmt.Sprintf("http://127.0.0.1:%d/announce", config.Conf.Tracker.HTTP.Port))
+	} else if config.Conf.Tracker.HTTP.Mode == config.TrackerModeEnabled {
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/heartbeat", config.Conf.Tracker.HTTP.Port))
 		if err == nil && resp.StatusCode == 200 {
-			return true
+			heartbeat = true
 		}
 	}
 
-	return false
+	return
 }

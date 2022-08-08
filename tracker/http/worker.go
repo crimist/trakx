@@ -150,6 +150,8 @@ func (w *workers) work() {
 				break
 			}
 			w.tracker.scrape(conn, p.Params)
+		case "/heartbeat":
+			writeStatus(conn, "200")
 		case "/stats":
 			// Serves expvar handler but it's hacky af
 			statRespWriter.conn = conn

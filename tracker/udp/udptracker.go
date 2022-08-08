@@ -140,9 +140,14 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 	addr = addr.Unmap() // use ipv4 instead of ipv6 mapped ipv4
 	addrPort := netip.AddrPortFrom(addr, uint16(remote.Port))
 
-	if action > 2 {
+	if action > protocol.ActionHeartbeat {
 		msg := u.newClientError("bad action", txid, cerrFields{"action": data[11], "addrPort": addrPort})
 		u.sock.WriteToUDP(msg, remote)
+		return
+	}
+
+	if action == protocol.ActionHeartbeat {
+		u.sock.WriteToUDP(protocol.HeartbeatOk, remote)
 		return
 	}
 

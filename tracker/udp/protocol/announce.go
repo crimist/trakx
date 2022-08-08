@@ -8,22 +8,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type event int32
-
-type Action int32
-
-const (
-	EventNone      event = 0
-	EventCompleted event = 1
-	EventStarted   event = 2
-	EventStopped   event = 3
-
-	ActionConnect  Action = 0
-	ActionAnnounce Action = 1
-	ActionScrape   Action = 2
-	ActionError    Action = 3
-)
-
 // BitTorrent UDP tracker announce
 type Announce struct {
 	ConnectionID  int64

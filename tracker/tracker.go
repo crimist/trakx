@@ -75,6 +75,7 @@ func Run() {
 		expvarHandler := expvar.Handler()
 
 		mux := gohttp.NewServeMux()
+		mux.HandleFunc("/heartbeat", func(w gohttp.ResponseWriter, r *gohttp.Request) {})
 		mux.HandleFunc("/stats", func(w gohttp.ResponseWriter, r *gohttp.Request) {
 			expvarHandler.ServeHTTP(w, r)
 		})
