@@ -73,7 +73,7 @@ func (conf *Config) SetLogLevel(level LogLevel) {
 	switch level {
 	case "debug":
 		loggerAtom.SetLevel(zap.DebugLevel)
-		Logger.Debug("Debug level enabled, debug panics are on")
+		Logger.Debug("Debug loglevel set, debug panics enabled")
 	case "info":
 		loggerAtom.SetLevel(zap.InfoLevel)
 	case "warn":
@@ -86,8 +86,6 @@ func (conf *Config) SetLogLevel(level LogLevel) {
 		Logger.Warn("Invalid log level was specified, defaulting to warn")
 		loggerAtom.SetLevel(zap.WarnLevel)
 	}
-
-	Logger.Debug("Set log level", zap.Any("level", level))
 }
 
 var oneTimeSetup sync.Once
@@ -111,8 +109,6 @@ func (conf *Config) Update() error {
 	}
 
 	Logger = zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(cfg.EncoderConfig), zapcore.Lock(os.Stdout), loggerAtom))
-	Logger.Debug("logger created")
-
 	conf.SetLogLevel(conf.LogLevel)
 
 	// limits

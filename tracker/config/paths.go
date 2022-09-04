@@ -7,8 +7,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// automatically sets up the filesys when imported
-
 const (
 	// FolderPerm holds the default permission mask for folders
 	FolderPerm = 0700
@@ -23,10 +21,12 @@ var (
 	CachePath string
 )
 
-func initPaths() {
+// initDirectories attempts to create cache and config directories
+func initDirectories() {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		Logger.Panic("failed to get user home dir", zap.Error(err))
+		Logger.Warn("failed to get users home directory", zap.Error(err))
+		return
 	}
 
 	configPath = home + "/.config/trakx/"
@@ -36,10 +36,10 @@ func initPaths() {
 
 	err = os.MkdirAll(CachePath, FolderPerm)
 	if err != nil {
-		Logger.Panic("failed to create cache dir", zap.Error(err))
+		Logger.Warn("failed to create cache directory", zap.Error(err))
 	}
 	err = os.MkdirAll(configPath, FolderPerm)
 	if err != nil {
-		Logger.Panic("failed to create config dir", zap.Error(err))
+		Logger.Warn("failed to create config directory", zap.Error(err))
 	}
 }

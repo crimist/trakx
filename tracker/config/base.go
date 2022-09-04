@@ -1,5 +1,5 @@
 /*
-	Config holds configuration information for trakx.
+Config holds configuration information for trakx.
 */
 package config
 
@@ -25,11 +25,11 @@ func init() {
 	var err error
 	Logger, err = zap.NewDevelopment()
 	if err != nil {
-		panic("failed to init initial zap logger")
+		panic("failed to create logger")
 	}
 
-	// load paths
-	initPaths()
+	// initialize directories
+	initDirectories()
 
 	generateConfig()
 
@@ -38,11 +38,7 @@ func init() {
 	if err != nil {
 		Logger.Error("Failed to load a config", zap.Any("config", Conf), zap.Error(err))
 	} else {
-		if Conf.LogLevel.Debug() {
-			Logger.Debug("Loaded config", zap.Any("config", Conf))
-		} else {
-			Logger.Info("Loaded config")
-		}
+		Logger.Debug("Loaded config", zap.Any("config", Conf))
 	}
 
 	Logger.Debug("initialized paths", zap.String("config", configPath), zap.String("cache", CachePath))

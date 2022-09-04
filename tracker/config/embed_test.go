@@ -1,7 +1,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"runtime"
 	"testing"
@@ -39,7 +38,7 @@ func TestPathsAndGenerate(t *testing.T) {
 		}
 	}()
 
-	initPaths()
+	initDirectories()
 	generateConfig()
 
 	if configPath != testConfigPath {
@@ -71,7 +70,7 @@ func TestGenerateEmbeddedCache(t *testing.T) {
 		t.Fatal(errors.Wrap(err, "failed to generate embedded cahce"))
 	}
 
-	indexBytes, err := ioutil.ReadFile("embedded/index.html")
+	indexBytes, err := os.ReadFile("embedded/index.html")
 	if err != nil {
 		t.Error(errors.Wrap(err, "failed to read index.html"))
 	}
@@ -90,7 +89,7 @@ func TestGenerateEmbeddedCache(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.filename, func(t *testing.T) {
-			bytes, err := ioutil.ReadFile("embedded/" + c.filename)
+			bytes, err := os.ReadFile("embedded/" + c.filename)
 			if err != nil {
 				t.Error(errors.Wrap(err, "failed to read index.html"))
 			}

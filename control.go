@@ -8,7 +8,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/crimist/trakx/controller"
 )
@@ -16,23 +15,22 @@ import (
 func printHelp() {
 	help := "Commands:\n"
 	help += fmt.Sprintf("   %-12s returns the status of trakx\n", "status")
-	help += fmt.Sprintf("   %-12s starts trakx as a service\n", "start")
-	help += fmt.Sprintf("   %-12s stops trakx service\n", "stop")
-	help += fmt.Sprintf("   %-12s restarts trakx service\n", "restart")
-	help += fmt.Sprintf("   %-12s automatically starts trakx if it stops (doesn't return)\n", "watch")
-	help += fmt.Sprintf("   %-12s executes trakx in shell (doesn't return)\n", "execute")
-	help += fmt.Sprintf("   %-12s wipes trakx pid file - use if you encounter errors with start/stop/restart commands\n", "reset")
+	help += fmt.Sprintf("   %-12s starts trakx daemon\n", "start")
+	help += fmt.Sprintf("   %-12s stops trakx daemon\n", "stop")
+	help += fmt.Sprintf("   %-12s restarts trakx daemon\n", "restart")
+	help += fmt.Sprintf("   %-12s executes trakx, doesn't return\n", "execute")
+	help += fmt.Sprintf("   %-12s wipes trakx pid file, use if you encounter errors with start/stop/restart commands\n", "reset")
 
 	help += "Usage:\n"
 	help += fmt.Sprintf("   %s <command>\n", os.Args[0])
 
 	help += "Example:\n"
-	help += fmt.Sprintf("   %s status # 'trakx is not running'\n", os.Args[0])
+	help += fmt.Sprintf("   %s status\n", os.Args[0])
 
 	fmt.Print(help)
 }
 
-func logErrorFatal(err error) {
+func logFatal(err error) {
 	fmt.Fprintf(os.Stderr, err.Error()+"\n")
 	os.Exit(-1)
 }
@@ -50,58 +48,43 @@ func main() {
 		pidFileExists, processAlive, heartbeat := controller.Status()
 
 		if pidFileExists {
-			fmt.Println("[OK] read valid process id file")
+			fmt.Println("[✅] valid process id file")
 		} else {
-			fmt.Println("[Err] failed to read process id file")
+			fmt.Println("[❌] invalid/empty process id file")
 		}
 		if processAlive {
-			fmt.Println("[OK] process is alive")
+			fmt.Println("[✅] process is alive")
 		} else {
-			fmt.Println("[Err] process is dead")
+			fmt.Println("[❌] process is dead")
 		}
 		if heartbeat {
-			fmt.Println("[OK] heartbeat successful")
+			fmt.Println("[✅] heartbeat successful")
 		} else {
-			fmt.Println("[Err] heartbeat failed")
-		}
-
-		if pidFileExists || processAlive || heartbeat {
-			fmt.Println("trakx is running!")
-		}
-	case "watch":
-		for {
-			pidFileExists, processAlive, heartbeat := controller.Status()
-
-			if !(pidFileExists && processAlive && heartbeat) {
-				if err := controller.Start(); err != nil {
-					logErrorFatal(err)
-				}
-			}
-			time.Sleep(5 * time.Second)
+			fmt.Println("[❌] heartbeat failed")
 		}
 	case "execute":
 		controller.Execute()
 	case "start":
 		if err := controller.Start(); err != nil {
-			logErrorFatal(err)
+			logFatal(err)
 		}
 	case "stop":
 		if err := controller.Stop(); err != nil {
-			logErrorFatal(err)
+			logFatal(err)
 		}
 	case "restart", "reboot":
 		fmt.Println("rebooting...")
 		if err := controller.Stop(); err != nil {
-			logErrorFatal(err)
+			logFatal(err)
 		}
 		if err := controller.Start(); err != nil {
-			logErrorFatal(err)
+			logFatal(err)
 		}
 		fmt.Println("rebooted!")
 	case "reset":
 		fmt.Println("wiping pid file...")
 		if err := controller.Clear(); err != nil {
-			logErrorFatal(err)
+			logFatal(err)
 		}
 		fmt.Println("wiped!")
 	default:

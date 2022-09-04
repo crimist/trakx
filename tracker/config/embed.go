@@ -2,8 +2,6 @@ package config
 
 import (
 	"embed"
-	_ "embed"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -21,7 +19,7 @@ func generateConfig() {
 			Logger.Error("failed to read embedded config", zap.Error(err))
 			return
 		}
-		err = ioutil.WriteFile(configPath+"trakx.yaml", configData, FilePerm)
+		err = os.WriteFile(configPath+"trakx.yaml", configData, FilePerm)
 		if err != nil {
 			Logger.Error("failed to write config file", zap.Error(err))
 		}

@@ -6,7 +6,6 @@ import (
 )
 
 var filenames = [...]string{"/index.html", "/dmca.html"}
-var filenamesLen = len(filenames)
 
 func randomFilename() string {
 	return filenames[rand.Intn(len(filenames))]

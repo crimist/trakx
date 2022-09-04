@@ -11,10 +11,6 @@ const (
 )
 
 // Debug returns true if the loglevel is set to debug.
-func (l LogLevel) Debug() (dbg bool) {
-	if l == "debug" {
-		dbg = true
-	}
-
-	return
+func (l LogLevel) Debug() bool {
+	return l == "debug"
 }

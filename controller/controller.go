@@ -69,8 +69,6 @@ func (controller *Controller) Start() error {
 	}
 	defer logFile.Close()
 
-	// TODO: decouple this from control.go ("the execute")
-	// maybe by integrating the two or finding another way to execute trakx
 	cmd := exec.Command(os.Args[0], "execute")
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
@@ -109,7 +107,7 @@ func (controller *Controller) Stop() error {
 		i++
 	}
 	if i == 100 {
-		return errors.New(" trakx has not stopped in 10s")
+		return errors.New(" trakx failed to stop within 10s")
 	}
 	if err.Error() != "no such process" {
 		return errors.Wrap(err, "failed to kill trakx process id")
