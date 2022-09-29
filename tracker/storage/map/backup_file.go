@@ -27,21 +27,20 @@ func (bck *FileBackup) Init(db storage.Database) error {
 func (bck *FileBackup) Load() error {
 	config.Logger.Info("Loading database from file")
 	start := time.Now()
-	path := config.CachePath + "peers.db"
 
-	_, err := os.Stat(path)
+	_, err := os.Stat(config.Conf.Database.Backup.Path)
 	if err != nil {
 		// If the file doesn't exist than create an empty database and return success
 		if os.IsNotExist(err) {
 			bck.db.make()
-			config.Logger.Info("Database file not found, created empty database", zap.String("filepath", path))
+			config.Logger.Info("Database file not found, created empty database", zap.String("filepath", config.Conf.Database.Backup.Path))
 			return nil
 		}
 
 		return errors.Wrap(err, "failed to stat file")
 	}
 
-	peers, hashes, err := bck.db.loadFile(path)
+	peers, hashes, err := bck.db.loadFile(config.Conf.Database.Backup.Path)
 	if err != nil {
 		return errors.Wrap(err, "failed to load file")
 	}
@@ -79,7 +78,7 @@ func (bck *FileBackup) writeFile() (int, error) {
 		return 0, errors.Wrap(err, "failed to encode data")
 	}
 
-	if err := ioutil.WriteFile(config.CachePath+"peers.db", encoded, 0644); err != nil {
+	if err := ioutil.WriteFile(config.Conf.Database.Backup.Path, encoded, 0644); err != nil {
 		return 0, errors.Wrap(err, "failed to write file to disk")
 	}
 

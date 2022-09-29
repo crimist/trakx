@@ -13,50 +13,50 @@ import (
 )
 
 type Config struct {
-	LogLevel LogLevel
-	Debug    struct {
-		PprofPort      int
-		ExpvarInterval time.Duration
-		NofileLimit    uint64
-		PeerChanMin    uint64
-		CheckConnIDs   bool
+	LogLevel    LogLevel
+	Pprof       int
+	Expvar      time.Duration
+	NofileLimit uint64
+	Announce    struct {
+		Base time.Duration
+		Fuzz time.Duration
 	}
-	Tracker struct {
-		Announce     time.Duration
-		AnnounceFuzz time.Duration
-		HTTP         struct {
-			Mode         string
-			IP           string
-			Port         int
-			ReadTimeout  time.Duration
-			WriteTimeout time.Duration
-			Threads      int
+	HTTP struct {
+		Mode    string
+		IP      string
+		Port    int
+		Timeout struct {
+			Read  time.Duration
+			Write time.Duration
 		}
-		UDP struct {
-			Enabled bool
-			IP      string
-			Port    int
-			Threads int
-		}
-		Numwant struct {
-			Default uint
-			Limit   uint
+		Threads int
+	}
+	UDP struct {
+		Enabled bool
+		IP      string
+		Port    int
+		Threads int
+		ConnDB  struct {
+			Validate bool
+			Size     uint64
+			Trim     time.Duration
+			Expiry   time.Duration
 		}
 	}
-	Database struct {
-		Type    string
-		Backup  string
-		Address string
-		Peer    struct {
-			Trim    time.Duration
-			Write   time.Duration
-			Timeout time.Duration
+	Numwant struct {
+		Default uint
+		Limit   uint
+	}
+	DB struct {
+		Size   uint64
+		Type   string
+		Backup struct {
+			Frequency time.Duration
+			Type      string
+			Path      string
 		}
-		Conn struct {
-			Min     uint64
-			Trim    time.Duration
-			Timeout time.Duration
-		}
+		Trim   time.Duration
+		Expiry time.Duration
 	}
 }
 

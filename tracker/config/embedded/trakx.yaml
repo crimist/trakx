@@ -7,108 +7,110 @@
 # "debug" will enable debug only panics
 loglevel: "info"
 
-# debug vars
-debug:
-  # port to serve pprof over, 0 to disable
-  pprofport: 1338
+# port to serve pprof over, 0 to disable
+pprof: 0
 
-  # how often to update expvar vals, 0 to disable
-  expvarinterval: 1s
+# how often to update expvar vals, 0 to disable
+expvar: 1s
 
-  # set nofile limit, 0 for default
-  # basically changes the max number of open sockets, equivalent to `ulimit -n`
-  nofilelimit: 0
+# set nofile limit, 0 for default
+# basically changes the max number of open sockets, equivalent to `ulimit -n`
+nofilelimit: 0
 
-  # number of peer pointers to initialize at startup, max: 500'000
-  peerchanmin: 5000
+# announce interval = base + [0, fuzz]
+announce:
+  base: 30m
+  # fuzz >= 0
+  fuzz: 5m
 
-  # whether udp tracker validates connection IDs
-  # only disable for debug purposes - if disabled tracker can be abused for UDP amplification
-  checkconnids: true
-
-# tracker vars
-tracker:
-  # announce interval for clients
-  announce: 30m
+# http tracker vars
+http:
+  # "enabled" enables the http tracker, "info" runs an http server that serves the index and DMCA page, "disabled" disables anything http related
+  mode: "enabled"
   
-  # max number of seconds to add to `announce` to smooth out request frequency
-  # required: announcefuzz >= 0
-  announcefuzz: 5m
+  # ip address to bind to, null for all interfaces
+  ip: null
 
-  # http tracker vars
-  http:
-    # "enabled" enables the http tracker, "info" runs an http server that serves the index and DMCA page, "disabled" disables anything http related
-    mode: "enabled"
-    
-    # ip address to bind to, null for all interfaces
-    ip: null
+  port: 1337
+  
+  # tcp timeouts in seconds, starting from soon as connection is accepted
+  timeout:
+    read: 3s
+    write: 10s
 
-    port: 1337
-    
-    # tcp timeouts in seconds, starting from soon as connection is accepted
-    readtimeout: 3s
-    writetimeout: 10s
+  # number of worker goroutines to run
+  threads: 512
 
-    # number of worker goroutines to run
-    threads: 512
+# udp tracker vars
+udp:
+  enabled: true
+  
+  # ip address to bind to, null for all interfaces
+  ip: null
 
-  # udp tracker vars
-  udp:
-    enabled: true
-    
-    # ip address to bind to, null for all interfaces
-    ip: null
+  port: 1337
+  
+  # number of worker goroutines to run
+  threads: 512
 
-    port: 1337
-    
-    # number of worker goroutines to run
-    threads: 512
+  # udp connection database vars
+  conndb:
+    # validate connection IDs
+    # if disabled tracker can be abused for UDP amplification DoS
+    validate: true
 
-  # numwant vars
-  numwant:
-    # default number of peers in response if none specified
-    default: 75
-    
-    # max number of peers in response, numwants above this will be capped
-    limit: 200
+    # initalized size of connection database map
+    # set to reduce memory usage by preallocating memory
+    size: 0
+
+    # how often to trim expired connection IDs
+    trim: 10m
+
+    # maximum UDP connection ID age before removal
+    expiry: 30m
+
+# numwant vars
+numwant:
+  # default number of peers in response if none specified
+  default: 75
+  
+  # max number of peers in response, numwants above this will be capped
+  limit: 200
 
 # database vars
-database:
-  # Database type options:
+db:
+  # number of inital peer pointers
+  # set to reduce memory usage by preallocating
+  size: 5000
+
+  # database types:
   #   gomap - In memory database using golang maps
   type: "gomap"
   
-  # Backup type options for gomap database:
-  #   file  - Writes databse to file
-  #   pg    - Write databse to postgres
-  #   none  - Doesn't backup database
-  backup: "none"
+  backup:
+    # how often to backup database in case of crash, 0 to disable
+    frequency: 0s
+
+    # backup types:
+    #   gomap:
+    #     none  - don't backup db
+    #     file  - write db to file
+    #     pg    - write db to postgres
+    type: "none"
   
-  # address for pg backup
-  #   use "ENV:VARIABLE" for environment variables
-  #   ex: "ENV:TEST" = os.Getenv("TEST")
-  address: "ENV:DATABASE_URL"
+    # backup path
+    # file path for file
+    # postgres db addreses for pg
+    # use "ENV:VARIABLE" to get environment variable, ex: "ENV:TEST" = os.Getenv("TEST")
+    path: "ENV:DATABASE_URL"
 
-  # peer database vars
-  peer:
-    # How often to check and remove expired peers
-    trim: 10m
-    
-    # How often to backup database in case of crash, 0 to disable
-    write: 0s
-    
-    # Maximum peer age before removal
-    # recommended: timeout >= announce + announcefuzz
-    timeout: 40m
+  # how often to check and remove expired peers
+  trim: 10m
   
-  # udp connection database vars
-  conn:
-    # Minimum size of connection database map
-    # Set to your maximum conndb size to reduce memory usage (preallocate)
-    min: 0
+  # max peer age before removal
+  # recommended: expiry >= announce_base + announce_fuzz
+  expiry: 40m
 
-    # How often to check and remove expired UDP connection IDs
-    trim: 10m
-
-    # Maximum UDP connection ID age before removal
-    timeout: 30m
+path:
+  config: "~/.cache/trakx/trakx.pid"
+  log: "~/.cache/trakx/trakx.log"
