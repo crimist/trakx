@@ -59,7 +59,7 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip netip.Add
 	}
 
 	// numwant
-	numwant := config.Conf.Tracker.Numwant.Default
+	numwant := config.Conf.Numwant.Default
 
 	if vals.numwant != "" {
 		numwantInt, err := strconv.Atoi(vals.numwant)
@@ -70,10 +70,10 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip netip.Add
 		numwantUint := uint(numwantInt)
 
 		// if numwant is within our limit than listen to the client
-		if numwantUint <= config.Conf.Tracker.Numwant.Limit {
+		if numwantUint <= config.Conf.Numwant.Limit {
 			numwant = numwantUint
 		} else {
-			numwant = config.Conf.Tracker.Numwant.Limit
+			numwant = config.Conf.Numwant.Limit
 		}
 	}
 
@@ -85,9 +85,9 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip netip.Add
 	t.peerdb.Save(ip, uint16(portInt), peerComplete, hash, peerid)
 	complete, incomplete := t.peerdb.HashStats(hash)
 
-	interval := int64(config.Conf.Tracker.Announce.Seconds())
-	if int32(config.Conf.Tracker.AnnounceFuzz.Seconds()) > 0 {
-		interval += rand.Int63n(int64(config.Conf.Tracker.AnnounceFuzz.Seconds()))
+	interval := int64(config.Conf.Announce.Base.Seconds())
+	if int32(config.Conf.Announce.Fuzz.Seconds()) > 0 {
+		interval += rand.Int63n(int64(config.Conf.Announce.Fuzz.Seconds()))
 	}
 
 	d := bencoding.GetDictionary()

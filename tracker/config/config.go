@@ -13,11 +13,15 @@ import (
 )
 
 type Config struct {
-	LogLevel    LogLevel
-	Pprof       int
-	Expvar      time.Duration
-	NofileLimit uint64
-	Announce    struct {
+	loaded bool // config is loaded and valid
+
+	LogLevel       LogLevel
+	ExpvarInterval time.Duration
+	Debug          struct {
+		Pprof       int
+		NofileLimit uint64
+	}
+	Announce struct {
 		Base time.Duration
 		Fuzz time.Duration
 	}
@@ -48,9 +52,9 @@ type Config struct {
 		Limit   uint
 	}
 	DB struct {
-		Size   uint64
-		Type   string
-		Backup struct {
+		PeerPointers uint64
+		Type         string
+		Backup       struct {
 			Frequency time.Duration
 			Type      string
 			Path      string
@@ -58,13 +62,14 @@ type Config struct {
 		Trim   time.Duration
 		Expiry time.Duration
 	}
+	Path struct {
+		Config string
+		Log    string
+	}
 }
 
-// Loaded returns true if the config was successfully loaded.
-func (conf *Config) Loaded() bool {
-	// Database.Type is required to run so if it's empty we know that the config isn't loaded
-	return conf.Database.Type != ""
-}
+// Loaded returns true if the config was successfully parsed and loaded.
+func (config *Config) Loaded() bool { return config.loaded }
 
 // SetLogLevel sets the desired loglevel in the in memory configuration and logger
 func (conf *Config) SetLogLevel(level LogLevel) {
@@ -91,6 +96,7 @@ func (conf *Config) SetLogLevel(level LogLevel) {
 var oneTimeSetup sync.Once
 
 // Update updates logger and limits based on the configuration settings.
+// TODO: Rename to Parse()
 func (conf *Config) Update() error {
 	oneTimeSetup.Do(func() {
 		loggerAtom = zap.NewAtomicLevelAt(zap.DebugLevel)
@@ -100,7 +106,7 @@ func (conf *Config) Update() error {
 
 	// set LogLevel to lower case (casting nightmare)
 	conf.LogLevel = LogLevel(strings.ToLower(string(conf.LogLevel)))
-	conf.Tracker.HTTP.Mode = strings.ToLower(conf.Tracker.HTTP.Mode)
+	conf.HTTP.Mode = strings.ToLower(conf.HTTP.Mode)
 
 	if conf.LogLevel.Debug() {
 		cfg.Development = true
@@ -134,6 +140,8 @@ func (conf *Config) Update() error {
 			return errors.Wrap(err, "failed to set the NOFILE limit")
 		}
 	}
+
+	conf.loaded = true
 
 	return nil
 }

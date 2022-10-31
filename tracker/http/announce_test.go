@@ -23,8 +23,10 @@ func TestHTTPAnnounce(t *testing.T) {
 	rand.Seed(1) // golang default
 
 	// setup config
-	config.Conf.Tracker.Announce = 10 * time.Second
-	config.Conf.Tracker.AnnounceFuzz = 0
+	config.Conf.DB.Type = "gomap"
+	config.Conf.DB.Backup.Type = "none"
+	config.Conf.Announce.Base = 10 * time.Second
+	config.Conf.Announce.Fuzz = 0
 
 	// setup db
 	db, err := storage.Open()
@@ -323,10 +325,10 @@ func BenchmarkHTTPAnnounceCompact200(b *testing.B) {
 
 	// setup tracker
 	tracker := HTTPTracker{}
-	config.Conf.Database.Type = "gomap"
-	config.Conf.Database.Backup = "none"
-	config.Conf.Tracker.AnnounceFuzz = 1 * time.Second
-	config.Conf.Tracker.Numwant.Limit = 300 // for peerlistpool
+	config.Conf.DB.Type = "gomap"
+	config.Conf.DB.Backup.Type = "none"
+	config.Conf.Announce.Fuzz = 1 * time.Second
+	config.Conf.Numwant.Limit = 300 // for peerlistpool
 
 	// setup db
 	db, err := storage.Open()
@@ -408,10 +410,10 @@ func BenchmarkHTTPAnnounce200(b *testing.B) {
 
 	// setup tracker
 	tracker := HTTPTracker{}
-	config.Conf.Database.Type = "gomap"
-	config.Conf.Database.Backup = "none"
-	config.Conf.Tracker.AnnounceFuzz = 1 * time.Second
-	config.Conf.Tracker.Numwant.Limit = 300 // for peerlistpool
+	config.Conf.DB.Type = "gomap"
+	config.Conf.DB.Backup.Type = "none"
+	config.Conf.Announce.Fuzz = 1 * time.Second
+	config.Conf.Numwant.Limit = 300 // for peerlistpool
 
 	// setup db
 	db, err := storage.Open()

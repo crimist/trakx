@@ -2,6 +2,7 @@ package gomap
 
 import (
 	"testing"
+	"time"
 
 	"github.com/crimist/trakx/tracker/config"
 )
@@ -20,7 +21,7 @@ func TestCheck(t *testing.T) {
 }
 
 func TestTrim(t *testing.T) {
-	config.Conf.Database.Peer.Timeout = 0
+	config.Conf.DB.Expiry = 0
 
 	db := dbWithHashes(150_000)
 	db.trim()
@@ -30,7 +31,7 @@ func TestTrim(t *testing.T) {
 }
 
 func BenchmarkTrim(b *testing.B) {
-	config.Conf.Database.Peer.Timeout = -1
+	config.Conf.DB.Expiry = -1 * time.Second
 
 	b.StopTimer()
 	b.ResetTimer()

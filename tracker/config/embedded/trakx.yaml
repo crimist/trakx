@@ -7,15 +7,16 @@
 # "debug" will enable debug only panics
 loglevel: "info"
 
-# port to serve pprof over, 0 to disable
-pprof: 0
-
 # how often to update expvar vals, 0 to disable
-expvar: 1s
+expvarinterval: 1s
 
-# set nofile limit, 0 for default
-# basically changes the max number of open sockets, equivalent to `ulimit -n`
-nofilelimit: 0
+debug:
+  # port to serve pprof over, 0 to disable
+  pprof: 0
+
+  # set nofile limit, 0 for default
+  # basically changes the max number of open sockets, equivalent to `ulimit -n`
+  nofilelimit: 0
 
 # announce interval = base + [0, fuzz]
 announce:
@@ -25,15 +26,16 @@ announce:
 
 # http tracker vars
 http:
-  # "enabled" enables the http tracker, "info" runs an http server that serves the index and DMCA page, "disabled" disables anything http related
+  # "enabled"   enables the http tracker
+  # "info"      serves the http server files, no http tracker
+  # "disabled"  disables anything http related
   mode: "enabled"
   
   # ip address to bind to, null for all interfaces
   ip: null
-
   port: 1337
   
-  # tcp timeouts in seconds, starting from soon as connection is accepted
+  # tcp timeouts in seconds, starting from accept()
   timeout:
     read: 3s
     write: 10s
@@ -47,13 +49,12 @@ udp:
   
   # ip address to bind to, null for all interfaces
   ip: null
-
   port: 1337
   
   # number of worker goroutines to run
   threads: 512
 
-  # udp connection database vars
+  # udp connection database
   conndb:
     # validate connection IDs
     # if disabled tracker can be abused for UDP amplification DoS
@@ -63,10 +64,10 @@ udp:
     # set to reduce memory usage by preallocating memory
     size: 0
 
-    # how often to trim expired connection IDs
+    # interval for trimming expired connection IDs
     trim: 10m
 
-    # maximum UDP connection ID age before removal
+    # maximum connection ID age before marked expired
     expiry: 30m
 
 # numwant vars
@@ -81,14 +82,14 @@ numwant:
 db:
   # number of inital peer pointers
   # set to reduce memory usage by preallocating
-  size: 5000
+  peerpointers: 5000
 
   # database types:
   #   gomap - In memory database using golang maps
   type: "gomap"
   
   backup:
-    # how often to backup database in case of crash, 0 to disable
+    # database backup interval, 0 to disable
     frequency: 0s
 
     # backup types:
@@ -98,19 +99,22 @@ db:
     #     pg    - write db to postgres
     type: "none"
   
-    # backup path
-    # file path for file
-    # postgres db addreses for pg
-    # use "ENV:VARIABLE" to get environment variable, ex: "ENV:TEST" = os.Getenv("TEST")
+    # backup path:
+    # use "ENV:VARIABLE" for environment variables
+    #   ex: "ENV:TEST" = os.Getenv("TEST")
+    # types
+    #   file  - filepath
+    #   pg    - postgres db addr
     path: "ENV:DATABASE_URL"
 
-  # how often to check and remove expired peers
+  # interval for removing expired peers
   trim: 10m
   
-  # max peer age before removal
-  # recommended: expiry >= announce_base + announce_fuzz
+  # max peer age before marked expired
+  # should: expiry >= announce_base + announce_fuzz
   expiry: 40m
 
+# file paths
 path:
   config: "~/.cache/trakx/trakx.pid"
   log: "~/.cache/trakx/trakx.log"

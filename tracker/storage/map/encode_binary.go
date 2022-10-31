@@ -26,7 +26,11 @@ func (db *Memory) encodeBinary() ([]byte, error) {
 		submap.RLock()
 		for id, peer := range submap.peers {
 			binary.Write(w, binary.LittleEndian, &id)
-			binary.Write(w, binary.LittleEndian, peer)
+			binary.Write(w, binary.LittleEndian, peer.Complete)
+			ipData, _ := peer.IP.MarshalBinary()
+			binary.Write(w, binary.LittleEndian, ipData)
+			binary.Write(w, binary.LittleEndian, peer.Port)
+			binary.Write(w, binary.LittleEndian, peer.LastSeen)
 		}
 		submap.RUnlock()
 
@@ -73,7 +77,6 @@ func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
 			if err = binary.Read(w, binary.LittleEndian, peer); err != nil {
 				return
 			}
-
 			peermap.peers[id] = peer
 			peers++
 		}

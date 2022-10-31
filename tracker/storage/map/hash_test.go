@@ -14,7 +14,7 @@ func dbWithHashesAndPeers(hashes, peers int) *Memory {
 	storage.Expvar.Seeds.Set(int64(hashes * peers))
 
 	db.make()
-	db.Expvar()
+	db.SyncExpvars()
 
 	peerid := storage.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	peer := storage.Peer{
@@ -42,7 +42,7 @@ func dbWithHashesAndPeers(hashes, peers int) *Memory {
 func dbWithHashes(count int) *Memory {
 	var db Memory
 	db.make()
-	db.Expvar()
+	db.SyncExpvars()
 
 	peerid := storage.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	peer := storage.Peer{
@@ -67,7 +67,7 @@ func dbWithHashes(count int) *Memory {
 func dbWithPeers(count int) (*Memory, storage.Hash) {
 	var db Memory
 	db.make()
-	db.Expvar()
+	db.SyncExpvars()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	hash := storage.Hash(bytes)

@@ -39,7 +39,7 @@ func Load() (*Config, error) {
 		}
 
 		Logger.Info("PORT env variable detected. Overriding config...", zap.Int("$PORT", appPort))
-		conf.Tracker.HTTP.Port = appPort
+		conf.HTTP.Port = appPort
 	}
 
 	return conf, conf.Update()

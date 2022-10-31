@@ -47,8 +47,8 @@ func (w *workers) work() {
 		}
 
 		now := time.Now()
-		conn.SetReadDeadline(now.Add(config.Conf.Tracker.HTTP.ReadTimeout))
-		conn.SetWriteDeadline(now.Add(config.Conf.Tracker.HTTP.WriteTimeout))
+		conn.SetReadDeadline(now.Add(config.Conf.HTTP.Timeout.Read))
+		conn.SetWriteDeadline(now.Add(config.Conf.HTTP.Timeout.Write))
 
 		size, err := conn.Read(data)
 		if err != nil {

@@ -46,15 +46,15 @@ func (db *Memory) Init(backup storage.Backup) error {
 		return errors.Wrap(err, "failed to load backup")
 	}
 
-	if config.Conf.Database.Peer.Write > 0 {
-		go utils.RunOn(config.Conf.Database.Peer.Write, func() {
+	if config.Conf.DB.Backup.Frequency > 0 {
+		go utils.RunOn(config.Conf.DB.Backup.Frequency, func() {
 			if err := db.backup.Save(); err != nil {
 				config.Logger.Info("Failed to backup the database", zap.Error(err))
 			}
 		})
 	}
-	if config.Conf.Database.Peer.Trim > 0 {
-		go utils.RunOn(config.Conf.Database.Peer.Trim, db.Trim)
+	if config.Conf.DB.Trim > 0 {
+		go utils.RunOn(config.Conf.DB.Trim, db.Trim)
 	}
 
 	return nil
@@ -89,7 +89,7 @@ func (db *Memory) Trim() {
 
 func (db *Memory) trim() (peers, hashes int) {
 	now := time.Now().Unix()
-	peerTimeout := int64(config.Conf.Database.Peer.Timeout.Seconds())
+	peerTimeout := int64(config.Conf.DB.Expiry.Seconds())
 
 	db.mutex.RLock()
 	for hash, peermap := range db.hashmap {

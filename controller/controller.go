@@ -139,8 +139,8 @@ func (controller *Controller) Status() (pidFileExists bool, processAlive bool, h
 	}
 
 	// heartbeat check
-	if config.Conf.Tracker.UDP.Enabled {
-		conn, err := net.Dial("udp", fmt.Sprintf("localhost:%d", config.Conf.Tracker.UDP.Port))
+	if config.Conf.UDP.Enabled {
+		conn, err := net.Dial("udp", fmt.Sprintf("localhost:%d", config.Conf.UDP.Port))
 		if err == nil {
 			conn.Write(udpprotocol.HeartbeatRequest)
 			data := make([]byte, 1)
@@ -152,8 +152,8 @@ func (controller *Controller) Status() (pidFileExists bool, processAlive bool, h
 				}
 			}
 		}
-	} else if config.Conf.Tracker.HTTP.Mode == config.TrackerModeEnabled {
-		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/heartbeat", config.Conf.Tracker.HTTP.Port))
+	} else if config.Conf.HTTP.Mode == config.TrackerModeEnabled {
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/heartbeat", config.Conf.HTTP.Port))
 		if err == nil && resp.StatusCode == 200 {
 			heartbeat = true
 		}

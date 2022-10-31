@@ -45,7 +45,8 @@ func (bck *PgBackup) Init(db storage.Database) error {
 	}
 
 	// resolve database address from env variable if needed
-	dbAddress := config.Conf.Database.Address
+	// TODO: this should be in config.Config.Parse()
+	dbAddress := config.Conf.DB.Backup.Path
 	if strings.HasPrefix(dbAddress, "ENV:") {
 		dbAddress = os.Getenv(strings.TrimPrefix(dbAddress, "ENV:"))
 	}

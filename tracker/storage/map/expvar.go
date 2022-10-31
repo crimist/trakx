@@ -5,9 +5,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TODO: rename to SyncExpvars
 // TODO: is this required for tests? probably not
-func (db *Memory) Expvar() error {
+func (db *Memory) SyncExpvars() error {
 	if ok := db.Check(); !ok {
 		return errors.New("driver not init before calling Expvar()")
 	}

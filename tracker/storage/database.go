@@ -14,26 +14,26 @@ import (
 
 // Open opens and initializes given database type through config.
 func Open() (Database, error) {
-	driver, ok := drivers[config.Conf.Database.Type]
+	driver, ok := drivers[config.Conf.DB.Type]
 	if !ok {
-		return nil, errors.New("Invalid database driver: '" + config.Conf.Database.Type + "'")
+		return nil, errors.New("Invalid database driver: '" + config.Conf.DB.Type + "'")
 	}
 
-	backup, ok := driver.backups[config.Conf.Database.Backup]
+	backup, ok := driver.backups[config.Conf.DB.Backup.Type]
 	if !ok {
-		return nil, errors.New("Invalid backup driver: '" + config.Conf.Database.Backup + "'")
+		return nil, errors.New("Invalid backup driver: '" + config.Conf.DB.Backup.Type + "'")
 	}
 
 	if err := driver.db.Init(backup); err != nil {
 		return nil, errors.Wrap(err, "failed to init storage driver")
 	}
 
-	if err := driver.db.Expvar(); err != nil {
-		return nil, errors.Wrap(err, "failed to init expvar on storage driver")
+	if err := driver.db.SyncExpvars(); err != nil {
+		return nil, errors.Wrap(err, "failed to sync expvars on storage driver")
 	}
 
 	// set peerlistMax based on max numwant limit
-	peerlistMax = 6 * int(config.Conf.Tracker.Numwant.Limit)
+	peerlistMax = 6 * int(config.Conf.Numwant.Limit)
 
 	return driver.db, nil
 }
@@ -46,7 +46,7 @@ type Database interface {
 	Check() bool
 	Backup() Backup
 	Trim()
-	Expvar() error
+	SyncExpvars() error
 
 	Save(netip.Addr, uint16, bool, Hash, PeerID)
 	Drop(Hash, PeerID)

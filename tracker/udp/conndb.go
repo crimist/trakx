@@ -26,12 +26,12 @@ type connectionInfo struct {
 type connectionDatabase struct {
 	mutex         sync.RWMutex
 	connectionMap map[netip.AddrPort]connectionInfo
-	timeout       int64
+	expiry        int64
 }
 
-func newConnectionDatabase(timeout time.Duration) *connectionDatabase {
+func newConnectionDatabase(expiry time.Duration) *connectionDatabase {
 	connDb := connectionDatabase{
-		timeout: int64(timeout.Seconds()),
+		expiry: int64(expiry.Seconds()),
 	}
 
 	connDb.make()
@@ -76,7 +76,7 @@ func (db *connectionDatabase) trim() {
 
 	db.mutex.Lock()
 	for key, conn := range db.connectionMap {
-		if epoch-conn.timeStamp > db.timeout {
+		if epoch-conn.timeStamp > db.expiry {
 			delete(db.connectionMap, key)
 			trimmed++
 		}
@@ -168,5 +168,5 @@ func (db *connectionDatabase) unmarshallBinary(data []byte) (err error) {
 }
 
 func (db *connectionDatabase) make() {
-	db.connectionMap = make(map[netip.AddrPort]connectionInfo, config.Conf.Database.Conn.Min)
+	db.connectionMap = make(map[netip.AddrPort]connectionInfo, config.Conf.UDP.ConnDB.Size)
 }

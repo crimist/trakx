@@ -32,6 +32,15 @@ func Run() {
 
 	config.Logger.Info("Loaded configuration, starting trakx...")
 
+	// configuration warnings
+	if !config.Conf.UDP.ConnDB.Validate {
+		config.Logger.Warn("UDP connection validation is DISABLED. Do not expose to public, sever could be abused for UDP amplication DoS.")
+	}
+	if config.Conf.DB.Expiry < config.Conf.Announce.Base+config.Conf.Announce.Base {
+		// likely a configuration error
+		config.Logger.Error("Peer expiry < announce interval. Peers will expire before being updated.")
+	}
+
 	// db
 	peerdb, err := storage.Open()
 	if err != nil {
@@ -41,18 +50,18 @@ func Run() {
 	}
 
 	// init the peerchan with minimum
-	storage.PeerChan.Add(config.Conf.Debug.PeerChanMin)
+	storage.PeerChan.Add(config.Conf.DB.PeerPointers)
 
 	// run signal handler
 	go signalHandler(peerdb, &udptracker, &httptracker)
 
 	// init pprof if enabled
-	if config.Conf.Debug.PprofPort != 0 {
+	if config.Conf.Debug.Pprof != 0 {
 		go servePprof()
 	}
 
-	if config.Conf.Tracker.HTTP.Mode == config.TrackerModeEnabled {
-		config.Logger.Info("HTTP tracker enabled", zap.Int("port", config.Conf.Tracker.HTTP.Port), zap.String("ip", config.Conf.Tracker.HTTP.IP))
+	if config.Conf.HTTP.Mode == config.TrackerModeEnabled {
+		config.Logger.Info("HTTP tracker enabled", zap.Int("port", config.Conf.HTTP.Port), zap.String("ip", config.Conf.HTTP.IP))
 
 		httptracker.Init(peerdb)
 		go func() {
@@ -60,7 +69,7 @@ func Run() {
 				config.Logger.Fatal("Failed to serve HTTP tracker", zap.Error(err))
 			}
 		}()
-	} else if config.Conf.Tracker.HTTP.Mode == config.TrackerModeInfo {
+	} else if config.Conf.HTTP.Mode == config.TrackerModeInfo {
 		// serve basic html server
 		cache, err := config.GenerateEmbeddedCache()
 		if err != nil {
@@ -92,7 +101,7 @@ func Run() {
 		}
 
 		server := gohttp.Server{
-			Addr:         fmt.Sprintf(":%d", config.Conf.Tracker.HTTP.Port),
+			Addr:         fmt.Sprintf(":%d", config.Conf.HTTP.Port),
 			Handler:      mux,
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 7 * time.Second,
@@ -108,8 +117,8 @@ func Run() {
 	}
 
 	// UDP tracker
-	if config.Conf.Tracker.UDP.Enabled {
-		config.Logger.Info("UDP tracker enabled", zap.Int("port", config.Conf.Tracker.UDP.Port), zap.String("ip", config.Conf.Tracker.UDP.IP))
+	if config.Conf.UDP.Enabled {
+		config.Logger.Info("UDP tracker enabled", zap.Int("port", config.Conf.UDP.Port), zap.String("ip", config.Conf.UDP.IP))
 		udptracker.Init(peerdb)
 
 		go func() {
@@ -119,7 +128,7 @@ func Run() {
 		}()
 	}
 
-	if config.Conf.Debug.ExpvarInterval > 0 {
+	if config.Conf.ExpvarInterval > 0 {
 		publishExpvar(peerdb, &httptracker, &udptracker)
 	} else {
 		config.Logger.Debug("Finished Run() no expvar - blocking forever")
