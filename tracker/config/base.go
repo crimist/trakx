@@ -14,7 +14,7 @@ const (
 
 var (
 	// Global instance of config and logger
-	Conf   *Config
+	Config *Configuration
 	Logger *zap.Logger
 
 	loggerAtom zap.AtomicLevel
@@ -34,11 +34,11 @@ func init() {
 	generateConfig()
 
 	// load config
-	Conf, err = Load()
+	Config, err = Load()
 	if err != nil {
-		Logger.Error("Failed to load a config", zap.Any("config", Conf), zap.Error(err))
+		Logger.Error("Failed to load a config", zap.Any("config", Config), zap.Error(err))
 	} else {
-		Logger.Debug("Loaded config", zap.Any("config", Conf))
+		Logger.Debug("Loaded config", zap.Any("config", Config))
 	}
 
 	Logger.Debug("initialized paths", zap.String("config", configPath), zap.String("cache", CachePath))

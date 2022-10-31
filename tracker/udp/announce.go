@@ -20,9 +20,9 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 	}
 
 	if announce.NumWant < 1 {
-		announce.NumWant = int32(config.Conf.Numwant.Default)
-	} else if announce.NumWant > int32(config.Conf.Numwant.Limit) {
-		announce.NumWant = int32(config.Conf.Numwant.Limit)
+		announce.NumWant = int32(config.Config.Numwant.Default)
+	} else if announce.NumWant > int32(config.Config.Numwant.Limit) {
+		announce.NumWant = int32(config.Config.Numwant.Limit)
 	}
 
 	if announce.Event == protocol.EventStopped {
@@ -57,9 +57,9 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 
 	complete, incomplete := u.peerdb.HashStats(announce.InfoHash)
 	peers4, peers6 := u.peerdb.PeerListBytes(announce.InfoHash, uint(announce.NumWant))
-	interval := int32(config.Conf.Announce.Base.Seconds())
-	if int32(config.Conf.Announce.Fuzz.Seconds()) > 0 {
-		interval += rand.Int31n(int32(config.Conf.Announce.Fuzz.Seconds()))
+	interval := int32(config.Config.Announce.Base.Seconds())
+	if int32(config.Config.Announce.Fuzz.Seconds()) > 0 {
+		interval += rand.Int31n(int32(config.Config.Announce.Fuzz.Seconds()))
 	}
 
 	resp := protocol.AnnounceResp{

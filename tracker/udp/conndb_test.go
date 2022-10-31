@@ -17,7 +17,7 @@ const (
 
 func init() {
 	// cache in local directory
-	config.Conf.SetLogLevel(config.ErrorLevel)
+	config.Config.SetLogLevel(config.ErrorLevel)
 }
 
 func TestConnectionDatabaseAdd(t *testing.T) {

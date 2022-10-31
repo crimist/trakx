@@ -14,14 +14,14 @@ import (
 
 // Open opens and initializes given database type through config.
 func Open() (Database, error) {
-	driver, ok := drivers[config.Conf.DB.Type]
+	driver, ok := drivers[config.Config.DB.Type]
 	if !ok {
-		return nil, errors.New("Invalid database driver: '" + config.Conf.DB.Type + "'")
+		return nil, errors.New("Invalid database driver: '" + config.Config.DB.Type + "'")
 	}
 
-	backup, ok := driver.backups[config.Conf.DB.Backup.Type]
+	backup, ok := driver.backups[config.Config.DB.Backup.Type]
 	if !ok {
-		return nil, errors.New("Invalid backup driver: '" + config.Conf.DB.Backup.Type + "'")
+		return nil, errors.New("Invalid backup driver: '" + config.Config.DB.Backup.Type + "'")
 	}
 
 	if err := driver.db.Init(backup); err != nil {
@@ -33,7 +33,7 @@ func Open() (Database, error) {
 	}
 
 	// set peerlistMax based on max numwant limit
-	peerlistMax = 6 * int(config.Conf.Numwant.Limit)
+	peerlistMax = 6 * int(config.Config.Numwant.Limit)
 
 	return driver.db, nil
 }

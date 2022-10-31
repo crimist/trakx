@@ -116,5 +116,5 @@ db:
 
 # file paths
 path:
-  config: "~/.cache/trakx/trakx.pid"
   log: "~/.cache/trakx/trakx.log"
+  pid: "~/.cache/trakx/trakx.pid"

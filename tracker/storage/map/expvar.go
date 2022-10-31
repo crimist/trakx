@@ -5,7 +5,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TODO: is this required for tests? probably not
 func (db *Memory) SyncExpvars() error {
 	if ok := db.Check(); !ok {
 		return errors.New("driver not init before calling Expvar()")

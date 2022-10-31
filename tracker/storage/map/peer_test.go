@@ -17,7 +17,6 @@ var (
 func TestSaveDrop(t *testing.T) {
 	var db Memory
 	db.make()
-	db.SyncExpvars()
 
 	peerWrite := storage.Peer{
 		Complete: true,
@@ -60,7 +59,6 @@ func benchmarkSave(b *testing.B, db *Memory, peer storage.Peer, hash storage.Has
 func BenchmarkSave(b *testing.B) {
 	var db Memory
 	db.make()
-	db.SyncExpvars()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	hash := storage.Hash(bytes)
@@ -85,7 +83,6 @@ func benchmarkDrop(b *testing.B, db *Memory, hash storage.Hash, peerid storage.P
 func BenchmarkDrop(b *testing.B) {
 	var db Memory
 	db.make()
-	db.SyncExpvars()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	hash := storage.Hash(bytes)
@@ -105,7 +102,6 @@ func benchmarkSaveDrop(b *testing.B, db *Memory, peer storage.Peer, hash storage
 func BenchmarkSaveDrop(b *testing.B) {
 	var db Memory
 	db.make()
-	db.SyncExpvars()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	hash := storage.Hash(bytes)
@@ -124,7 +120,6 @@ func BenchmarkSaveDrop(b *testing.B) {
 func benchmarkSaveDropParallel(b *testing.B, routines int) {
 	var db Memory
 	db.make()
-	db.SyncExpvars()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	hash := storage.Hash(bytes)

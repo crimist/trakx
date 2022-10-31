@@ -21,7 +21,7 @@ func TestCheck(t *testing.T) {
 }
 
 func TestTrim(t *testing.T) {
-	config.Conf.DB.Expiry = 0
+	config.Config.DB.Expiry = 0
 
 	db := dbWithHashes(150_000)
 	db.trim()
@@ -31,7 +31,7 @@ func TestTrim(t *testing.T) {
 }
 
 func BenchmarkTrim(b *testing.B) {
-	config.Conf.DB.Expiry = -1 * time.Second
+	config.Config.DB.Expiry = -1 * time.Second
 
 	b.StopTimer()
 	b.ResetTimer()

@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -12,7 +13,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type Config struct {
+type Configuration struct {
 	loaded bool // config is loaded and valid
 
 	LogLevel       LogLevel
@@ -63,16 +64,16 @@ type Config struct {
 		Expiry time.Duration
 	}
 	Path struct {
-		Config string
-		Log    string
+		Log string
+		Pid string
 	}
 }
 
 // Loaded returns true if the config was successfully parsed and loaded.
-func (config *Config) Loaded() bool { return config.loaded }
+func (config *Configuration) Loaded() bool { return config.loaded }
 
 // SetLogLevel sets the desired loglevel in the in memory configuration and logger
-func (conf *Config) SetLogLevel(level LogLevel) {
+func (conf *Configuration) SetLogLevel(level LogLevel) {
 	conf.LogLevel = level
 
 	switch level {
@@ -95,30 +96,32 @@ func (conf *Config) SetLogLevel(level LogLevel) {
 
 var oneTimeSetup sync.Once
 
-// Update updates logger and limits based on the configuration settings.
-// TODO: Rename to Parse()
-func (conf *Config) Update() error {
+// Parse updates logger and limits based on the configuration settings.
+func (config *Configuration) Parse() error {
+	// one time logger atom setup
 	oneTimeSetup.Do(func() {
 		loggerAtom = zap.NewAtomicLevelAt(zap.DebugLevel)
 	})
 
 	cfg := zap.NewDevelopmentConfig()
 
-	// set LogLevel to lower case (casting nightmare)
-	conf.LogLevel = LogLevel(strings.ToLower(string(conf.LogLevel)))
-	conf.HTTP.Mode = strings.ToLower(conf.HTTP.Mode)
+	// set strings to lowercase
+	config.LogLevel = LogLevel(strings.ToLower(string(config.LogLevel)))
+	config.HTTP.Mode = strings.ToLower(config.HTTP.Mode)
 
-	if conf.LogLevel.Debug() {
+	// dev env check
+	if config.LogLevel.Debug() {
 		cfg.Development = true
 	} else {
 		cfg.Development = false
 	}
 
+	// setup logger
 	Logger = zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(cfg.EncoderConfig), zapcore.Lock(os.Stdout), loggerAtom))
-	conf.SetLogLevel(conf.LogLevel)
+	config.SetLogLevel(config.LogLevel)
 
-	// limits
-	if conf.Debug.NofileLimit != nofileIgnore {
+	// set limits
+	if config.Debug.NofileLimit != nofileIgnore {
 		var rLimit syscall.Rlimit
 		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
 			return errors.Wrap(err, "failed to get the NOFILE limit")
@@ -126,13 +129,13 @@ func (conf *Config) Update() error {
 		Logger.Debug("Got nofile limits", zap.Any("limit", rLimit))
 
 		// Limit is bugged on WSL and Darwin systems, to avoid bug keep limit below 10_000
-		if ulimitBugged() && conf.Debug.NofileLimit > 10000 {
+		if ulimitBugged() && config.Debug.NofileLimit > 10000 {
 			Logger.Warn("Detected bugged nofile limit, you are on Darwin or WSL based systen. Capping nofile limit to 10_000.")
 			rLimit.Max = 10000
 			rLimit.Cur = 10000
 		} else {
-			rLimit.Max = conf.Debug.NofileLimit
-			rLimit.Cur = conf.Debug.NofileLimit
+			rLimit.Max = config.Debug.NofileLimit
+			rLimit.Cur = config.Debug.NofileLimit
 		}
 
 		Logger.Debug("Setting nofile limit", zap.Any("limit", rLimit))
@@ -141,7 +144,30 @@ func (conf *Config) Update() error {
 		}
 	}
 
-	conf.loaded = true
+	// resolve env vars for database backup path
+	if strings.HasPrefix(config.DB.Backup.Path, "ENV:") {
+		config.DB.Backup.Path = os.Getenv(strings.TrimPrefix(config.DB.Backup.Path, "ENV:"))
+	}
 
+	// resolve paths
+	home, err := os.UserHomeDir()
+	if err != nil {
+		Logger.Fatal("failed to get home directory", zap.Error(err))
+	}
+	config.Path.Pid = strings.ReplaceAll(config.Path.Pid, "~", home)
+	config.Path.Log = strings.ReplaceAll(config.Path.Log, "~", home)
+
+	// If $PORT var set override port for appengines (like heroku)
+	if appenginePort := os.Getenv("PORT"); appenginePort != "" {
+		appPort, err := strconv.Atoi(appenginePort)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse $PORT env variable (not an int)")
+		}
+
+		Logger.Info("PORT env variable detected. Overriding config...", zap.Int("$PORT", appPort))
+		config.HTTP.Port = appPort
+	}
+
+	config.loaded = true
 	return nil
 }

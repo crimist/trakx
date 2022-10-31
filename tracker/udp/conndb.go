@@ -168,5 +168,5 @@ func (db *connectionDatabase) unmarshallBinary(data []byte) (err error) {
 }
 
 func (db *connectionDatabase) make() {
-	db.connectionMap = make(map[netip.AddrPort]connectionInfo, config.Conf.UDP.ConnDB.Size)
+	db.connectionMap = make(map[netip.AddrPort]connectionInfo, config.Config.UDP.ConnDB.Size)
 }

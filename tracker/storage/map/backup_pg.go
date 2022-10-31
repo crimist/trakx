@@ -2,7 +2,6 @@ package gomap
 
 import (
 	"database/sql"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -44,14 +43,7 @@ func (bck *PgBackup) Init(db storage.Database) error {
 		return errors.New("nil database on backup Init()")
 	}
 
-	// resolve database address from env variable if needed
-	// TODO: this should be in config.Config.Parse()
-	dbAddress := config.Conf.DB.Backup.Path
-	if strings.HasPrefix(dbAddress, "ENV:") {
-		dbAddress = os.Getenv(strings.TrimPrefix(dbAddress, "ENV:"))
-	}
-
-	bck.pg, err = sql.Open("postgres", dbAddress)
+	bck.pg, err = sql.Open("postgres", config.Config.DB.Backup.Path)
 	if err != nil {
 		return errors.Wrap(err, "failed to open pg connection")
 	}

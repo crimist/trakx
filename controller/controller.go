@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"strings"
 	"syscall"
 	"time"
 
@@ -21,22 +20,6 @@ const (
 	logFilePermissions = 0644
 )
 
-var (
-	// TODO: put these in the config
-	pidFilePath = "~/.cache/trakx/trakx.pid"
-	logFilePath = "~/.cache/trakx/trakx.log"
-)
-
-func init() {
-	// set home directory
-	home, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-	pidFilePath = strings.ReplaceAll(pidFilePath, "~", home)
-	logFilePath = strings.ReplaceAll(logFilePath, "~", home)
-}
-
 type Controller struct {
 	processIDFile *ProcessIDFile
 	logPath       string
@@ -44,8 +27,8 @@ type Controller struct {
 
 func NewController() *Controller {
 	c := &Controller{
-		processIDFile: NewProcessIDFile(pidFilePath),
-		logPath:       logFilePath,
+		processIDFile: NewProcessIDFile(config.Config.Path.Pid),
+		logPath:       config.Config.Path.Log,
 	}
 
 	return c
@@ -125,8 +108,6 @@ func (controller *Controller) Clear() error {
 // Status returns the status of trakx by checking the following:
 // process id file exists, process id file has pid, proces is alive, heartbeat to trakx
 func (controller *Controller) Status() (pidFileExists bool, processAlive bool, heartbeat bool) {
-	// then use this last ping check // TODO: make a heartbeet check in trakx UDP and HTTP
-
 	// check process id file exists
 	processid, _ := controller.processIDFile.Read()
 	if processid != ProcessIDFailed {
@@ -138,9 +119,9 @@ func (controller *Controller) Status() (pidFileExists bool, processAlive bool, h
 		}
 	}
 
-	// heartbeat check
-	if config.Conf.UDP.Enabled {
-		conn, err := net.Dial("udp", fmt.Sprintf("localhost:%d", config.Conf.UDP.Port))
+	// heartbeat checks
+	if config.Config.UDP.Enabled {
+		conn, err := net.Dial("udp", fmt.Sprintf("localhost:%d", config.Config.UDP.Port))
 		if err == nil {
 			conn.Write(udpprotocol.HeartbeatRequest)
 			data := make([]byte, 1)
@@ -152,8 +133,9 @@ func (controller *Controller) Status() (pidFileExists bool, processAlive bool, h
 				}
 			}
 		}
-	} else if config.Conf.HTTP.Mode == config.TrackerModeEnabled {
-		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/heartbeat", config.Conf.HTTP.Port))
+	}
+	if config.Config.HTTP.Mode == config.TrackerModeEnabled {
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/heartbeat", config.Config.HTTP.Port))
 		if err == nil && resp.StatusCode == 200 {
 			heartbeat = true
 		}

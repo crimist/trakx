@@ -17,7 +17,7 @@ const (
 )
 
 func TestUDPAnnounce(t *testing.T) {
-	config.Conf.SetLogLevel(config.DebugLevel)
+	config.Config.SetLogLevel(config.DebugLevel)
 
 	packet := make([]byte, 0xFFFF)
 	addr, err := net.ResolveUDPAddr("udp4", announceUDPaddress)
@@ -131,7 +131,7 @@ func TestUDPAnnounce(t *testing.T) {
 	}
 }
 func TestUDPAnnounce6(t *testing.T) {
-	config.Conf.SetLogLevel(config.DebugLevel)
+	config.Config.SetLogLevel(config.DebugLevel)
 
 	packet := make([]byte, 0xFFFF)
 	addr, err := net.ResolveUDPAddr("udp6", announceUDPaddress6)

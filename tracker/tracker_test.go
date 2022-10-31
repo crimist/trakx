@@ -11,34 +11,34 @@ func init() {
 	oneHour := 1 * time.Hour
 
 	// mock config
-	config.Conf.LogLevel = "debug"
+	config.Config.LogLevel = "debug"
 
-	config.Conf.Debug.Pprof = 0
-	config.Conf.ExpvarInterval = 0
-	config.Conf.Debug.NofileLimit = 0
-	config.Conf.DB.PeerPointers = 0
-	config.Conf.UDP.ConnDB.Validate = true
+	config.Config.Debug.Pprof = 0
+	config.Config.ExpvarInterval = 0
+	config.Config.Debug.NofileLimit = 0
+	config.Config.DB.PeerPointers = 0
+	config.Config.UDP.ConnDB.Validate = true
 
-	config.Conf.Announce.Base = 0
-	config.Conf.Announce.Fuzz = 1 * time.Second
-	config.Conf.HTTP.Mode = "enabled"
-	config.Conf.HTTP.Port = 1337
-	config.Conf.HTTP.Timeout.Read = 2
-	config.Conf.HTTP.Timeout.Write = 2
-	config.Conf.HTTP.Threads = 1
-	config.Conf.UDP.Enabled = true
-	config.Conf.UDP.Port = 1337
-	config.Conf.UDP.Threads = 1
-	config.Conf.Numwant.Default = 100
-	config.Conf.Numwant.Limit = 100
+	config.Config.Announce.Base = 0
+	config.Config.Announce.Fuzz = 1 * time.Second
+	config.Config.HTTP.Mode = "enabled"
+	config.Config.HTTP.Port = 1337
+	config.Config.HTTP.Timeout.Read = 2
+	config.Config.HTTP.Timeout.Write = 2
+	config.Config.HTTP.Threads = 1
+	config.Config.UDP.Enabled = true
+	config.Config.UDP.Port = 1337
+	config.Config.UDP.Threads = 1
+	config.Config.Numwant.Default = 100
+	config.Config.Numwant.Limit = 100
 
-	config.Conf.DB.Type = "gomap"
-	config.Conf.DB.Backup.Type = "none"
-	config.Conf.DB.Trim = oneHour
-	config.Conf.DB.Backup.Frequency = 0
-	config.Conf.DB.Expiry = oneHour
-	config.Conf.UDP.ConnDB.Trim = oneHour
-	config.Conf.UDP.ConnDB.Expiry = oneHour
+	config.Config.DB.Type = "gomap"
+	config.Config.DB.Backup.Type = "none"
+	config.Config.DB.Trim = oneHour
+	config.Config.DB.Backup.Frequency = 0
+	config.Config.DB.Expiry = oneHour
+	config.Config.UDP.ConnDB.Trim = oneHour
+	config.Config.UDP.ConnDB.Expiry = oneHour
 
 	// run tracker
 	fmt.Print("Starting mock tracker... ")

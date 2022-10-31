@@ -32,11 +32,6 @@ func (d *Dictionary) writeBytes(b []byte) {
 
 // Reset resets the Dictionary's underlying byte slice.
 func (d *Dictionary) Reset() {
-	/* TODO: Consider implementing a maximum size check to prevent large allocations from permanently increasing memory
-	if len(d.buf) > 10240 {
-		d.buf = nil
-	}
-	*/
 	d.buf = d.buf[:0]
 	d.write("d")
 }

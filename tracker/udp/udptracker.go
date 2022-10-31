@@ -32,7 +32,7 @@ type UDPTracker struct {
 
 // Init sets up the UDPTracker.
 func (u *UDPTracker) Init(peerdb storage.Database) {
-	u.conndb = newConnectionDatabase(config.Conf.UDP.ConnDB.Expiry)
+	u.conndb = newConnectionDatabase(config.Config.UDP.ConnDB.Expiry)
 	u.peerdb = peerdb
 	u.shutdown = make(chan struct{})
 
@@ -41,7 +41,7 @@ func (u *UDPTracker) Init(peerdb storage.Database) {
 		u.conndb.make()
 	}
 
-	go utils.RunOn(config.Conf.UDP.ConnDB.Trim, u.conndb.trim)
+	go utils.RunOn(config.Config.UDP.ConnDB.Trim, u.conndb.trim)
 }
 
 // Serve begins listening and serving clients.
@@ -49,8 +49,8 @@ func (u *UDPTracker) Serve() error {
 	var err error
 
 	u.sock, err = net.ListenUDP("udp", &net.UDPAddr{
-		IP:   net.ParseIP(config.Conf.UDP.IP),
-		Port: config.Conf.UDP.Port,
+		IP:   net.ParseIP(config.Config.UDP.IP),
+		Port: config.Config.UDP.Port,
 	})
 	if err != nil {
 		return errors.Wrap(err, "Failed to open UDP listen socket")
@@ -63,7 +63,7 @@ func (u *UDPTracker) Serve() error {
 		},
 	}
 
-	for i := 0; i < config.Conf.UDP.Threads; i++ {
+	for i := 0; i < config.Config.UDP.Threads; i++ {
 		go func() {
 			for {
 				data := pool.Get().(*[]byte)
@@ -162,7 +162,7 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 	}
 
 	connid := int64(binary.BigEndian.Uint64(data[0:8]))
-	if ok := u.conndb.check(connid, addrPort); !ok && config.Conf.UDP.ConnDB.Validate {
+	if ok := u.conndb.check(connid, addrPort); !ok && config.Config.UDP.ConnDB.Validate {
 		msg := u.newClientError("bad connid", txid, cerrFields{"clientID": connid, "addrPort": addrPort})
 		u.sock.WriteToUDP(msg, remote)
 		return
