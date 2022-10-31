@@ -56,7 +56,7 @@ func (db *Memory) loadFile(filename string) (int, int, error) {
 		return 0, 0, errors.Wrap(err, "failed to read file from disk")
 	}
 
-	peers, hashes, err := db.decodeBinaryUnsafe(data)
+	peers, hashes, err := db.decodeGob(data)
 	if err != nil {
 		return 0, 0, errors.Wrap(err, "failed to decode saved data")
 	}
@@ -68,14 +68,10 @@ func (bck *FileBackup) writeFile() (int, error) {
 	var encoded []byte
 	var err error
 
-	if fast {
-		encoded, err = bck.db.encodeBinaryUnsafe()
-	} else {
-		encoded, err = bck.db.encodeBinaryUnsafeAutoalloc()
-	}
+	encoded, err = bck.db.encodeGob()
 
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to encode data")
+		return 0, errors.Wrap(err, "failed to encode db")
 	}
 
 	if err := ioutil.WriteFile(config.Conf.DB.Backup.Path, encoded, 0644); err != nil {

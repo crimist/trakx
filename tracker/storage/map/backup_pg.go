@@ -75,16 +75,12 @@ func (bck PgBackup) Save() error {
 	var err error
 	start := time.Now()
 
-	if fast {
-		data, err = bck.db.encodeBinaryUnsafe()
-	} else {
-		data, err = bck.db.encodeBinaryUnsafeAutoalloc()
-	}
+	data, err = bck.db.encodeGob()
 
 	if err != nil {
-		return errors.Wrap(err, "failed to encode binary")
+		return errors.Wrap(err, "failed to encode database")
 	}
-	config.Logger.Info("Encoded binary", zap.Duration("duration", time.Since(start)))
+	config.Logger.Info("Encoded database", zap.Duration("duration", time.Since(start)))
 	start = time.Now()
 
 	_, err = bck.pg.Query("INSERT INTO trakx(bytes) VALUES($1)", data)
@@ -130,9 +126,9 @@ attemptLoad:
 		goto attemptLoad
 	}
 
-	peers, hashes, err := bck.db.decodeBinaryUnsafe(bytes)
+	peers, hashes, err := bck.db.decodeGob(bytes)
 	if err != nil {
-		return errors.Wrap(err, "failed to decode saved data")
+		return errors.Wrap(err, "failed to decode data")
 	}
 
 	config.Logger.Info("Loaded stored database from pg", zap.Int("size", len(bytes)), zap.Any("hash", bytes[:20]), zap.Int("peers", peers), zap.Int("hashes", hashes))

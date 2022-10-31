@@ -12,6 +12,8 @@ import (
 	"github.com/crimist/trakx/tracker/storage"
 )
 
+// TODO: attempt rewrite with new storage.Peer (broken due to use of netip.Addr atm)
+
 func (db *Memory) encodeBinary() ([]byte, error) {
 	var buff bytes.Buffer
 	w := bufio.NewWriter(&buff)
