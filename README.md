@@ -1,19 +1,30 @@
 # Trakx
 
-Performance focused HTTP & UDP BitTorrent tracker.
+Performance focused BitTorrent tracker supporting HTTP and UDP + IPv4 and IPv6.
 
-## Instances
+- [Trakx](#trakx)
+  - [❤️‍🔥 Instances](#️-instances)
+  - [🚀 Install](#-install)
+  - [🔧 Configuration](#-configuration)
+    - [Configuration file](#configuration-file)
+    - [Default configuration & webserver files](#default-configuration--webserver-files)
+    - [Binding to privileged ports](#binding-to-privileged-ports)
+    - [Netdata setup](#netdata-setup)
+    - [Build Tags](#build-tags)
+  - [📈 Performance](#-performance)
 
-Try me! These instances are hosted on Oracles always free tier.
+## ❤️‍🔥 Instances
 
-| Status       | Protocol  | URL                                 |
+Try Trakx for yourself! These instances are hosted on Oracles always free tier.
+
+| Status       | Protocol  | Address                             |
 |--------------|-----------|-------------------------------------|
-| ✅Ok         | IPv4 UDP  | udp://u4.trakx.crim.ist:1337/       |
-| ✅Ok         | IPv6 UDP  | udp://u6.trakx.crim.ist:1337/       |
-| ❌Deprecated | IPv4 HTTP | <http://h4.trakx.crim.ist/announce> |
-| ❌Deprecated | IPv6 HTTP | <http://h6.trakx.crim.ist/announce> |
+| ✅Ok         | IPv4 UDP  | `udp://u4.trakx.crim.ist:1337`      |
+| ✅Ok         | IPv6 UDP  | `udp://u6.trakx.crim.ist:1337`      |
+| ❌Deprecated | IPv4 HTTP | `http://h4.trakx.crim.ist/announce` |
+| ❌Deprecated | IPv6 HTTP | `http://h6.trakx.crim.ist/announce` |
 
-## Install
+## 🚀 Install
 
 Go 1.18+ required.
 
@@ -31,11 +42,11 @@ go build .
 
 See [configuration](#configuration) and [netdata setup](#netdata-setup).
 
-## Configuration
+## 🔧 Configuration
 
-### Modifying the config
+### Configuration file
 
-The config can be found at `~/.config/trakx/trakx.yaml`.
+The configuration file can be found at `~/.config/trakx/trakx.yaml`.
 You'll have to run the trakx controller at least once to generate this file.
 
 Config settings can be overwritten with environment variables:
@@ -51,25 +62,34 @@ $ TRAKX_LOGLEVEL=DEBUG trakx run
 ...
 ```
 
-Trakx attempts to load the config file from the following directories in this order `".", "~/.config/trakx/"`.
+Trakx attempts to load the config file from the following directories in order:
 
-For example, you can override the config file located in `~/.config/trakx/` by placing a `trakx.yaml` in the directory trakx runs in (`./`).
+* `.`
+* `~/.config/trakx/`
 
-### Modifying default config & HTML pages
+### Default configuration & webserver files
 
-You can modify the default config and pages served by the HTML server by editing/adding them in the `tracker/config/embeded/` folder.
+You can modify the default configuration and files served by the webserver in the `tracker/config/embeded/` folder.
 
-**WARNING:** Due to the performance focused implementation trakx will only serve files at their full path. Example: `dmca` will 404, `dmca.html` will 200.
+**NOTE:** Trakx webserver will only serve files at their full path. `dmca` will 404, `dmca.html` will 200.
 
 ### Binding to privileged ports
 
-To bind to privileged ports I recommend using the `CAP_NET_BIND_SERVICE` capability. More information about this can be found [here](https://stackoverflow.com/a/414258/6389542).
+To bind to privileged ports I recommend using `CAP_NET_BIND_SERVICE`. More information can be found [here](https://stackoverflow.com/a/414258/6389542).
 
-```
+```sh
 $ sudo setcap 'cap_net_bind_service=+ep' ./trakx
 $ TRAKX_TRACKER_HTTP_PORT=80 ./trakx run
 2022-04-05T16:18:05.847-0700    INFO    HTTP tracker enabled    {"port": 80}
 ```
+
+### Netdata setup
+
+**Warning:** `install.sh` will overwrite `go_expvar.conf`. If you are using other expvar programs with netdata manually merge the two files.
+
+* Run `/etc/netdata/edit-config python.d.conf`, change `go_expvar` to `yes`.
+* Customize the url in `netdata/expvar.conf` if needed.
+* Install netdata plugins with `cd netdata; ./install.sh`.
 
 ### Build Tags
 
@@ -79,43 +99,22 @@ You can build with different tags with `go build/install -tags <tag> .`
 * `fast` will build without IP, seed, and leech metrics which will reduce cpu and memory usage
 * `heroku` will build trakx for app engines. This means the controller will not be built and trakx will run immediately when the binary is executed. 
 
-## Performance
+## 📈 Performance
 
-The following performance information was collected on Heroku free tier running an HTTP tracker with the `fast` tag disabled.
-### Heroku dashboard
+The following metrics were collected on Heroku free tier running an HTTP tracker with the `fast` tag disabled.
+
+Heroku dashboard:
 
 ![performance](img/performance.png)
 
-### Database stats
+Database stats:
 
 ![performance](img/stats.png)
 
-### Flamegraph
+Flamegraph:
 
 ![flame](img/flame.png)
 
-#### **CPU**
+Trakx has been optimized to use a little CPU time as possible. In most cases, almost all CPU time will be spent handing (negotiating/send/recv) connections, especially for TCP (HTTP).
 
-Trakx has been optimized to use a little CPU time as possible. In most cases, almost all CPU time will be spent handing (negotiating/send/recv) connections, especially for TCP.
-
-In this example the databases write (save peer information) function took 0.3% of total cpu time.
-
-#### **Memory**
-
-Again, trakx has been optimized for a minimal memory footprint and is mostly limited by the go GC.
-
-In this example the GC runs every 2 minutes ([the forced GC period](https://github.com/golang/go/blob/895b7c85addfffe19b66d8ca71c31799d6e55990/src/runtime/proc.go#L4481-L4486)) at this level of traffic. The `inuse_space` delta from GC is 7.5% meaning this collection frequency would be sustained at `GOGC=8`.
-
-## Netdata setup
-
-**Warning:** the `install.sh` script will overwrite `go_expvar.conf`. If you are using other expvar programs with netdata you can manually merge the two files.
-
-* Run `/etc/netdata/edit-config python.d.conf`, change `go_expvar` to `yes`.
-* Customize the url in `netdata/expvar.conf` if needed.
-* Install netdata plugins with `cd netdata; ./install.sh`.
-
-## Notes
-
-* If you're going to be serving a lot of clients on a non managed service it's recommended to perform [sysctl tuning](https://web.archive.org/web/20200706222821/https://wiki.mikejung.biz/Sysctl_tweaks). This is especially important if you're running a TCP tracker
-* Trakx uses `unsafe` to read raw memory when backing up the database. This means that database saves could *technically* break between go versions if struct padding or internal slice structures are changed. This will likely never happen but if you wish to be safe you can change the encoding method to `encodeBinary()` to avoid this issue. This fix comes with a performance penalty. Backing up will take 3x more memory and be 7x slower.
-
+Trakx has also been optimized to use minimal memory and is mostly limited by the go GC. In this example the GC runs every 2 minutes ([the forced GC period](https://github.com/golang/go/blob/895b7c85addfffe19b66d8ca71c31799d6e55990/src/runtime/proc.go#L4481-L4486)) at this level of traffic. The `inuse_space` delta from GC is 7.5% meaning this collection frequency would be sustained at `GOGC=8`.
