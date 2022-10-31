@@ -126,12 +126,12 @@ attemptLoad:
 		goto attemptLoad
 	}
 
-	peers, hashes, err := bck.db.decodeGob(bytes)
+	err = bck.db.decodeGob(bytes)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode data")
 	}
 
-	config.Logger.Info("Loaded stored database from pg", zap.Int("size", len(bytes)), zap.Any("hash", bytes[:20]), zap.Int("peers", peers), zap.Int("hashes", hashes))
+	config.Logger.Info("Loaded stored database from pg", zap.Int("size", len(bytes)), zap.Any("hash", bytes[:20]))
 
 	return nil
 }

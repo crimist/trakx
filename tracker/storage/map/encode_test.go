@@ -45,7 +45,7 @@ func TestEncodeBinary(t *testing.T) {
 		t.Fatal("decodeBinary threw error: ", err)
 	}
 	submap := db.hashmap[hash]
-	dbpeer := submap.peers[peerid]
+	dbpeer := submap.Peers[peerid]
 
 	if !reflect.DeepEqual(*dbpeer, peer) {
 		t.Fatal("Not equal!\n" + hex.Dump(data) + spew.Sdump(peer, *dbpeer))

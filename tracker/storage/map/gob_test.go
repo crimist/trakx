@@ -37,12 +37,12 @@ func TestEncodeDecodeGob(t *testing.T) {
 		t.Fatal("encodeGob threw error: ", err)
 	}
 	db = Memory{}
-	if _, _, err := db.decodeGob(data); err != nil {
+	if err := db.decodeGob(data); err != nil {
 		t.Fatal("decodeGob threw error: ", err)
 	}
 
 	submap := db.hashmap[hash]
-	dbpeer := submap.peers[peerid]
+	dbpeer := submap.Peers[peerid]
 	if !reflect.DeepEqual(*dbpeer, peer) {
 		t.Fatal("Not equal!\n" + hex.Dump(data) + spew.Sdump(peer, *dbpeer))
 	}

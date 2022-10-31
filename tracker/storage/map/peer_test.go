@@ -25,7 +25,7 @@ func TestSaveDrop(t *testing.T) {
 		Port:     4321,
 	}
 	db.Save(peerWrite.IP, peerWrite.Port, peerWrite.Complete, testHash, testId)
-	peerRead, ok := db.hashmap[testHash].peers[testId]
+	peerRead, ok := db.hashmap[testHash].Peers[testId]
 
 	if !ok {
 		t.Error("Failed to read peer from database map")
@@ -44,7 +44,7 @@ func TestSaveDrop(t *testing.T) {
 	}
 
 	db.Drop(testHash, testId)
-	_, ok = db.hashmap[testHash].peers[testId]
+	_, ok = db.hashmap[testHash].Peers[testId]
 
 	if ok {
 		t.Error("Failed top drop peer from database")

@@ -21,35 +21,35 @@ func (memoryDb *Memory) Save(ip netip.Addr, port uint16, complete bool, hash sto
 	}
 
 	// get peer
-	peermap.RLock()
-	peer, peerExists := peermap.peers[id]
-	peermap.RUnlock()
+	peermap.mutex.RLock()
+	peer, peerExists := peermap.Peers[id]
+	peermap.mutex.RUnlock()
 
-	peermap.Lock()
+	peermap.mutex.Lock()
 	// if peer does not exist then create
 	if !peerExists {
 		peer = storage.PeerChan.Get()
-		peermap.peers[id] = peer
+		peermap.Peers[id] = peer
 	}
 
 	// update peermap completion counts
 	// TODO: consider using atomic package instead of locking peermap?
 	if peerExists {
 		if !peer.Complete && complete {
-			peermap.incomplete--
-			peermap.complete++
+			peermap.Incomplete--
+			peermap.Complete++
 		} else if peer.Complete && !complete {
-			peermap.complete--
-			peermap.incomplete++
+			peermap.Complete--
+			peermap.Incomplete++
 		}
 	} else {
 		if complete {
-			peermap.complete++
+			peermap.Complete++
 		} else {
-			peermap.incomplete++
+			peermap.Incomplete++
 		}
 	}
-	peermap.Unlock()
+	peermap.mutex.Unlock()
 
 	// update metrics
 	if !fast {
@@ -91,12 +91,12 @@ func (memoryDb *Memory) Save(ip netip.Addr, port uint16, complete bool, hash sto
 
 // delete is similar to drop but doesn't lock
 func (db *Memory) delete(peer *storage.Peer, peermap *PeerMap, id storage.PeerID) {
-	delete(peermap.peers, id)
+	delete(peermap.Peers, id)
 
 	if peer.Complete {
-		peermap.complete--
+		peermap.Complete--
 	} else {
-		peermap.incomplete--
+		peermap.Incomplete--
 	}
 
 	if !fast {
@@ -125,20 +125,20 @@ func (db *Memory) Drop(hash storage.Hash, id storage.PeerID) {
 	}
 
 	// get the peer and remove it
-	peermap.Lock()
-	peer, ok := peermap.peers[id]
+	peermap.mutex.Lock()
+	peer, ok := peermap.Peers[id]
 	if !ok {
-		peermap.Unlock()
+		peermap.mutex.Unlock()
 		return
 	}
-	delete(peermap.peers, id)
+	delete(peermap.Peers, id)
 
 	if peer.Complete {
-		peermap.complete--
+		peermap.Complete--
 	} else {
-		peermap.incomplete--
+		peermap.Incomplete--
 	}
-	peermap.Unlock()
+	peermap.mutex.Unlock()
 
 	if !fast {
 		if peer.Complete {

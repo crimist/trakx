@@ -21,10 +21,10 @@ const (
 )
 
 type PeerMap struct {
-	sync.RWMutex
-	complete   uint16
-	incomplete uint16
-	peers      map[storage.PeerID]*storage.Peer
+	mutex      sync.RWMutex // can't be embedded (https://github.com/golang/go/issues/5819#issuecomment-250596051)
+	Complete   uint16
+	Incomplete uint16
+	Peers      map[storage.PeerID]*storage.Peer
 }
 
 type Memory struct {
@@ -67,7 +67,7 @@ func (db *Memory) make() {
 func (db *Memory) makePeermap(h storage.Hash) (peermap *PeerMap) {
 	// build struct and assign
 	peermap = new(PeerMap)
-	peermap.peers = make(map[storage.PeerID]*storage.Peer, peerMapAlloc)
+	peermap.Peers = make(map[storage.PeerID]*storage.Peer, peerMapAlloc)
 	db.hashmap[h] = peermap
 	return
 }
@@ -95,15 +95,15 @@ func (db *Memory) trim() (peers, hashes int) {
 	for hash, peermap := range db.hashmap {
 		db.mutex.RUnlock()
 
-		peermap.Lock()
-		for id, peer := range peermap.peers {
+		peermap.mutex.Lock()
+		for id, peer := range peermap.Peers {
 			if now-peer.LastSeen > peerTimeout {
 				db.delete(peer, peermap, id)
 				peers++
 			}
 		}
-		peersize := len(peermap.peers)
-		peermap.Unlock()
+		peersize := len(peermap.Peers)
+		peermap.mutex.Unlock()
 
 		if peersize == 0 {
 			db.mutex.Lock()

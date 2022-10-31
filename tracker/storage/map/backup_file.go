@@ -40,28 +40,28 @@ func (bck *FileBackup) Load() error {
 		return errors.Wrap(err, "failed to stat file")
 	}
 
-	peers, hashes, err := bck.db.loadFile(config.Conf.DB.Backup.Path)
+	err = bck.db.loadFile(config.Conf.DB.Backup.Path)
 	if err != nil {
 		return errors.Wrap(err, "failed to load file")
 	}
 
-	config.Logger.Info("Loaded database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("took", time.Since(start)))
+	config.Logger.Info("Loaded database", zap.Duration("took", time.Since(start)))
 
 	return nil
 }
 
-func (db *Memory) loadFile(filename string) (int, int, error) {
+func (db *Memory) loadFile(filename string) error {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return 0, 0, errors.Wrap(err, "failed to read file from disk")
+		return errors.Wrap(err, "failed to read file from disk")
 	}
 
-	peers, hashes, err := db.decodeGob(data)
+	err = db.decodeGob(data)
 	if err != nil {
-		return 0, 0, errors.Wrap(err, "failed to decode saved data")
+		return errors.Wrap(err, "failed to decode saved data")
 	}
 
-	return peers, hashes, nil
+	return nil
 }
 
 func (bck *FileBackup) writeFile() (int, error) {

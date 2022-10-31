@@ -15,7 +15,7 @@ func (db *Memory) SyncExpvars() error {
 
 	// Called on main thread before thread/queue dispatch no locking needed
 	for _, peermap := range db.hashmap {
-		for _, peer := range peermap.peers {
+		for _, peer := range peermap.Peers {
 			storage.Expvar.IPs.Inc(peer.IP)
 			if peer.Complete {
 				seeds++

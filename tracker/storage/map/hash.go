@@ -22,10 +22,10 @@ func (db *Memory) HashStats(hash storage.Hash) (complete, incomplete uint16) {
 		return
 	}
 
-	peermap.RLock()
-	complete = peermap.complete
-	incomplete = peermap.incomplete
-	peermap.RUnlock()
+	peermap.mutex.RLock()
+	complete = peermap.Complete
+	incomplete = peermap.Incomplete
+	peermap.mutex.RUnlock()
 
 	return
 }
@@ -39,14 +39,14 @@ func (db *Memory) PeerList(hash storage.Hash, numWant uint, removePeerId bool) (
 		return
 	}
 
-	peermap.RLock()
+	peermap.mutex.RLock()
 
-	if numPeers := uint(len(peermap.peers)); numWant > numPeers {
+	if numPeers := uint(len(peermap.Peers)); numWant > numPeers {
 		numWant = numPeers
 	}
 
 	if numWant == 0 {
-		peermap.RUnlock()
+		peermap.mutex.RUnlock()
 		return
 	}
 
@@ -54,7 +54,7 @@ func (db *Memory) PeerList(hash storage.Hash, numWant uint, removePeerId bool) (
 	peers = make([][]byte, numWant)
 	dict := bencoding.GetDictionary()
 
-	for id, peer := range peermap.peers {
+	for id, peer := range peermap.Peers {
 		if !removePeerId {
 			dict.String("peer id", string(id[:]))
 		}
@@ -73,7 +73,7 @@ func (db *Memory) PeerList(hash storage.Hash, numWant uint, removePeerId bool) (
 		}
 	}
 
-	peermap.RUnlock()
+	peermap.mutex.RUnlock()
 	bencoding.PutDictionary(dict)
 
 	return
@@ -91,18 +91,18 @@ func (db *Memory) PeerListBytes(hash storage.Hash, numWant uint) (peers4 *storag
 		return
 	}
 
-	peermap.RLock()
-	if numPeers := uint(len(peermap.peers)); numWant > numPeers {
+	peermap.mutex.RLock()
+	if numPeers := uint(len(peermap.Peers)); numWant > numPeers {
 		numWant = numPeers
 	}
 
 	if numWant == 0 {
-		peermap.RUnlock()
+		peermap.mutex.RUnlock()
 		return
 	}
 
 	var pos4, pos6 int
-	for _, peer := range peermap.peers {
+	for _, peer := range peermap.Peers {
 		if peer.IP.Is6() {
 			copy(peers6.Data[pos6:pos6+16], peer.IP.AsSlice())
 			binary.BigEndian.PutUint16(peers6.Data[pos6+16:pos6+18], peer.Port)
@@ -119,7 +119,7 @@ func (db *Memory) PeerListBytes(hash storage.Hash, numWant uint) (peers4 *storag
 			}
 		}
 	}
-	peermap.RUnlock()
+	peermap.mutex.RUnlock()
 
 	peers4.Data = peers4.Data[:pos4]
 	peers6.Data = peers6.Data[:pos6]

@@ -21,10 +21,10 @@ func (db *Memory) encodeBinary() ([]byte, error) {
 		db.mutex.RUnlock()
 
 		binary.Write(w, binary.LittleEndian, &hash)
-		binary.Write(w, binary.LittleEndian, uint32(len(submap.peers)))
+		binary.Write(w, binary.LittleEndian, uint32(len(submap.Peers)))
 
-		submap.RLock()
-		for id, peer := range submap.peers {
+		submap.mutex.RLock()
+		for id, peer := range submap.Peers {
 			binary.Write(w, binary.LittleEndian, &id)
 			binary.Write(w, binary.LittleEndian, peer.Complete)
 			ipData, _ := peer.IP.MarshalBinary()
@@ -32,7 +32,7 @@ func (db *Memory) encodeBinary() ([]byte, error) {
 			binary.Write(w, binary.LittleEndian, peer.Port)
 			binary.Write(w, binary.LittleEndian, peer.LastSeen)
 		}
-		submap.RUnlock()
+		submap.mutex.RUnlock()
 
 		db.mutex.RLock()
 	}
@@ -77,7 +77,7 @@ func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
 			if err = binary.Read(w, binary.LittleEndian, peer); err != nil {
 				return
 			}
-			peermap.peers[id] = peer
+			peermap.Peers[id] = peer
 			peers++
 		}
 
