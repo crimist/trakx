@@ -55,6 +55,7 @@ func (db *Memory) decodeGob(data []byte) (peers int, hashes int, err error) {
 		var hash storage.Hash
 		if err = decoder.Decode(&hash); err != nil {
 			if errors.Is(err, io.EOF) {
+				err = nil
 				break
 			}
 
