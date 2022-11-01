@@ -291,8 +291,6 @@ func TestHTTPAnnounce(t *testing.T) {
 	}
 }
 
-// TODO: clean up these announce benchmarks
-
 const (
 	addr = ":12345"
 )

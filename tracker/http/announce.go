@@ -102,7 +102,6 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip netip.Add
 		peers4.Put()
 		peers6.Put()
 	} else {
-		// TODO: Optimize, escapes to heap
 		d.BytesliceSlice("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
 	}
 
