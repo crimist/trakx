@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	hashMapAlloc = 250_000
-	peerMapAlloc = 1
+	hashMapPrealloc = 250_000
+	peerMapPrealloc = 1
 )
 
 type PeerMap struct {
@@ -61,13 +61,13 @@ func (db *Memory) Init(backup storage.Backup) error {
 }
 
 func (db *Memory) make() {
-	db.hashmap = make(map[storage.Hash]*PeerMap, hashMapAlloc)
+	db.hashmap = make(map[storage.Hash]*PeerMap, hashMapPrealloc)
 }
 
 func (db *Memory) makePeermap(h storage.Hash) (peermap *PeerMap) {
 	// build struct and assign
 	peermap = new(PeerMap)
-	peermap.Peers = make(map[storage.PeerID]*storage.Peer, peerMapAlloc)
+	peermap.Peers = make(map[storage.PeerID]*storage.Peer, peerMapPrealloc)
 	db.hashmap[h] = peermap
 	return
 }

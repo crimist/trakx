@@ -19,6 +19,7 @@ func (db *Memory) encodeBinary() ([]byte, error) {
 	for hash, submap := range db.hashmap {
 		db.mutex.RUnlock()
 
+		// write hash and peermap size
 		if err := binary.Write(writer, binary.LittleEndian, &hash); err != nil {
 			return nil, err
 		}
@@ -26,13 +27,13 @@ func (db *Memory) encodeBinary() ([]byte, error) {
 			return nil, err
 		}
 
+		// write peerid and peer
 		submap.mutex.RLock()
 		for id, peer := range submap.Peers {
 			if err := binary.Write(writer, binary.LittleEndian, &id); err != nil {
 				return nil, err
 			}
 
-			// peer
 			ipslice := peer.IP.AsSlice()
 			if err := binary.Write(writer, binary.LittleEndian, peer.Complete); err != nil {
 				return nil, err
@@ -70,6 +71,7 @@ func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
 	reader := bufio.NewReader(buff)
 
 	for {
+		// decode hash and number of peers
 		var hash storage.Hash
 		err = binary.Read(reader, binary.LittleEndian, &hash)
 		if errors.Is(err, io.EOF) {
@@ -79,13 +81,14 @@ func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
 			return
 		}
 
-		peermap := db.makePeermap(hash)
-
 		var count uint32
+		var complete uint16
+		peermap := db.makePeermap(hash)
 		if err = binary.Read(reader, binary.LittleEndian, &count); err != nil {
 			return
 		}
 
+		// decode peerid and peers
 		for ; count > 0; count-- {
 			var id storage.PeerID
 			if err = binary.Read(reader, binary.LittleEndian, &id); err != nil {
@@ -118,7 +121,15 @@ func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
 			}
 			peermap.Peers[id] = peer
 			peers++
+
+			if peer.Complete {
+				complete++
+			}
 		}
+
+		// set complete and incomplete
+		peermap.Complete = complete
+		peermap.Incomplete = uint16(len(peermap.Peers)) - complete
 
 		hashes++
 	}
