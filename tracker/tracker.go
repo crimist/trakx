@@ -10,6 +10,7 @@ import (
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/http"
+	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp"
 	"go.uber.org/zap"
@@ -129,7 +130,9 @@ func Run() {
 	}
 
 	if config.Config.ExpvarInterval > 0 {
-		publishExpvar(peerdb, &httptracker, &udptracker)
+		stats.Publish(peerdb, func() int64 {
+			return int64(udptracker.Connections())
+		})
 	} else {
 		config.Logger.Debug("Finished Run() no expvar - blocking forever")
 		select {}

@@ -10,9 +10,6 @@ import (
 
 func dbWithHashesAndPeers(hashes, peers int) *Memory {
 	var db Memory
-
-	storage.Expvar.Seeds.Set(int64(hashes * peers))
-
 	db.make()
 
 	peerid := storage.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}

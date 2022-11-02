@@ -3,12 +3,12 @@ package udp
 import (
 	"net"
 
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/udp/protocol"
 )
 
 func (u *UDPTracker) scrape(scrape *protocol.Scrape, remote *net.UDPAddr) {
-	storage.Expvar.Scrapes.Add(1)
+	stats.Scrapes.Add(1)
 
 	if len(scrape.InfoHashes) > 74 {
 		msg := u.newClientError("74 hashes max", scrape.TransactionID)
@@ -45,5 +45,4 @@ func (u *UDPTracker) scrape(scrape *protocol.Scrape, remote *net.UDPAddr) {
 	}
 
 	u.sock.WriteToUDP(respBytes, remote)
-	storage.Expvar.ScrapesOK.Add(1)
 }

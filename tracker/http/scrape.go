@@ -4,12 +4,12 @@ import (
 	"net"
 
 	"github.com/crimist/trakx/bencoding"
+	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/storage"
 )
 
 func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
-	storage.Expvar.Scrapes.Add(1)
-	defer storage.Expvar.ScrapesOK.Add(1)
+	stats.Scrapes.Add(1)
 
 	d := bencoding.GetDictionary()
 	d.StartDictionary("files")

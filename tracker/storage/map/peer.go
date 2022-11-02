@@ -4,6 +4,7 @@ import (
 	"net/netip"
 	"time"
 
+	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/storage"
 )
 
@@ -56,28 +57,28 @@ func (memoryDb *Memory) Save(ip netip.Addr, port uint16, complete bool, hash sto
 		if peerExists {
 			// They completed
 			if !peer.Complete && complete {
-				storage.Expvar.Leeches.Add(-1)
-				storage.Expvar.Seeds.Add(1)
+				stats.Leeches.Add(-1)
+				stats.Seeds.Add(1)
 			} else if peer.Complete && !complete { // They uncompleted?
-				storage.Expvar.Seeds.Add(-1)
-				storage.Expvar.Leeches.Add(1)
+				stats.Seeds.Add(-1)
+				stats.Leeches.Add(1)
 			}
 			// IP changed
 			if peer.IP != ip {
-				storage.Expvar.IPs.Lock()
-				storage.Expvar.IPs.Remove(peer.IP)
-				storage.Expvar.IPs.Inc(ip)
-				storage.Expvar.IPs.Unlock()
+				stats.IPStats.Lock()
+				stats.IPStats.Remove(peer.IP)
+				stats.IPStats.Inc(ip)
+				stats.IPStats.Unlock()
 			}
 		} else {
-			storage.Expvar.IPs.Lock()
-			storage.Expvar.IPs.Inc(ip)
-			storage.Expvar.IPs.Unlock()
+			stats.IPStats.Lock()
+			stats.IPStats.Inc(ip)
+			stats.IPStats.Unlock()
 
 			if complete {
-				storage.Expvar.Seeds.Add(1)
+				stats.Seeds.Add(1)
 			} else {
-				storage.Expvar.Leeches.Add(1)
+				stats.Leeches.Add(1)
 			}
 		}
 	}
@@ -101,14 +102,14 @@ func (db *Memory) delete(peer *storage.Peer, peermap *PeerMap, id storage.PeerID
 
 	if !fast {
 		if peer.Complete {
-			storage.Expvar.Seeds.Add(-1)
+			stats.Seeds.Add(-1)
 		} else {
-			storage.Expvar.Leeches.Add(-1)
+			stats.Leeches.Add(-1)
 		}
 
-		storage.Expvar.IPs.Lock()
-		storage.Expvar.IPs.Remove(peer.IP)
-		storage.Expvar.IPs.Unlock()
+		stats.IPStats.Lock()
+		stats.IPStats.Remove(peer.IP)
+		stats.IPStats.Unlock()
 	}
 
 	storage.PeerChan.Put(peer)
@@ -142,14 +143,14 @@ func (db *Memory) Drop(hash storage.Hash, id storage.PeerID) {
 
 	if !fast {
 		if peer.Complete {
-			storage.Expvar.Seeds.Add(-1)
+			stats.Seeds.Add(-1)
 		} else {
-			storage.Expvar.Leeches.Add(-1)
+			stats.Leeches.Add(-1)
 		}
 
-		storage.Expvar.IPs.Lock()
-		storage.Expvar.IPs.Remove(peer.IP)
-		storage.Expvar.IPs.Unlock()
+		stats.IPStats.Lock()
+		stats.IPStats.Remove(peer.IP)
+		stats.IPStats.Unlock()
 	}
 
 	// free the peer back to the pool

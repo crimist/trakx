@@ -9,7 +9,7 @@ import (
 	"unsafe"
 
 	"github.com/crimist/trakx/tracker/config"
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/stats"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -41,8 +41,8 @@ func (w *workers) work() {
 			}
 
 			// otherwise log the error
-			storage.Expvar.Errors.Add(1)
-			config.Logger.Warn("http tracker net accept() failed", zap.Error(err))
+			config.Logger.Error("http connection accept failed", zap.Error(err))
+			stats.ServerErrors.Add(1)
 			continue
 		}
 
@@ -55,7 +55,7 @@ func (w *workers) work() {
 			conn.Close()
 			continue
 		}
-		storage.Expvar.Hits.Add(1)
+		stats.Hits.Add(1)
 
 		p, err := parse(data, size)
 		if err == invalidParse || p.Method != "GET" {
@@ -65,11 +65,11 @@ func (w *workers) work() {
 			continue
 		} else if err != nil {
 			// error in parse
-			storage.Expvar.Errors.Add(1)
 			config.Logger.Error("error parsing request", zap.Error(err), zap.Any("request data", data))
 			writeStatus(conn, "500")
-
 			conn.Close()
+
+			stats.ServerErrors.Add(1)
 			continue
 		}
 

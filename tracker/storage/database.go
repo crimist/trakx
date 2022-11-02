@@ -55,7 +55,7 @@ type Database interface {
 	PeerList(Hash, uint, bool) [][]byte
 	PeerListBytes(Hash, uint) (*Peerlist, *Peerlist)
 
-	// Only used for expvar
+	// Number of hashes for stats
 	Hashes() int
 }
 

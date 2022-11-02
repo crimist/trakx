@@ -5,12 +5,12 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/udp/protocol"
 )
 
 func (u *UDPTracker) connect(connect *protocol.Connect, remote *net.UDPAddr, addr netip.AddrPort) {
-	storage.Expvar.Connects.Add(1)
+	stats.Connects.Add(1)
 
 	id := rand.Int63()
 	u.conndb.add(id, addr)
@@ -28,6 +28,5 @@ func (u *UDPTracker) connect(connect *protocol.Connect, remote *net.UDPAddr, add
 		return
 	}
 
-	storage.Expvar.ConnectsOK.Add(1)
 	u.sock.WriteToUDP(respBytes, remote)
 }

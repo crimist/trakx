@@ -1,13 +1,13 @@
 package gomap
 
 import (
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/stats"
 	"github.com/pkg/errors"
 )
 
 func (db *Memory) SyncExpvars() error {
 	if ok := db.Check(); !ok {
-		return errors.New("driver not init before calling Expvar()")
+		return errors.New("driver not initiated before SyncExpvars")
 	}
 
 	var seeds, leeches int64
@@ -15,7 +15,7 @@ func (db *Memory) SyncExpvars() error {
 	// Called on main thread before thread/queue dispatch no locking needed
 	for _, peermap := range db.hashmap {
 		for _, peer := range peermap.Peers {
-			storage.Expvar.IPs.Inc(peer.IP)
+			stats.IPStats.Inc(peer.IP)
 			if peer.Complete {
 				seeds++
 			} else {
@@ -24,8 +24,8 @@ func (db *Memory) SyncExpvars() error {
 		}
 	}
 
-	storage.Expvar.Seeds.Set(seeds)
-	storage.Expvar.Leeches.Set(leeches)
+	stats.Seeds.Store(seeds)
+	stats.Leeches.Store(leeches)
 
 	return nil
 }

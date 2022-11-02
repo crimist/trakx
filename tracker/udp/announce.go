@@ -6,12 +6,12 @@ import (
 	"net/netip"
 
 	"github.com/crimist/trakx/tracker/config"
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/udp/protocol"
 )
 
 func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, addrPort netip.AddrPort) {
-	storage.Expvar.Announces.Add(1)
+	stats.Announces.Add(1)
 
 	if announce.Port == 0 {
 		msg := u.newClientError("bad port", announce.TransactionID, cerrFields{"addrPort": addrPort, "port": announce.Port})
@@ -43,7 +43,6 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 			return
 		}
 
-		storage.Expvar.AnnouncesOK.Add(1)
 		u.sock.WriteToUDP(respBytes, remote)
 		return
 	}
@@ -86,6 +85,5 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 		return
 	}
 
-	storage.Expvar.AnnouncesOK.Add(1)
 	u.sock.WriteToUDP(respBytes, remote)
 }

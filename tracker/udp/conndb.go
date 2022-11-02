@@ -122,6 +122,8 @@ func (db *connectionDatabase) loadFromFile(path string) error {
 	return nil
 }
 
+// TODO: don't use unsafe for these lol
+
 func (db *connectionDatabase) marshallBinary() (buff []byte, err error) {
 	defer func() {
 		// recover any oob slice panics

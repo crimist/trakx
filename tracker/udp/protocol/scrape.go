@@ -53,8 +53,7 @@ type ScrapeResp struct {
 
 // Marshall encodes a ScrapeResp to a byte slice.
 func (sr *ScrapeResp) Marshall() ([]byte, error) {
-	buff := new(bytes.Buffer)
-	buff.Grow(8 + len(sr.Info)*12) // TODO: benchmark
+	buff := bytes.NewBuffer(make([]byte, 8+len(sr.Info)*12))
 
 	if err := binary.Write(buff, binary.BigEndian, sr.Action); err != nil {
 		return nil, errors.Wrap(err, "failed to encode scrape response action")

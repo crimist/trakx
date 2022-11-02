@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/crimist/trakx/tracker/config"
+	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp/protocol"
 	"github.com/crimist/trakx/tracker/utils"
@@ -106,8 +107,8 @@ func (u *UDPTracker) Shutdown() {
 	u.shutdown <- die
 }
 
-// ConnCount returns the number of BitTorrent UDP protocol connections in the connection database.
-func (u *UDPTracker) ConnCount() int {
+// Connections returns the number of BitTorrent UDP protocol connections in the connection database.
+func (u *UDPTracker) Connections() int {
 	if u == nil || u.conndb == nil {
 		return -1
 	}
@@ -128,7 +129,7 @@ func (u *UDPTracker) WriteConns() error {
 }
 
 func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
-	storage.Expvar.Hits.Add(1)
+	stats.Hits.Add(1)
 
 	action := protocol.Action(data[11])
 	txid := int32(binary.BigEndian.Uint32(data[12:16]))

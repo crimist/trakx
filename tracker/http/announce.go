@@ -8,6 +8,7 @@ import (
 
 	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/tracker/config"
+	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/storage"
 )
 
@@ -23,7 +24,7 @@ type announceParams struct {
 }
 
 func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip netip.Addr) {
-	storage.Expvar.Announces.Add(1)
+	stats.Announces.Add(1)
 
 	// get vars
 	var hash storage.Hash
@@ -46,7 +47,6 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip netip.Add
 	// get if stop before continuing
 	if vals.event == "stopped" {
 		t.peerdb.Drop(hash, peerid)
-		storage.Expvar.AnnouncesOK.Add(1)
 		conn.Write(httpSuccessBytes)
 		return
 	}
@@ -104,8 +104,6 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip netip.Add
 	} else {
 		d.BytesliceSlice("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
 	}
-
-	storage.Expvar.AnnouncesOK.Add(1)
 
 	// double write no append is more efficient when > ~250 peers in response
 	// conn.Write(httpSuccessBytes)
