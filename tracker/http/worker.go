@@ -80,11 +80,11 @@ func (w *workers) work() {
 				var key, val string
 
 				if equal := bytes.Index(param, []byte("=")); equal == -1 {
-					key = string(param) // doesn't escape
+					key = string(param) // noescape
 					val = "1"
 				} else {
-					key = string(param[:equal])   // doesn't escape
-					val = string(param[equal+1:]) // escapes - TODO: optimize?
+					key = string(param[:equal])   // noescape
+					val = string(param[equal+1:]) // escape
 				}
 
 				switch key {

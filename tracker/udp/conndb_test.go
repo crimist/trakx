@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/crimist/trakx/tracker/config"
+	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -33,17 +34,17 @@ func TestConnectionDatabaseAdd(t *testing.T) {
 	connInfo4 := connDb.connectionMap[addrPort4]
 	connInfo6 := connDb.connectionMap[addrPort6]
 
-	if connInfo4.timeStamp != timestamp {
-		t.Errorf("connInfo4.timeStamp = %v; want %v", connInfo4.timeStamp, timestamp)
+	if connInfo4.TimeStamp != timestamp {
+		t.Errorf("connInfo4.timeStamp = %v; want %v", connInfo4.TimeStamp, timestamp)
 	}
-	if connInfo4.id != id4 {
-		t.Errorf("connInfo4.id = %v; want %v", connInfo4.id, id4)
+	if connInfo4.ID != id4 {
+		t.Errorf("connInfo4.id = %v; want %v", connInfo4.ID, id4)
 	}
-	if connInfo6.timeStamp != timestamp {
-		t.Errorf("connInfo6.timeStamp = %v; want %v", connInfo6.timeStamp, timestamp)
+	if connInfo6.TimeStamp != timestamp {
+		t.Errorf("connInfo6.timeStamp = %v; want %v", connInfo6.TimeStamp, timestamp)
 	}
-	if connInfo6.id != id6 {
-		t.Errorf("connInfo6.id = %v; want %v", connInfo6.id, id6)
+	if connInfo6.ID != id6 {
+		t.Errorf("connInfo6.id = %v; want %v", connInfo6.ID, id6)
 	}
 }
 
@@ -131,6 +132,27 @@ func newConnectionDatabaseWithCount(count int) *connectionDatabase {
 	return connDb
 }
 
+func TestMarshallUnmarshallConnectionDatabase(t *testing.T) {
+	connDB := newConnectionDatabase(10 * time.Minute)
+	connDB.add(1234, netip.MustParseAddrPort("1.1.1.1:1234"))
+
+	data, err := connDB.marshallBinary()
+	if err != nil {
+		t.Fatalf("marshallBinary threw err: %v", err)
+	}
+
+	spew.Dump(data)
+
+	connDB = newConnectionDatabase(10 * time.Minute)
+
+	if err := connDB.unmarshallBinary(data); err != nil {
+		t.Fatalf("unmarshallBinary threw err: %v", err)
+	}
+	if !connDB.check(1234, netip.MustParseAddrPort("1.1.1.1:1234")) {
+		t.Fatalf("check failed, database = %v", connDB.connectionMap)
+	}
+}
+
 func benchmarkConnectionDatabaseMarshallBinary(b *testing.B, count int) {
 	connDb := newConnectionDatabaseWithCount(count)
 
@@ -175,4 +197,50 @@ func BenchmarkConnectionDatabaseUnmarshallBinary1000(b *testing.B) {
 }
 func BenchmarkConnectionDatabaseUnmarshallBinary10000(b *testing.B) {
 	benchmarkConnectionDatabaseUnmarshallBinary(b, 10000)
+}
+
+func benchmarkConnectionDatabaseGobEncode(b *testing.B, count int) {
+	connDb := newConnectionDatabaseWithCount(count)
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if _, err := connDb.gobEncode(); err != nil {
+			b.Error("gobEncode failed;", err)
+		}
+	}
+}
+
+func BenchmarkConnectionDatabaseGobEncode100(b *testing.B) {
+	benchmarkConnectionDatabaseGobEncode(b, 100)
+}
+func BenchmarkConnectionDatabaseGobEncode1000(b *testing.B) {
+	benchmarkConnectionDatabaseGobEncode(b, 1000)
+}
+func BenchmarkConnectionDatabaseGobEncode10000(b *testing.B) {
+	benchmarkConnectionDatabaseGobEncode(b, 10000)
+}
+
+func benchmarkConnectionDatabaseGobDecode(b *testing.B, count int) {
+	connDb := newConnectionDatabaseWithCount(count)
+	data, err := connDb.gobEncode()
+	if err != nil {
+		b.Error("marshallBinary failed;", err)
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if err := connDb.gobDecode(data); err != nil {
+			b.Error("unmarshallBinary failed;", err)
+		}
+	}
+}
+
+func BenchmarkConnectionDatabaseGobDecode100(b *testing.B) {
+	benchmarkConnectionDatabaseGobDecode(b, 100)
+}
+func BenchmarkConnectionDatabaseGobDecode1000(b *testing.B) {
+	benchmarkConnectionDatabaseGobDecode(b, 1000)
+}
+func BenchmarkConnectionDatabaseGobDecode10000(b *testing.B) {
+	benchmarkConnectionDatabaseGobDecode(b, 10000)
 }

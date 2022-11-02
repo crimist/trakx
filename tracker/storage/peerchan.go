@@ -29,7 +29,6 @@ func (pc *peerChan) Add(n uint64) {
 	for i := uint64(0); i < n; i++ {
 		pc.channel <- new(Peer)
 	}
-	Expvar.Pools.Peer.Add(int64(n))
 }
 
 func (pc *peerChan) buffer() {
@@ -38,7 +37,6 @@ func (pc *peerChan) buffer() {
 	for i := 0; i < amount; i++ {
 		pc.channel <- new(Peer)
 	}
-	Expvar.Pools.Peer.Add(amount)
 }
 
 func (pc *peerChan) Get() *Peer {

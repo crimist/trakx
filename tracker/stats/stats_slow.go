@@ -6,7 +6,14 @@ import (
 	"net/netip"
 )
 
-const fast = false
+const (
+	fast            = false
+	ipStatsPrealloc = 250_000
+)
+
+func init() {
+	IPStats.submap = make(map[netip.Addr]int16, 250_000)
+}
 
 func (ipstats *ipStats) Total() int {
 	return len(ipstats.submap)

@@ -2,10 +2,14 @@
 
 package stats
 
+import (
+	"net/netip"
+)
+
 const fast = true
 
-func (ipstats *IPStats) Len() int         { return -1 }
-func (ipstats *IPStats) Delete(ip PeerIP) {}
-func (ipstats *IPStats) Inc(ip PeerIP)    {}
-func (ipstats *IPStats) Dec(ip PeerIP)    {}
-func (ipstats *IPStats) Remove(ip PeerIP) {}
+func (ipstats *ipStats) Total() int           { return -1 }
+func (ipstats *ipStats) Delete(ip netip.Addr) {}
+func (ipstats *ipStats) Inc(ip netip.Addr)    {}
+func (ipstats *ipStats) Dec(ip netip.Addr)    {}
+func (ipstats *ipStats) Remove(ip netip.Addr) {}

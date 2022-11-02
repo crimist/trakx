@@ -12,6 +12,7 @@ import (
 )
 
 func (db *Memory) encodeBinary() ([]byte, error) {
+	// TODO: optimization, preallocate buffer
 	var buff bytes.Buffer
 	writer := bufio.NewWriter(&buff)
 
@@ -34,14 +35,14 @@ func (db *Memory) encodeBinary() ([]byte, error) {
 				return nil, err
 			}
 
-			ipslice := peer.IP.AsSlice()
+			addrSlice := peer.IP.AsSlice()
 			if err := binary.Write(writer, binary.LittleEndian, peer.Complete); err != nil {
 				return nil, err
 			}
-			if err := binary.Write(writer, binary.LittleEndian, int32(len(ipslice))); err != nil {
+			if err := binary.Write(writer, binary.LittleEndian, int32(len(addrSlice))); err != nil {
 				return nil, err
 			}
-			if err := binary.Write(writer, binary.LittleEndian, ipslice); err != nil {
+			if err := binary.Write(writer, binary.LittleEndian, addrSlice); err != nil {
 				return nil, err
 			}
 			if err := binary.Write(writer, binary.LittleEndian, peer.Port); err != nil {
@@ -66,9 +67,7 @@ func (db *Memory) encodeBinary() ([]byte, error) {
 
 func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
 	db.make()
-
-	buff := bytes.NewBuffer(data)
-	reader := bufio.NewReader(buff)
+	reader := bufio.NewReader(bytes.NewBuffer(data))
 
 	for {
 		// decode hash and number of peers
@@ -96,18 +95,18 @@ func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
 			}
 
 			peer := storage.PeerChan.Get()
-			var ipslicelen int32
+			var addrSliceLen int32
 			if err = binary.Read(reader, binary.LittleEndian, &peer.Complete); err != nil {
 				return
 			}
-			if err = binary.Read(reader, binary.LittleEndian, &ipslicelen); err != nil {
+			if err = binary.Read(reader, binary.LittleEndian, &addrSliceLen); err != nil {
 				return
 			}
-			ipslice := make([]byte, ipslicelen)
-			if err = binary.Read(reader, binary.LittleEndian, &ipslice); err != nil {
+			addrSlice := make([]byte, addrSliceLen)
+			if err = binary.Read(reader, binary.LittleEndian, &addrSlice); err != nil {
 				return
 			}
-			ip, ok := netip.AddrFromSlice(ipslice)
+			ip, ok := netip.AddrFromSlice(addrSlice)
 			if !ok {
 				err = errors.New("AddrFromSlice failed")
 				return

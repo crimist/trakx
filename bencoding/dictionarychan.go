@@ -1,7 +1,5 @@
 package bencoding
 
-import "github.com/crimist/trakx/tracker/storage"
-
 const dictionaryChanMax = 1e4
 
 var dictionaryChan chan *Dictionary
@@ -14,7 +12,6 @@ func init() {
 func GetDictionary() *Dictionary {
 	// if empty create new
 	if len(dictionaryChan) == 0 {
-		storage.Expvar.Pools.Dict.Add(1)
 		return NewDictionary()
 	}
 

@@ -1,11 +1,14 @@
 package udp
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/binary"
+	"encoding/gob"
 	"io/ioutil"
 	"net/netip"
 	"sync"
 	"time"
-	"unsafe"
 
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/pkg/errors"
@@ -13,14 +16,14 @@ import (
 )
 
 const (
-	connectionIdSize = int(unsafe.Sizeof(connectionInfo{}))
-	addrPortSize     = 26 // netip.Addr + uint16 = 24 + 2
-	entrySize        = connectionIdSize + addrPortSize
+	connectionInfoSize = 16 // int64 + int64
+	addrPortSize       = 18 // netip.AddrPort
+	entrySize          = connectionInfoSize + addrPortSize
 )
 
 type connectionInfo struct {
-	id        int64
-	timeStamp int64
+	ID        int64
+	TimeStamp int64
 }
 
 type connectionDatabase struct {
@@ -49,8 +52,8 @@ func (db *connectionDatabase) size() (count int) {
 func (db *connectionDatabase) add(id int64, addr netip.AddrPort) {
 	db.mutex.Lock()
 	db.connectionMap[addr] = connectionInfo{
-		id:        id,
-		timeStamp: time.Now().Unix(),
+		ID:        id,
+		TimeStamp: time.Now().Unix(),
 	}
 	db.mutex.Unlock()
 }
@@ -60,7 +63,7 @@ func (db *connectionDatabase) check(id int64, addr netip.AddrPort) bool {
 	cid, ok := db.connectionMap[addr]
 	db.mutex.RUnlock()
 
-	if ok && cid.id == id {
+	if ok && cid.ID == id {
 		return true
 	}
 	return false
@@ -76,7 +79,7 @@ func (db *connectionDatabase) trim() {
 
 	db.mutex.Lock()
 	for key, conn := range db.connectionMap {
-		if epoch-conn.timeStamp > db.expiry {
+		if epoch-conn.TimeStamp > db.expiry {
 			delete(db.connectionMap, key)
 			trimmed++
 		}
@@ -90,7 +93,7 @@ func (connDb *connectionDatabase) writeToFile(path string) error {
 	config.Logger.Info("Writing connection database")
 	start := time.Now()
 
-	encoded, err := connDb.marshallBinary()
+	encoded, err := connDb.gobEncode()
 	if err != nil {
 		return errors.Wrap(err, "failed to marshall connection database")
 	}
@@ -113,7 +116,7 @@ func (db *connectionDatabase) loadFromFile(path string) error {
 		return errors.Wrap(err, "failed to read connection database file from disk")
 	}
 
-	if err := db.unmarshallBinary(data); err != nil {
+	if err := db.gobDecode(data); err != nil {
 		return errors.Wrap(err, "failed to unmarshall binary data")
 
 	}
@@ -122,48 +125,94 @@ func (db *connectionDatabase) loadFromFile(path string) error {
 	return nil
 }
 
-// TODO: don't use unsafe for these lol
-
-func (db *connectionDatabase) marshallBinary() (buff []byte, err error) {
-	defer func() {
-		// recover any oob slice panics
-		if tmp := recover(); tmp != nil {
-			err = errors.Wrap(tmp.(error), "oob slice panic caught")
-		}
-	}()
-
-	var pos int
-	buff = make([]byte, len(db.connectionMap)*entrySize)
+func (db *connectionDatabase) gobEncode() ([]byte, error) {
+	var buffer bytes.Buffer
+	writer := bufio.NewWriter(&buffer)
 
 	db.mutex.Lock()
-	for addr, id := range db.connectionMap {
-		copy(buff[pos:pos+addrPortSize], (*(*[addrPortSize]byte)(unsafe.Pointer(&addr)))[:])
-		copy(buff[pos+addrPortSize:pos+entrySize], (*(*[connectionIdSize]byte)(unsafe.Pointer(&id)))[:])
-		pos += entrySize
+	gob.NewEncoder(writer).Encode(db.connectionMap)
+	db.mutex.Unlock()
+
+	if err := writer.Flush(); err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
+}
+
+func (db *connectionDatabase) gobDecode(data []byte) error {
+	db.make()
+	reader := bufio.NewReader(bytes.NewBuffer(data))
+
+	return gob.NewDecoder(reader).Decode(&db.connectionMap)
+}
+
+func (db *connectionDatabase) marshallBinary() ([]byte, error) {
+	var buffer bytes.Buffer
+	writer := bufio.NewWriter(&buffer)
+
+	db.mutex.Lock()
+	if err := binary.Write(writer, binary.LittleEndian, uint32(len(db.connectionMap))); err != nil {
+		return nil, err
+	}
+	for addrPort, connInfo := range db.connectionMap {
+		addrSlice := addrPort.Addr().AsSlice()
+
+		if err := binary.Write(writer, binary.LittleEndian, uint8(len(addrSlice))); err != nil {
+			return nil, err
+		}
+		if err := binary.Write(writer, binary.LittleEndian, addrSlice); err != nil {
+			return nil, err
+		}
+		if err := binary.Write(writer, binary.LittleEndian, addrPort.Port()); err != nil {
+			return nil, err
+		}
+		if err := binary.Write(writer, binary.LittleEndian, connInfo); err != nil {
+			return nil, err
+		}
 	}
 	db.mutex.Unlock()
 
-	return buff, nil
+	if err := writer.Flush(); err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
 }
 
-func (db *connectionDatabase) unmarshallBinary(data []byte) (err error) {
-	defer func() {
-		// recover any oob slice panics
-		if tmp := recover(); tmp != nil {
-			err = errors.Wrap(tmp.(error), "oob slice panic caught")
-		}
-	}()
-
+func (db *connectionDatabase) unmarshallBinary(data []byte) error {
 	db.make()
+	reader := bufio.NewReader(bytes.NewBuffer(data))
 
-	for pos := 0; pos < len(data); pos += entrySize {
-		var addr netip.AddrPort
-		var id connectionInfo
+	var length uint32
+	if err := binary.Read(reader, binary.LittleEndian, &length); err != nil {
+		return err
+	}
 
-		copy((*(*[addrPortSize]byte)(unsafe.Pointer(&addr)))[:], data[pos:pos+addrPortSize])
-		copy((*(*[connectionIdSize]byte)(unsafe.Pointer(&id)))[:], data[pos+addrPortSize:pos+entrySize])
+	for ; length > 0; length-- {
+		var addrSliceLen uint8
+		var port uint16
+		var connInfo connectionInfo
 
-		db.connectionMap[addr] = id
+		if err := binary.Read(reader, binary.LittleEndian, &addrSliceLen); err != nil {
+			return err
+		}
+		addrSlice := make([]byte, addrSliceLen)
+		if err := binary.Read(reader, binary.LittleEndian, &addrSlice); err != nil {
+			return err
+		}
+		if err := binary.Read(reader, binary.LittleEndian, &port); err != nil {
+			return err
+		}
+		if err := binary.Read(reader, binary.LittleEndian, &connInfo); err != nil {
+			return err
+		}
+
+		addr, ok := netip.AddrFromSlice(addrSlice)
+		if !ok {
+			return errors.New("failed to parse addr from slice")
+		}
+		db.connectionMap[netip.AddrPortFrom(addr, port)] = connInfo
 	}
 
 	return nil
