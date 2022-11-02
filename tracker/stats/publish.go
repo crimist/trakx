@@ -59,7 +59,7 @@ func Publish(peerdb storage.Database, udpconns func() int64) {
 		serverErrors.Set(ServerErrors.Load())
 		clientErrors.Set(ClientErrors.Load())
 
-		// TODO: Rework the pools and set here
+		// TODO: set pools properly
 		dictionaryPool.Set(1)
 		peerPool.Set(1)
 		peerlistPool.Set(1)
