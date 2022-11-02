@@ -70,8 +70,3 @@ func BenchmarkDecodeGob(b *testing.B) {
 		db.decodeGob(buff)
 	}
 }
-
-func BenchmarkEncodeGobMemuse(b *testing.B) {
-	db := dbWithHashesAndPeers(benchHashes, benchPeers)
-	benchmarkMemuse(db.encodeGob, b)
-}

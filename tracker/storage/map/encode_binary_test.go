@@ -70,8 +70,3 @@ func BenchmarkDecodeBinary(b *testing.B) {
 		db.decodeBinary(buff)
 	}
 }
-
-func BenchmarkEncodeBinaryMemuse(b *testing.B) {
-	peerdb := dbWithHashesAndPeers(benchHashes, benchPeers)
-	benchmarkMemuse(peerdb.encodeBinary, b)
-}

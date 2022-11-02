@@ -12,7 +12,6 @@ import (
 )
 
 func (db *Memory) encodeBinary() ([]byte, error) {
-	// TODO: optimization, preallocate buffer
 	var buff bytes.Buffer
 	writer := bufio.NewWriter(&buff)
 
