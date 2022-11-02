@@ -1,7 +1,6 @@
 package gomap
 
 import (
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -51,7 +50,7 @@ func (bck *FileBackup) Load() error {
 }
 
 func (db *Memory) loadFile(filename string) (peers int, hashes int, err error) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		err = errors.Wrap(err, "failed to read file from disk")
 		return
@@ -73,7 +72,7 @@ func (bck *FileBackup) writeFile() (int, error) {
 		return 0, errors.Wrap(err, "failed to encode db")
 	}
 
-	if err := ioutil.WriteFile(config.Config.DB.Backup.Path, encoded, 0644); err != nil {
+	if err := os.WriteFile(config.Config.DB.Backup.Path, encoded, 0644); err != nil {
 		return 0, errors.Wrap(err, "failed to write file to disk")
 	}
 
