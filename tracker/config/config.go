@@ -53,9 +53,8 @@ type Configuration struct {
 		Limit   uint
 	}
 	DB struct {
-		PeerPointers uint64
-		Type         string
-		Backup       struct {
+		Type   string
+		Backup struct {
 			Frequency time.Duration
 			Type      string
 			Path      string

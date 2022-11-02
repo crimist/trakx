@@ -3,7 +3,7 @@ package gomap
 import (
 	"encoding/binary"
 
-	"github.com/crimist/trakx/bencoding"
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/tracker/storage"
 )
 
@@ -52,20 +52,20 @@ func (db *Memory) PeerList(hash storage.Hash, numWant uint, removePeerId bool) (
 
 	var i uint
 	peers = make([][]byte, numWant)
-	dict := bencoding.GetDictionary()
+	dictionary := pools.Dictionaries.Get()
 
 	for id, peer := range peermap.Peers {
 		if !removePeerId {
-			dict.String("peer id", string(id[:]))
+			dictionary.String("peer id", string(id[:]))
 		}
-		dict.String("ip", peer.IP.String())
-		dict.Int64("port", int64(peer.Port))
+		dictionary.String("ip", peer.IP.String())
+		dictionary.Int64("port", int64(peer.Port))
 
-		dictBytes := dict.GetBytes()
+		dictBytes := dictionary.GetBytes()
 		peers[i] = make([]byte, len(dictBytes))
 		copy(peers[i], dictBytes)
 
-		dict.Reset()
+		dictionary.Reset()
 
 		i++
 		if i == numWant {
@@ -74,15 +74,15 @@ func (db *Memory) PeerList(hash storage.Hash, numWant uint, removePeerId bool) (
 	}
 
 	peermap.mutex.RUnlock()
-	bencoding.PutDictionary(dict)
+	pools.Dictionaries.Put(dictionary)
 
 	return
 }
 
 // PeerListBytes returns a byte encoded peer list for the given hash capped at num
-func (db *Memory) PeerListBytes(hash storage.Hash, numWant uint) (peers4 *storage.Peerlist, peers6 *storage.Peerlist) {
-	peers4 = storage.GetPeerList()
-	peers6 = storage.GetPeerList()
+func (db *Memory) PeerListBytes(hash storage.Hash, numWant uint) (peers4 []byte, peers6 []byte) {
+	peers4 = pools.Peerlists4.Get()
+	peers6 = pools.Peerlists6.Get()
 
 	db.mutex.RLock()
 	peermap, ok := db.hashmap[hash]
@@ -104,25 +104,25 @@ func (db *Memory) PeerListBytes(hash storage.Hash, numWant uint) (peers4 *storag
 	var pos4, pos6 int
 	for _, peer := range peermap.Peers {
 		if peer.IP.Is6() {
-			copy(peers6.Data[pos6:pos6+16], peer.IP.AsSlice())
-			binary.BigEndian.PutUint16(peers6.Data[pos6+16:pos6+18], peer.Port)
+			copy(peers6[pos6:pos6+16], peer.IP.AsSlice())
+			binary.BigEndian.PutUint16(peers6[pos6+16:pos6+18], peer.Port)
 			pos6 += 18
-			if pos6+18 > cap(peers6.Data) {
+			if pos6+18 > cap(peers6) {
 				break
 			}
 		} else {
-			copy(peers4.Data[pos4:pos4+4], peer.IP.AsSlice())
-			binary.BigEndian.PutUint16(peers4.Data[pos4+4:pos4+6], peer.Port)
+			copy(peers4[pos4:pos4+4], peer.IP.AsSlice())
+			binary.BigEndian.PutUint16(peers4[pos4+4:pos4+6], peer.Port)
 			pos4 += 6
-			if pos4+6 > cap(peers4.Data) {
+			if pos4+6 > cap(peers4) {
 				break
 			}
 		}
 	}
 	peermap.mutex.RUnlock()
 
-	peers4.Data = peers4.Data[:pos4]
-	peers6.Data = peers6.Data[:pos6]
+	peers4 = peers4[:pos4]
+	peers6 = peers6[:pos6]
 
 	return
 }

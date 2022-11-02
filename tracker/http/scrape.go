@@ -3,7 +3,7 @@ package http
 import (
 	"net"
 
-	"github.com/crimist/trakx/bencoding"
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/storage"
 )
@@ -11,8 +11,8 @@ import (
 func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
 	stats.Scrapes.Add(1)
 
-	d := bencoding.GetDictionary()
-	d.StartDictionary("files")
+	dictionary := pools.Dictionaries.Get()
+	dictionary.StartDictionary("files")
 
 	for _, infohash := range infohashes {
 		if infohash == nil {
@@ -27,20 +27,19 @@ func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
 		copy(hash[:], infohash)
 		complete, incomplete := t.peerdb.HashStats(hash)
 
-		d.StartDictionaryBytes(infohash)
+		dictionary.StartDictionaryBytes(infohash)
 		{
-			d.Int64("complete", int64(complete))
-			d.Int64("incomplete", int64(incomplete))
+			dictionary.Int64("complete", int64(complete))
+			dictionary.Int64("incomplete", int64(incomplete))
 		}
-		d.EndDictionary()
+		dictionary.EndDictionary()
 	}
 
-	d.EndDictionary()
+	dictionary.EndDictionary()
 
 	// conn.Write(httpSuccessBytes)
 	// conn.Write(d.GetBytes())
 
-	conn.Write(append(httpSuccessBytes, d.GetBytes()...))
-
-	bencoding.PutDictionary(d)
+	conn.Write(append(httpSuccessBytes, dictionary.GetBytes()...))
+	pools.Dictionaries.Put(dictionary)
 }

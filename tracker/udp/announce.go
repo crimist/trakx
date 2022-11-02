@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/netip"
 
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/udp/protocol"
@@ -70,14 +71,14 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 	}
 
 	if addrPort.Addr().Is4() {
-		resp.Peers = peers4.Data
+		resp.Peers = peers4
 	} else {
-		resp.Peers = peers6.Data
+		resp.Peers = peers6
 	}
 
 	respBytes, err := resp.Marshall()
-	peers4.Put()
-	peers6.Put()
+	pools.Peerlists4.Put(peers4)
+	pools.Peerlists6.Put(peers6)
 
 	if err != nil {
 		msg := u.newServerError("AnnounceResp.Marshall()", err, announce.TransactionID)

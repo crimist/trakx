@@ -16,7 +16,6 @@ func init() {
 	config.Config.Debug.Pprof = 0
 	config.Config.ExpvarInterval = 0
 	config.Config.Debug.NofileLimit = 0
-	config.Config.DB.PeerPointers = 0
 	config.Config.UDP.ConnDB.Validate = true
 
 	config.Config.Announce.Base = 0

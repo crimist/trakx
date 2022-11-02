@@ -4,6 +4,7 @@ import (
 	"net/netip"
 	"time"
 
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/storage"
 )
@@ -29,7 +30,7 @@ func (memoryDb *Memory) Save(ip netip.Addr, port uint16, complete bool, hash sto
 	peermap.mutex.Lock()
 	// if peer does not exist then create
 	if !peerExists {
-		peer = storage.PeerChan.Get()
+		peer = pools.Peers.Get()
 		peermap.Peers[id] = peer
 	}
 
@@ -112,7 +113,7 @@ func (db *Memory) delete(peer *storage.Peer, peermap *PeerMap, id storage.PeerID
 		stats.IPStats.Unlock()
 	}
 
-	storage.PeerChan.Put(peer)
+	pools.Peers.Put(peer)
 }
 
 // Drop deletes peer
@@ -154,5 +155,5 @@ func (db *Memory) Drop(hash storage.Hash, id storage.PeerID) {
 	}
 
 	// free the peer back to the pool
-	storage.PeerChan.Put(peer)
+	pools.Peers.Put(peer)
 }

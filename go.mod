@@ -1,8 +1,8 @@
-// +heroku goVersion go1.18
+// +heroku goVersion go1.19
 
 module github.com/crimist/trakx
 
-go 1.18
+go 1.19
 
 require (
 	github.com/cbeuw/connutil v0.0.0-20200411215123-966bfaa51ee3

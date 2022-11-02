@@ -80,10 +80,6 @@ numwant:
 
 # database vars
 db:
-  # number of inital peer pointers
-  # set to reduce memory usage by preallocating
-  peerpointers: 5000
-
   # database types:
   #   gomap - In memory database using golang maps
   type: "gomap"

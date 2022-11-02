@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/netip"
 
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/tracker/storage"
 )
 
@@ -93,7 +94,7 @@ func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
 				return
 			}
 
-			peer := storage.PeerChan.Get()
+			peer := pools.Peers.Get()
 			var addrSliceLen int32
 			if err = binary.Read(reader, binary.LittleEndian, &peer.Complete); err != nil {
 				return

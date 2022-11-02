@@ -111,19 +111,19 @@ func (d *Dictionary) Any(key string, v interface{}) error {
 		}
 		d.write(list(slice...))
 	case map[string]interface{}:
-		dict := GetDictionary()
+		dict := NewDictionary()
 		for k, v := range v {
 			dict.Any(k, v)
 		}
 		d.writeBytes(dict.GetBytes())
 	case map[string]map[string]int32:
-		dict := GetDictionary()
+		dict := NewDictionary()
 		for k, v := range v {
 			dict.Any(k, v)
 		}
 		d.writeBytes(dict.GetBytes())
 	case map[string]int32:
-		dict := GetDictionary()
+		dict := NewDictionary()
 		for k, v := range v {
 			dict.Any(k, v)
 		}

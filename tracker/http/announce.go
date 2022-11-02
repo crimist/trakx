@@ -6,7 +6,7 @@ import (
 	"net/netip"
 	"strconv"
 
-	"github.com/crimist/trakx/bencoding"
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/storage"
@@ -90,25 +90,25 @@ func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip netip.Add
 		interval += rand.Int63n(int64(config.Config.Announce.Fuzz.Seconds()))
 	}
 
-	d := bencoding.GetDictionary()
-	d.Int64("interval", interval)
-	d.Int64("complete", int64(complete))
-	d.Int64("incomplete", int64(incomplete))
+	dictionary := pools.Dictionaries.Get()
+	dictionary.Int64("interval", interval)
+	dictionary.Int64("complete", int64(complete))
+	dictionary.Int64("incomplete", int64(incomplete))
 	if vals.compact {
 		peers4, peers6 := t.peerdb.PeerListBytes(hash, numwant)
-		d.StringBytes("peers", peers4.Data)
-		d.StringBytes("peers6", peers6.Data)
+		dictionary.StringBytes("peers", peers4)
+		dictionary.StringBytes("peers6", peers6)
 
-		peers4.Put()
-		peers6.Put()
+		pools.Peerlists4.Put(peers4)
+		pools.Peerlists6.Put(peers6)
 	} else {
-		d.BytesliceSlice("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
+		dictionary.BytesliceSlice("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
 	}
 
 	// double write no append is more efficient when > ~250 peers in response
 	// conn.Write(httpSuccessBytes)
 	// conn.Write(d.GetBytes())
 
-	conn.Write(append(httpSuccessBytes, d.GetBytes()...))
-	bencoding.PutDictionary(d)
+	conn.Write(append(httpSuccessBytes, dictionary.GetBytes()...))
+	pools.Dictionaries.Put(dictionary)
 }

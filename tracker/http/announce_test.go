@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cbeuw/connutil"
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
 
@@ -27,6 +28,10 @@ func TestHTTPAnnounce(t *testing.T) {
 	config.Config.DB.Backup.Type = "none"
 	config.Config.Announce.Base = 10 * time.Second
 	config.Config.Announce.Fuzz = 0
+	config.Config.Numwant.Limit = 10
+
+	// setup pools
+	pools.Initialize(10)
 
 	// setup db
 	db, err := storage.Open()

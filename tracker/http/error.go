@@ -3,19 +3,19 @@ package http
 import (
 	"net"
 
-	"github.com/crimist/trakx/bencoding"
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/stats"
 	"go.uber.org/zap"
 )
 
 func writeErr(conn net.Conn, msg string) {
-	d := bencoding.GetDictionary()
+	dictionary := pools.Dictionaries.Get()
 
-	d.String("failure reason", msg)
-	conn.Write(append(httpSuccessBytes, d.GetBytes()...))
+	dictionary.String("failure reason", msg)
+	conn.Write(append(httpSuccessBytes, dictionary.GetBytes()...))
 
-	bencoding.PutDictionary(d)
+	pools.Dictionaries.Put(dictionary)
 }
 
 func (t *HTTPTracker) clientError(conn net.Conn, msg string) {

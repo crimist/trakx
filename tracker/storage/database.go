@@ -32,9 +32,6 @@ func Open() (Database, error) {
 		return nil, errors.Wrap(err, "failed to sync expvars on storage driver")
 	}
 
-	// set peerlistMax based on max numwant limit
-	peerlistMax = 6 * int(config.Config.Numwant.Limit)
-
 	return driver.db, nil
 }
 
@@ -53,7 +50,7 @@ type Database interface {
 
 	HashStats(Hash) (uint16, uint16)
 	PeerList(Hash, uint, bool) [][]byte
-	PeerListBytes(Hash, uint) (*Peerlist, *Peerlist)
+	PeerListBytes(Hash, uint) ([]byte, []byte)
 
 	// Number of hashes for stats
 	Hashes() int

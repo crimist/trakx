@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/crimist/trakx/bencoding"
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/http"
 	"github.com/crimist/trakx/tracker/stats"
@@ -50,8 +51,7 @@ func Run() {
 		config.Logger.Info("Initialized storage")
 	}
 
-	// init the peerchan with minimum
-	storage.PeerChan.Add(config.Config.DB.PeerPointers)
+	pools.Initialize(int(config.Config.Numwant.Limit))
 
 	// run signal handler
 	go signalHandler(peerdb, &udptracker, &httptracker)
