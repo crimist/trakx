@@ -2,12 +2,14 @@ package tracker
 
 import (
 	"fmt"
+	"syscall"
+	"testing"
 	"time"
 
 	"github.com/crimist/trakx/tracker/config"
 )
 
-func init() {
+func TestMain(m *testing.M) {
 	oneHour := 1 * time.Hour
 
 	// mock config
@@ -40,8 +42,14 @@ func init() {
 	config.Config.UDP.ConnDB.Expiry = oneHour
 
 	// run tracker
-	fmt.Print("Starting mock tracker... ")
+	fmt.Println("Starting mock tracker...")
 	go Run()
-	time.Sleep(1000 * time.Millisecond) // wait for run to complete
+	time.Sleep(100 * time.Millisecond) // wait for run to complete
 	fmt.Println("started!")
+
+	m.Run()
+
+	fmt.Println("Shutting down mock tracker...")
+	syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
+	time.Sleep(100 * time.Millisecond)
 }

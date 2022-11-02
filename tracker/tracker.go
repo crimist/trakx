@@ -56,7 +56,7 @@ func Run() {
 	// run signal handler
 	go signalHandler(peerdb, &udptracker, &httptracker)
 
-	// init pprof if enabled
+	// run pprof server
 	if config.Config.Debug.Pprof != 0 {
 		go servePprof()
 	}

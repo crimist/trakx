@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/utils"
@@ -37,7 +38,8 @@ func Publish(peerdb storage.Database, udpconns func() int64) {
 	// pools
 	dictionaryPool := expvar.NewInt("trakx.pools.dictionaries")
 	peerPool := expvar.NewInt("trakx.pools.peers")
-	peerlistPool := expvar.NewInt("trakx.pools.peerlists")
+	peerlist4Pool := expvar.NewInt("trakx.pools.peerlists4")
+	peerlist6Pool := expvar.NewInt("trakx.pools.peerlists6")
 
 	// internal
 	goroutines := expvar.NewInt("trakx.internal.goroutines")
@@ -59,10 +61,10 @@ func Publish(peerdb storage.Database, udpconns func() int64) {
 		serverErrors.Set(ServerErrors.Load())
 		clientErrors.Set(ClientErrors.Load())
 
-		// TODO: set pools properly
-		dictionaryPool.Set(1)
-		peerPool.Set(1)
-		peerlistPool.Set(1)
+		dictionaryPool.Set(int64(pools.Dictionaries.Created()))
+		peerPool.Set(int64(pools.Peers.Created()))
+		peerlist4Pool.Set(int64(pools.Peerlists4.Created()))
+		peerlist6Pool.Set(int64(pools.Peerlists6.Created()))
 
 		goroutines.Set(int64(runtime.NumGoroutine()))
 		uptime.Set(int64(time.Since(initTime) / time.Second))
