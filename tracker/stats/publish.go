@@ -27,6 +27,7 @@ func Publish(peerdb storage.Database, udpconns func() int64) {
 	// database
 	seeds := expvar.NewInt("trakx.database.seeds")
 	leeches := expvar.NewInt("trakx.database.leeches")
+	peers := expvar.NewInt("trakx.database.peers")
 	ips := expvar.NewInt("trakx.database.ips")
 	hashes := expvar.NewInt("trakx.database.hashes")
 	udpConnections := expvar.NewInt("trakx.database.udpconnections")
@@ -54,6 +55,7 @@ func Publish(peerdb storage.Database, udpconns func() int64) {
 
 		seeds.Set(Seeds.Load())
 		leeches.Set(Leeches.Load())
+		peers.Set(Seeds.Load() + Leeches.Load())
 		ips.Set(int64(IPStats.Total()))
 		hashes.Set(int64(peerdb.Hashes()))
 		udpConnections.Set(udpconns())
