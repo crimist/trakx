@@ -110,6 +110,7 @@ func Run() {
 		}
 		server.SetKeepAlivesEnabled(false)
 
+		config.Logger.Info("Running HTTP info server", zap.Int("port", config.Config.HTTP.Port))
 		go func() {
 			if err := server.ListenAndServe(); err != nil {
 				config.Logger.Error("Failed to start HTTP server", zap.Error(err))
