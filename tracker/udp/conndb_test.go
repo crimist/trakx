@@ -98,10 +98,10 @@ func TestConnectionDatabaseWriteLoad(t *testing.T) {
 	connDbWrite.add(id4, addrPort4)
 	connDbWrite.add(id6, addrPort6)
 	if err := connDbWrite.writeToFile(filePath); err != nil {
-		t.Errorf("write() failed; %v", err)
+		t.Errorf("write() failed: %v", err)
 	}
 	if err := connDbLoad.loadFromFile(filePath); err != nil {
-		t.Errorf("load() failed; %v", err)
+		t.Errorf("load() failed: %v", err)
 	}
 
 	if !connDbLoad.check(id4, addrPort4) {
@@ -112,7 +112,7 @@ func TestConnectionDatabaseWriteLoad(t *testing.T) {
 	}
 
 	if err := os.Remove(filePath); err != nil {
-		t.Logf("failed to remove conn.db; %v", err)
+		t.Logf("failed to remove conndb file: %v", err)
 	}
 }
 

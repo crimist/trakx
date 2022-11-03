@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	udptimeout          = 500 * time.Millisecond
+	testTimeout         = 500 * time.Millisecond
 	announceUDPaddress  = "127.0.0.1:1337"
 	announceUDPaddress6 = "[::1]:1337"
 )
@@ -30,8 +30,8 @@ func TestUDPAnnounce(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	conn.SetWriteDeadline(time.Now().Add(udptimeout))
-	conn.SetReadDeadline(time.Now().Add(udptimeout))
+	conn.SetWriteDeadline(time.Now().Add(testTimeout))
+	conn.SetReadDeadline(time.Now().Add(testTimeout))
 
 	c := protocol.Connect{
 		ProtcolID:     protocol.UDPTrackerMagic,
@@ -46,8 +46,7 @@ func TestUDPAnnounce(t *testing.T) {
 	if _, err = conn.Write(data); err != nil {
 		t.Fatal(err)
 	}
-	_, err = conn.Read(packet)
-	if err != nil {
+	if _, err = conn.Read(packet); err != nil {
 		t.Fatal(err)
 	}
 
@@ -56,15 +55,17 @@ func TestUDPAnnounce(t *testing.T) {
 
 	if cr.Action == protocol.ActionError {
 		e := protocol.Error{}
-		e.Unmarshall(packet)
-		t.Error("Tracker err:", string(e.ErrorString))
+		if err := e.Unmarshall(packet); err != nil {
+			t.Fatal("failed to unmarshall tracker error:", err)
+		}
+		t.Error("server error:", string(e.ErrorString))
 	}
 
 	if cr.TransactionID != c.TransactionID {
-		t.Error("Invalid transactionID should be", c.TransactionID, "but got", cr.TransactionID)
+		t.Errorf("transactionID = %v, want %v", cr.TransactionID, c.TransactionID)
 	}
 	if cr.Action != protocol.ActionConnect {
-		t.Error("Invalid action should be 0 but got", cr.Action)
+		t.Errorf("action = %v, want 0", cr.Action)
 	}
 
 	a := protocol.Announce{
@@ -88,11 +89,10 @@ func TestUDPAnnounce(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err = conn.Write(data); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	_, err = conn.Read(packet)
-	if err != nil {
-		t.Error(err)
+	if _, err = conn.Read(packet); err != nil {
+		t.Fatal(err)
 	}
 
 	ar := protocol.AnnounceResp{}
@@ -100,29 +100,27 @@ func TestUDPAnnounce(t *testing.T) {
 
 	if ar.Action == protocol.ActionError {
 		e := protocol.Error{}
-		e.Unmarshall(packet)
-		t.Error("Tracker err:", string(e.ErrorString))
-		return
+		if err := e.Unmarshall(packet); err != nil {
+			t.Fatal("failed to unmarshall tracker error:", err)
+		}
+		t.Fatal("server error:", string(e.ErrorString))
 	}
 
 	if ar.TransactionID != a.TransactionID {
-		t.Error("Invalid transactionID should be", a.TransactionID, "but got", ar.TransactionID)
+		t.Errorf("transactionID = %v, want %v", ar.TransactionID, a.TransactionID)
 	}
 	if ar.Action != protocol.ActionAnnounce {
-		t.Error("Invalid action should be 1 but got", ar.Action)
+		t.Errorf("action = %v, want 1", ar.Action)
 	}
 	if ar.Leechers != 1 {
-		t.Error("Invalid leechers should be 1 but got", ar.Leechers)
+		t.Errorf("leechers = %v, want 1", ar.Leechers)
 	}
 	if ar.Seeders != 0 {
-		t.Error("Invalid seeders should be 1 but got", ar.Seeders)
+		t.Errorf("seeders = %v, want 1", ar.Seeders)
 	}
-
 	if len(ar.Peers) < 1 {
-		t.Error("No peers")
-		return
+		t.Fatal("no peers in response")
 	}
-
 	if !bytes.Equal(ar.Peers[4:6], []byte{0xAA, 0xBB}) {
 		t.Errorf("peer port = %#v; want {0xAA, 0xBB}", ar.Peers[4:6])
 	}
@@ -130,6 +128,7 @@ func TestUDPAnnounce(t *testing.T) {
 		t.Errorf("peer ip = %v; want {127, 0, 0, 1}", ar.Peers[0:4])
 	}
 }
+
 func TestUDPAnnounce6(t *testing.T) {
 	config.Config.SetLogLevel(config.DebugLevel)
 
@@ -144,8 +143,8 @@ func TestUDPAnnounce6(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	conn.SetWriteDeadline(time.Now().Add(udptimeout))
-	conn.SetReadDeadline(time.Now().Add(udptimeout))
+	conn.SetWriteDeadline(time.Now().Add(testTimeout))
+	conn.SetReadDeadline(time.Now().Add(testTimeout))
 
 	c := protocol.Connect{
 		ProtcolID:     protocol.UDPTrackerMagic,
@@ -257,8 +256,8 @@ func TestUDPBadAction(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	conn.SetWriteDeadline(time.Now().Add(udptimeout))
-	conn.SetReadDeadline(time.Now().Add(udptimeout))
+	conn.SetWriteDeadline(time.Now().Add(testTimeout))
+	conn.SetReadDeadline(time.Now().Add(testTimeout))
 
 	c := protocol.Connect{
 		ProtcolID:     protocol.UDPTrackerMagic,
@@ -319,8 +318,8 @@ func TestUDPBadConnID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	conn.SetWriteDeadline(time.Now().Add(udptimeout))
-	conn.SetReadDeadline(time.Now().Add(udptimeout))
+	conn.SetWriteDeadline(time.Now().Add(testTimeout))
+	conn.SetReadDeadline(time.Now().Add(testTimeout))
 
 	a := protocol.Announce{
 		ConnectionID:  0xBAD, // bad connid
@@ -360,8 +359,8 @@ func TestUDPBadPort(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	conn.SetWriteDeadline(time.Now().Add(udptimeout))
-	conn.SetReadDeadline(time.Now().Add(udptimeout))
+	conn.SetWriteDeadline(time.Now().Add(testTimeout))
+	conn.SetReadDeadline(time.Now().Add(testTimeout))
 
 	c := protocol.Connect{
 		ProtcolID:     protocol.UDPTrackerMagic,
@@ -432,8 +431,8 @@ func TestUDPTransactionID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	conn.SetWriteDeadline(time.Now().Add(udptimeout))
-	conn.SetReadDeadline(time.Now().Add(udptimeout))
+	conn.SetWriteDeadline(time.Now().Add(testTimeout))
+	conn.SetReadDeadline(time.Now().Add(testTimeout))
 
 	c := protocol.Connect{
 		ProtcolID:     protocol.UDPTrackerMagic,
@@ -446,7 +445,6 @@ func TestUDPTransactionID(t *testing.T) {
 	}
 
 	for i := 0; i < 1000; i++ {
-
 		if _, err = conn.Write(data); err != nil {
 			t.Fatal(err)
 		}
