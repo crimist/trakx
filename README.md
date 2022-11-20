@@ -1,6 +1,6 @@
 # Trakx
 
-Performance focused BitTorrent tracker supporting HTTP and UDP + IPv4 and IPv6.
+Performance focused BitTorrent tracker supporting HTTP, UDP, IPv4 and IPv6.
 
 - [Trakx](#trakx)
   - [❤️‍🔥 Instances](#️-instances)
