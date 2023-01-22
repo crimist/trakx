@@ -164,7 +164,7 @@ func (u *UDPTracker) process(data []byte, remote *net.UDPAddr) {
 
 	connid := int64(binary.BigEndian.Uint64(data[0:8]))
 	if ok := u.conndb.check(connid, addrPort); !ok && config.Config.UDP.ConnDB.Validate {
-		msg := u.newClientError("bad connid", txid, cerrFields{"clientID": connid, "addrPort": addrPort})
+		msg := u.newClientError("bad connection id", txid, cerrFields{"clientID": connid, "addrPort": addrPort})
 		u.sock.WriteToUDP(msg, remote)
 		return
 	}
