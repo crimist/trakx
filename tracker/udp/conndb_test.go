@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/crimist/trakx/tracker/config"
-	"github.com/davecgh/go-spew/spew"
 )
 
 const (
@@ -140,8 +139,6 @@ func TestMarshallUnmarshallConnectionDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshallBinary threw err: %v", err)
 	}
-
-	spew.Dump(data)
 
 	connDB = newConnectionDatabase(10 * time.Minute)
 
