@@ -7,10 +7,12 @@ Performance focused BitTorrent tracker supporting HTTP, UDP, IPv4 and IPv6.
   - [🚀 Install](#-install)
   - [🔧 Configuration](#-configuration)
     - [Configuration file](#configuration-file)
-    - [Default configuration & webserver files](#default-configuration--webserver-files)
+    - [Default configuration \& webserver files](#default-configuration--webserver-files)
     - [Binding to privileged ports](#binding-to-privileged-ports)
     - [Netdata setup](#netdata-setup)
-    - [Build Tags](#build-tags)
+    - [Build Customization](#build-customization)
+      - [**Performance**](#performance)
+      - [**App engines**](#app-engines)
   - [📈 Performance](#-performance)
 
 ## ❤️‍🔥 Instances
@@ -91,13 +93,19 @@ $ TRAKX_TRACKER_HTTP_PORT=80 ./trakx run
 * Customize the url in `netdata/expvar.conf` if needed.
 * Install netdata plugins with `cd netdata; ./install.sh`.
 
-### Build Tags
+### Build Customization
 
-You can build with different tags with `go build/install -tags <tag> .`
+Trakx takes advantage of Go's build tags to target different use cases.
 
-**Tags**
-* `fast` will build without IP, seed, and leech metrics which will reduce cpu and memory usage
-* `heroku` will build trakx for app engines. This means the controller will not be built and trakx will run immediately when the binary is executed. 
+#### **Performance**
+
+The `fast` tag will build Trakx without IP, seed, and leech metrics which will reduce cpu and memory usage.
+
+#### **App engines**
+
+The `heroku` tag will build trakx for app engines. This means the executable will immediately run the tracker rather than provide the daemon controller behavior included in the regular CLI build.
+
+Feel free to customize the tags to suit whichever app engine you prefer in [engine_entry.go](./engine_entry.go).
 
 ## 📈 Performance
 
