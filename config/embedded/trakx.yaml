@@ -14,10 +14,6 @@ debug:
   # port to serve pprof over, 0 to disable
   pprof: 0
 
-  # set nofile limit, 0 for default
-  # basically changes the max number of open sockets, equivalent to `ulimit -n`
-  nofilelimit: 0
-
 # announce interval = base + [0, fuzz]
 announce:
   base: 30m

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/crimist/trakx/tracker/config"
+	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/tracker/storage"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"

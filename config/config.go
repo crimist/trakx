@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -19,8 +18,7 @@ type Configuration struct {
 	LogLevel       LogLevel
 	ExpvarInterval time.Duration
 	Debug          struct {
-		Pprof       int
-		NofileLimit uint64
+		Pprof int
 	}
 	Announce struct {
 		Base time.Duration
@@ -118,30 +116,6 @@ func (config *Configuration) Parse() error {
 	// setup logger
 	Logger = zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(cfg.EncoderConfig), zapcore.Lock(os.Stdout), loggerAtom))
 	config.SetLogLevel(config.LogLevel)
-
-	// set limits
-	if config.Debug.NofileLimit != nofileIgnore {
-		var rLimit syscall.Rlimit
-		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
-			return errors.Wrap(err, "failed to get the NOFILE limit")
-		}
-		Logger.Debug("Got nofile limits", zap.Any("limit", rLimit))
-
-		// Limit is bugged on WSL and Darwin systems, to avoid bug keep limit below 10_000
-		if ulimitBugged() && config.Debug.NofileLimit > 10000 {
-			Logger.Warn("Detected bugged nofile limit, you are on Darwin or WSL based systen. Capping nofile limit to 10_000.")
-			rLimit.Max = 10000
-			rLimit.Cur = 10000
-		} else {
-			rLimit.Max = config.Debug.NofileLimit
-			rLimit.Cur = config.Debug.NofileLimit
-		}
-
-		Logger.Debug("Setting nofile limit", zap.Any("limit", rLimit))
-		if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
-			return errors.Wrap(err, "failed to set the NOFILE limit")
-		}
-	}
 
 	// resolve env vars for database backup path
 	if strings.HasPrefix(config.DB.Backup.Path, "ENV:") {
