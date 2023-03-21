@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/crimist/trakx/tracker/config"
+	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"

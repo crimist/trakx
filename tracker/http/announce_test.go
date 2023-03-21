@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/cbeuw/connutil"
+	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/pools"
-	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
 
 	_ "github.com/crimist/trakx/tracker/storage/map"

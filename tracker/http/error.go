@@ -3,8 +3,8 @@ package http
 import (
 	"net"
 
+	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/pools"
-	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/stats"
 	"go.uber.org/zap"
 )
