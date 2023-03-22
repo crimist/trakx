@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/tracker/udp/protocol"
 )
 
@@ -17,8 +16,6 @@ const (
 )
 
 func TestUDPAnnounce(t *testing.T) {
-	config.Config.SetLogLevel(config.DebugLevel)
-
 	packet := make([]byte, 0xFFFF)
 	addr, err := net.ResolveUDPAddr("udp4", announceUDPaddress)
 	if err != nil {
@@ -130,8 +127,6 @@ func TestUDPAnnounce(t *testing.T) {
 }
 
 func TestUDPAnnounce6(t *testing.T) {
-	config.Config.SetLogLevel(config.DebugLevel)
-
 	packet := make([]byte, 0xFFFF)
 	addr, err := net.ResolveUDPAddr("udp6", announceUDPaddress6)
 	if err != nil {

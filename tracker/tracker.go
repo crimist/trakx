@@ -33,7 +33,7 @@ func checkMisconfiguration(conf *config.Configuration) {
 
 // Run initializes and runs the tracker with the requested configuration settings.
 func Run(conf *config.Configuration) {
-	var udptracker udp.UDPTracker
+	var udptracker *udp.UDPTracker
 	var httptracker http.HTTPTracker
 	var err error
 
@@ -53,12 +53,11 @@ func Run(conf *config.Configuration) {
 
 	pools.Initialize(int(conf.Numwant.Limit))
 
-	// run signal handler
-	go signalHandler(peerdb, &udptracker, &httptracker)
+	go signalHandler(peerdb, udptracker, &httptracker)
 
 	// run pprof server
 	if conf.Debug.Pprof != 0 {
-		go servePprof()
+		go servePprof(conf.Debug.Pprof)
 	}
 
 	if conf.HTTP.Mode == config.TrackerModeEnabled {
@@ -121,7 +120,7 @@ func Run(conf *config.Configuration) {
 	// UDP tracker
 	if conf.UDP.Enabled {
 		zap.L().Info("UDP tracker enabled", zap.Int("port", conf.UDP.Port), zap.String("ip", conf.UDP.IP))
-		udptracker.Init(peerdb)
+		udptracker = udp.NewUDPTracker(peerdb)
 
 		go func() {
 			if err := udptracker.Serve(); err != nil {

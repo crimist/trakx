@@ -9,12 +9,12 @@ import (
 	"net"
 	"net/netip"
 	"sync"
+	"time"
 
 	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp/protocol"
-	"github.com/crimist/trakx/tracker/utils"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -27,22 +27,18 @@ const (
 type UDPTracker struct {
 	sock     *net.UDPConn
 	conndb   *connectionDatabase
-	peerdb   storage.Database
+	database storage.Database
 	shutdown chan struct{}
 }
 
-// Init sets up the UDPTracker.
-func (u *UDPTracker) Init(peerdb storage.Database) {
-	u.conndb = newConnectionDatabase(config.Config.UDP.ConnDB.Expiry)
-	u.peerdb = peerdb
-	u.shutdown = make(chan struct{})
-
-	if err := u.conndb.loadFromFile(config.CachePath + "conn.db"); err != nil {
-		zap.L().Warn("Failed to load connection database, creating empty db", zap.Error(err))
-		u.conndb.make()
+func NewUDPTracker(database storage.Database, peerExpiry time.Duration, connDatabasePath string, connDatabaseSize int, connDatabaseTrimFrequency time.Duration) *UDPTracker {
+	tracker := UDPTracker{
+		database: database,
+		shutdown: make(chan struct{}),
+		conndb:   newConnectionDatabase(peerExpiry, connDatabasePath, connDatabaseSize, connDatabaseTrimFrequency),
 	}
 
-	go utils.RunOn(config.Config.UDP.ConnDB.Trim, u.conndb.trim)
+	return &tracker
 }
 
 // Serve begins listening and serving clients.
@@ -100,11 +96,8 @@ func (u *UDPTracker) Serve() error {
 
 // Shutdown stops the UDP tracker server by closing the socket.
 func (u *UDPTracker) Shutdown() {
-	if u == nil || u.shutdown == nil {
-		return
-	}
-	var die struct{}
-	u.shutdown <- die
+	var signal struct{}
+	u.shutdown <- signal
 }
 
 // Connections returns the number of BitTorrent UDP protocol connections in the connection database.

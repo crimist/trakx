@@ -27,7 +27,7 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 	}
 
 	if announce.Event == protocol.EventStopped {
-		u.peerdb.Drop(announce.InfoHash, announce.PeerID)
+		u.database.Drop(announce.InfoHash, announce.PeerID)
 
 		resp := protocol.AnnounceResp{
 			Action:        protocol.ActionAnnounce,
@@ -53,10 +53,10 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 		peerComplete = true
 	}
 
-	u.peerdb.Save(addrPort.Addr(), announce.Port, peerComplete, announce.InfoHash, announce.PeerID)
+	u.database.Save(addrPort.Addr(), announce.Port, peerComplete, announce.InfoHash, announce.PeerID)
 
-	complete, incomplete := u.peerdb.HashStats(announce.InfoHash)
-	peers4, peers6 := u.peerdb.PeerListBytes(announce.InfoHash, uint(announce.NumWant))
+	complete, incomplete := u.database.HashStats(announce.InfoHash)
+	peers4, peers6 := u.database.PeerListBytes(announce.InfoHash, uint(announce.NumWant))
 	interval := int32(config.Config.Announce.Base.Seconds())
 	if int32(config.Config.Announce.Fuzz.Seconds()) > 0 {
 		interval += rand.Int31n(int32(config.Config.Announce.Fuzz.Seconds()))

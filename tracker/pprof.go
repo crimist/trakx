@@ -5,13 +5,12 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/crimist/trakx/config"
 	"go.uber.org/zap"
 )
 
-func servePprof() {
-	zap.L().Info("Serving pprof", zap.Int("port", config.Config.Debug.Pprof))
+func servePprof(port int) {
+	zap.L().Info("Serving pprof", zap.Int("port", port))
 
 	// serve on localhost
-	http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", config.Config.Debug.Pprof), nil)
+	http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", port), nil)
 }

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"path/filepath"
 	"time"
 
 	"go.uber.org/zap"
@@ -53,6 +54,16 @@ type Configuration struct {
 		Trim   time.Duration
 		Expiry time.Duration
 	}
+}
+
+// LogPath returns the log path as defined by the configuration and current time
+func (conf *Configuration) LogPath() string {
+	return filepath.Join(conf.CachePath, "trakx_"+time.Now().Format("06-01-02-15-04-05")+".log")
+}
+
+// PIDPath retuirns the pid file path
+func (conf *Configuration) PIDPath() string {
+	return filepath.Join(conf.CachePath, "trakx.pid")
 }
 
 // setLogLevel sets the desired loglevel in the in memory configuration and logger

@@ -15,5 +15,10 @@ import (
 )
 
 func main() {
-	tracker.Run()
+	conf, err := config.Load()
+	if err != nil {
+		zap.L().Fatal("failed to load configuration", zap.Error(err))
+	}
+
+	tracker.Run(conf)
 }

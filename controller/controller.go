@@ -22,21 +22,19 @@ const (
 
 type Controller struct {
 	processIDFile *ProcessIDFile
-	logPath       string
+	config        *config.Configuration
 }
 
-func NewController() *Controller {
-	c := &Controller{
-		processIDFile: NewProcessIDFile(config.Config.Path.Pid),
-		logPath:       config.Config.Path.Log,
+func NewController(conf *config.Configuration) *Controller {
+	return &Controller{
+		processIDFile: NewProcessIDFile(conf.PIDPath()),
+		config:        conf,
 	}
-
-	return c
 }
 
 // Execute executes trakx in the current process
 func (controller *Controller) Execute() {
-	tracker.Run()
+	tracker.Run(controller.config)
 }
 
 // Start starts trakx as a service
@@ -46,7 +44,7 @@ func (controller *Controller) Start() error {
 		return errors.New("trakx is already running")
 	}
 
-	logFile, err := os.OpenFile(controller.logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, logFilePermissions)
+	logFile, err := os.OpenFile(controller.config.LogPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, logFilePermissions)
 	if err != nil {
 		return errors.Wrap(err, "failed to open log file")
 	}
@@ -120,8 +118,8 @@ func (controller *Controller) Status() (pidFileExists bool, processAlive bool, h
 	}
 
 	// heartbeat checks
-	if config.Config.UDP.Enabled {
-		conn, err := net.Dial("udp", fmt.Sprintf("localhost:%d", config.Config.UDP.Port))
+	if controller.config.UDP.Enabled {
+		conn, err := net.Dial("udp", fmt.Sprintf("localhost:%d", controller.config.UDP.Port))
 		if err == nil {
 			conn.Write(udpprotocol.HeartbeatRequest)
 			data := make([]byte, 1)
@@ -134,8 +132,9 @@ func (controller *Controller) Status() (pidFileExists bool, processAlive bool, h
 			}
 		}
 	}
-	if config.Config.HTTP.Mode == config.TrackerModeEnabled {
-		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/heartbeat", config.Config.HTTP.Port))
+
+	if controller.config.HTTP.Mode == config.TrackerModeEnabled {
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/heartbeat", controller.config.HTTP.Port))
 		if err == nil && resp.StatusCode == 200 {
 			heartbeat = true
 		}

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/crimist/trakx/config"
+	"github.com/crimist/trakx/tracker/utils"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -26,14 +26,19 @@ type connectionDatabase struct {
 	expiry        int64
 }
 
-func newConnectionDatabase(expiry time.Duration) *connectionDatabase {
-	connDb := connectionDatabase{
+func newConnectionDatabase(expiry time.Duration, filePath string, size int, trimFrequency time.Duration) *connectionDatabase {
+	conndb := connectionDatabase{
 		expiry: int64(expiry.Seconds()),
 	}
 
-	connDb.make()
+	if err := conndb.loadFromFile(filePath); err != nil {
+		zap.L().Warn("Failed to load connection database, creating empty db", zap.Error(err))
+		conndb.make(size)
+	}
 
-	return &connDb
+	go utils.RunOn(trimFrequency, conndb.trim)
+
+	return &conndb
 }
 
 func (db *connectionDatabase) size() (count int) {
@@ -212,6 +217,6 @@ func (db *connectionDatabase) unmarshallBinary(data []byte) error {
 	return nil
 }
 
-func (db *connectionDatabase) make() {
-	db.connectionMap = make(map[netip.AddrPort]connectionInfo, config.Config.UDP.ConnDB.Size)
+func (db *connectionDatabase) make(size int) {
+	db.connectionMap = make(map[netip.AddrPort]connectionInfo, size)
 }

@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/controller"
+	"go.uber.org/zap"
 )
 
 func printHelp() {
@@ -41,7 +43,12 @@ func main() {
 		return
 	}
 
-	controller := controller.NewController()
+	conf, err := config.Load()
+	if err != nil {
+		zap.L().Fatal("failed to load configuration", zap.Error(err))
+	}
+
+	controller := controller.NewController(conf)
 
 	switch os.Args[1] {
 	case "status":
