@@ -65,7 +65,7 @@ func (db *connectionDatabase) check(id int64, addr netip.AddrPort) bool {
 
 // spec says to only cache connIDs for 2min but realistically ips changing for ddos is unlikely so higher can be used
 func (db *connectionDatabase) trim() {
-	config.Logger.Info("Trimming connection database")
+	zap.L().Info("Trimming connection database")
 
 	start := time.Now()
 	epoch := start.Unix()
@@ -80,11 +80,11 @@ func (db *connectionDatabase) trim() {
 	}
 	db.mutex.Unlock()
 
-	config.Logger.Info("Trimmed connection database", zap.Int("removed", trimmed), zap.Int("left", db.size()), zap.Duration("duration", time.Since(start)))
+	zap.L().Info("Trimmed connection database", zap.Int("removed", trimmed), zap.Int("left", db.size()), zap.Duration("duration", time.Since(start)))
 }
 
 func (connDb *connectionDatabase) writeToFile(path string) error {
-	config.Logger.Info("Writing connection database")
+	zap.L().Info("Writing connection database")
 	start := time.Now()
 
 	encoded, err := connDb.gobEncode()
@@ -96,13 +96,13 @@ func (connDb *connectionDatabase) writeToFile(path string) error {
 		return errors.Wrap(err, "failed to write file")
 	}
 
-	config.Logger.Info("Wrote connection database", zap.Int("connections", connDb.size()), zap.Duration("duration", time.Since(start)))
+	zap.L().Info("Wrote connection database", zap.Int("connections", connDb.size()), zap.Duration("duration", time.Since(start)))
 	return nil
 
 }
 
 func (db *connectionDatabase) loadFromFile(path string) error {
-	config.Logger.Info("Loading connection database")
+	zap.L().Info("Loading connection database")
 	start := time.Now()
 
 	data, err := os.ReadFile(path)
@@ -115,7 +115,7 @@ func (db *connectionDatabase) loadFromFile(path string) error {
 
 	}
 
-	config.Logger.Info("Loaded connection database", zap.Int("connections", db.size()), zap.Duration("duration", time.Since(start)))
+	zap.L().Info("Loaded connection database", zap.Int("connections", db.size()), zap.Duration("duration", time.Since(start)))
 	return nil
 }
 

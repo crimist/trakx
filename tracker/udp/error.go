@@ -20,7 +20,7 @@ func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ..
 			}
 		}
 
-		config.Logger.Info("Client Err", fields...)
+		zap.L().Info("Client Err", fields...)
 	}
 
 	e := protocol.Error{
@@ -31,7 +31,7 @@ func (u *UDPTracker) newClientError(msg string, TransactionID int32, fieldMap ..
 
 	data, err := e.Marshall()
 	if err != nil {
-		config.Logger.Error("e.Marshall()", zap.Error(err))
+		zap.L().Error("e.Marshall()", zap.Error(err))
 	}
 	return data
 }
@@ -44,11 +44,11 @@ func (u *UDPTracker) newServerError(msg string, err error, TransactionID int32) 
 		TransactionID: TransactionID,
 		ErrorString:   []byte("internal err"),
 	}
-	config.Logger.Error(msg, zap.Error(err))
+	zap.L().Error(msg, zap.Error(err))
 
 	data, err := e.Marshall()
 	if err != nil {
-		config.Logger.Error("e.Marshall()", zap.Error(err))
+		zap.L().Error("e.Marshall()", zap.Error(err))
 	}
 	return data
 }

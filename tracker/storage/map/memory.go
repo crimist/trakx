@@ -49,7 +49,7 @@ func (db *Memory) Init(backup storage.Backup) error {
 	if config.Config.DB.Backup.Frequency > 0 {
 		go utils.RunOn(config.Config.DB.Backup.Frequency, func() {
 			if err := db.backup.Save(); err != nil {
-				config.Logger.Info("Failed to backup the database", zap.Error(err))
+				zap.L().Info("Failed to backup the database", zap.Error(err))
 			}
 		})
 	}
@@ -82,9 +82,9 @@ func (db *Memory) Check() bool {
 
 func (db *Memory) Trim() {
 	start := time.Now()
-	config.Logger.Info("Trimming database")
+	zap.L().Info("Trimming database")
 	peers, hashes := db.trim()
-	config.Logger.Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Since(start)))
+	zap.L().Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Since(start)))
 }
 
 func (db *Memory) trim() (peers, hashes int) {

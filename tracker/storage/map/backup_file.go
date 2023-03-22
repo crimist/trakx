@@ -24,7 +24,7 @@ func (bck *FileBackup) Init(db storage.Database) error {
 }
 
 func (bck *FileBackup) Load() error {
-	config.Logger.Info("Loading database from file")
+	zap.L().Info("Loading database from file")
 	start := time.Now()
 
 	_, err := os.Stat(config.Config.DB.Backup.Path)
@@ -32,7 +32,7 @@ func (bck *FileBackup) Load() error {
 		// If the file doesn't exist than create an empty database and return success
 		if os.IsNotExist(err) {
 			bck.db.make()
-			config.Logger.Info("Database file not found, created empty database", zap.String("filepath", config.Config.DB.Backup.Path))
+			zap.L().Info("Database file not found, created empty database", zap.String("filepath", config.Config.DB.Backup.Path))
 			return nil
 		}
 
@@ -44,7 +44,7 @@ func (bck *FileBackup) Load() error {
 		return errors.Wrap(err, "failed to load file")
 	}
 
-	config.Logger.Info("Loaded database", zap.Duration("time", time.Since(start)), zap.Int("peers", peers), zap.Int("hashes", hashes))
+	zap.L().Info("Loaded database", zap.Duration("time", time.Since(start)), zap.Int("peers", peers), zap.Int("hashes", hashes))
 
 	return nil
 }
@@ -81,7 +81,7 @@ func (bck *FileBackup) writeFile() (int, error) {
 
 // Save encodes and writes the database to a file
 func (bck *FileBackup) Save() error {
-	config.Logger.Info("Writing database to file")
+	zap.L().Info("Writing database to file")
 	start := time.Now()
 
 	size, err := bck.writeFile()
@@ -89,7 +89,7 @@ func (bck *FileBackup) Save() error {
 		return errors.Wrap(err, "failed to save database")
 	}
 
-	config.Logger.Info("Wrote database", zap.Int("size (bytes)", size), zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Since(start)))
+	zap.L().Info("Wrote database", zap.Int("size (bytes)", size), zap.Int("hashes", bck.db.Hashes()), zap.Duration("duration", time.Since(start)))
 
 	return nil
 }

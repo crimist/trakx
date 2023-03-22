@@ -10,7 +10,7 @@ import (
 )
 
 func servePprof() {
-	config.Logger.Info("Serving pprof", zap.Int("port", config.Config.Debug.Pprof))
+	zap.L().Info("Serving pprof", zap.Int("port", config.Config.Debug.Pprof))
 
 	// serve on localhost
 	http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", config.Config.Debug.Pprof), nil)

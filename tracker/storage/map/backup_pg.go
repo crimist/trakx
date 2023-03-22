@@ -62,7 +62,7 @@ func (bck *PgBackup) Init(db storage.Database) error {
 }
 
 func (bck PgBackup) Save() error {
-	config.Logger.Info("Saving database to pg")
+	zap.L().Info("Saving database to pg")
 	var data []byte
 	var err error
 	start := time.Now()
@@ -72,7 +72,7 @@ func (bck PgBackup) Save() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to encode database")
 	}
-	config.Logger.Info("Encoded database", zap.Duration("duration", time.Since(start)))
+	zap.L().Info("Encoded database", zap.Duration("duration", time.Since(start)))
 	start = time.Now()
 
 	_, err = bck.pg.Query("INSERT INTO trakx(bytes) VALUES($1)", data)
@@ -80,7 +80,7 @@ func (bck PgBackup) Save() error {
 		return errors.Wrap(err, "`INSERT` statement failed")
 	}
 
-	config.Logger.Info("Saved database to pg", zap.Any("hash", data[:20]), zap.Duration("pg duration", time.Since(start)))
+	zap.L().Info("Saved database to pg", zap.Any("hash", data[:20]), zap.Duration("pg duration", time.Since(start)))
 
 	return nil
 }
@@ -90,7 +90,7 @@ func (bck PgBackup) Load() error {
 	var bytes []byte
 	var ts time.Time
 
-	config.Logger.Info("Loading stored database from postgres")
+	zap.L().Info("Loading stored database from postgres")
 
 attemptLoad:
 
@@ -99,7 +99,7 @@ attemptLoad:
 		// if postgres is empty than create an empty database and return success
 		if strings.Contains(err.Error(), "no rows in result set") {
 			bck.db.make()
-			config.Logger.Info("No rows found in postgres, created empty database")
+			zap.L().Info("No rows found in postgres, created empty database")
 			return nil
 		}
 
@@ -111,9 +111,9 @@ attemptLoad:
 	if time.Since(ts) > backupRecentWindow && firstTry {
 		firstTry = false
 
-		config.Logger.Info("Failed to detect a pg backup within window, waiting...", zap.Duration("window", backupRecentWindow), zap.Duration("wait", backupRecentWait))
+		zap.L().Info("Failed to detect a pg backup within window, waiting...", zap.Duration("window", backupRecentWindow), zap.Duration("wait", backupRecentWait))
 		time.Sleep(backupRecentWait)
-		config.Logger.Info("Reattempting load...")
+		zap.L().Info("Reattempting load...")
 
 		goto attemptLoad
 	}
@@ -123,7 +123,7 @@ attemptLoad:
 		return errors.Wrap(err, "failed to decode data")
 	}
 
-	config.Logger.Info("Loaded stored database from pg", zap.Int("size", len(bytes)), zap.Any("hash", bytes[:20]), zap.Int("peers", peers), zap.Int("hashes", hashes))
+	zap.L().Info("Loaded stored database from pg", zap.Int("size", len(bytes)), zap.Any("hash", bytes[:20]), zap.Int("peers", peers), zap.Int("hashes", hashes))
 
 	return nil
 }

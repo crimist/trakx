@@ -16,7 +16,7 @@ var initTime = time.Now()
 
 // Publish starts publishing and updating expvar values, requests metrics are over duration of Config.ExpvarInterval
 func Publish(peerdb storage.Database, udpconns func() int64) {
-	config.Logger.Info("publishing stats as expvars", zap.Duration("interval", config.Config.ExpvarInterval))
+	zap.L().Info("publishing stats as expvars", zap.Duration("interval", config.Config.ExpvarInterval))
 
 	// requests
 	hits := expvar.NewInt("trakx.requests.hits")

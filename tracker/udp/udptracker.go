@@ -38,7 +38,7 @@ func (u *UDPTracker) Init(peerdb storage.Database) {
 	u.shutdown = make(chan struct{})
 
 	if err := u.conndb.loadFromFile(config.CachePath + "conn.db"); err != nil {
-		config.Logger.Warn("Failed to load connection database, creating empty db", zap.Error(err))
+		zap.L().Warn("Failed to load connection database, creating empty db", zap.Error(err))
 		u.conndb.make()
 	}
 
@@ -75,7 +75,7 @@ func (u *UDPTracker) Serve() error {
 						break
 					}
 
-					config.Logger.Error("Failed to read from UDP socket", zap.Error(err))
+					zap.L().Error("Failed to read from UDP socket", zap.Error(err))
 					pool.Put(data)
 					continue
 				}
@@ -90,7 +90,7 @@ func (u *UDPTracker) Serve() error {
 	}
 
 	<-u.shutdown
-	config.Logger.Info("Closing UDP tracker socket")
+	zap.L().Info("Closing UDP tracker socket")
 	if err = u.sock.Close(); err != nil {
 		return errors.Wrap(err, "Failed to close UDP listen socket")
 	}

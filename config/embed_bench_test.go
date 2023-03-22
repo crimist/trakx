@@ -13,7 +13,7 @@ func randomFilename() string {
 
 func BenchmarkFSReadFile(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		data, _ := embeddedFileSystem.ReadFile("embededd" + randomFilename())
+		data, _ := embeddedFS.ReadFile("embededd" + randomFilename())
 		_ = data
 	}
 }
@@ -33,11 +33,11 @@ func BenchmarkEmbeddedCache(b *testing.B) {
 }
 
 func BenchmarkSwitchRaw(b *testing.B) {
-	indexData, err := embeddedFileSystem.ReadFile("embedded/index.html")
+	indexData, err := embeddedFS.ReadFile("embedded/index.html")
 	if err != nil {
 		b.Error("failed to read embedded/index.html")
 	}
-	dmcaData, err := embeddedFileSystem.ReadFile("embedded/dmca.html")
+	dmcaData, err := embeddedFS.ReadFile("embedded/dmca.html")
 	if err != nil {
 		b.Error("failed to read embedded/dmca.html")
 	}

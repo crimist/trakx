@@ -20,61 +20,61 @@ import (
 	_ "github.com/crimist/trakx/tracker/storage/map"
 )
 
+func checkMisconfiguration(conf *config.Configuration) {
+	const misconfigurationHeader = "POTENTIAL CONFIGURATION ERROR: "
+
+	if !conf.UDP.ConnDB.Validate {
+		zap.L().Warn(misconfigurationHeader + "UDP connection validation is DISABLED. Do NOT expose this service to untrusted networks - it could be abused for UDP amplication DoS.")
+	}
+	if conf.DB.Expiry < conf.Announce.Base+conf.Announce.Fuzz {
+		zap.L().Warn(misconfigurationHeader + "peer expiry time < announce interval - peers will expire from database before being updated.")
+	}
+}
+
 // Run initializes and runs the tracker with the requested configuration settings.
-func Run() {
+func Run(conf *config.Configuration) {
 	var udptracker udp.UDPTracker
 	var httptracker http.HTTPTracker
 	var err error
 
 	rand.Seed(time.Now().UnixNano() * time.Now().Unix())
 
-	if !config.Config.Loaded() {
-		config.Logger.Fatal("Config failed to load critical values", zap.Any("config", config.Config))
-	}
+	zap.L().Info("Loaded configuration, starting trakx...")
 
-	config.Logger.Info("Loaded configuration, starting trakx...")
-
-	// configuration warnings
-	if !config.Config.UDP.ConnDB.Validate {
-		config.Logger.Warn("UDP connection validation is DISABLED. Do not expose to public, sever could be abused for UDP amplication DoS.")
-	}
-	if config.Config.DB.Expiry < config.Config.Announce.Base+config.Config.Announce.Fuzz {
-		// likely a configuration error
-		config.Logger.Error("Peer expiry < announce interval. Peers will expire before being updated.")
-	}
+	checkMisconfiguration(conf)
 
 	// db
 	peerdb, err := storage.Open()
 	if err != nil {
-		config.Logger.Fatal("Failed to initialize storage", zap.Error(err))
+		zap.L().Fatal("Failed to initialize storage", zap.Error(err))
 	} else {
-		config.Logger.Info("Initialized storage")
+		zap.L().Info("Initialized storage")
 	}
 
-	pools.Initialize(int(config.Config.Numwant.Limit))
+	pools.Initialize(int(conf.Numwant.Limit))
 
 	// run signal handler
 	go signalHandler(peerdb, &udptracker, &httptracker)
 
 	// run pprof server
-	if config.Config.Debug.Pprof != 0 {
+	if conf.Debug.Pprof != 0 {
 		go servePprof()
 	}
 
-	if config.Config.HTTP.Mode == config.TrackerModeEnabled {
-		config.Logger.Info("HTTP tracker enabled", zap.Int("port", config.Config.HTTP.Port), zap.String("ip", config.Config.HTTP.IP))
+	if conf.HTTP.Mode == config.TrackerModeEnabled {
+		zap.L().Info("HTTP tracker enabled", zap.Int("port", conf.HTTP.Port), zap.String("ip", conf.HTTP.IP))
 
 		httptracker.Init(peerdb)
 		go func() {
 			if err := httptracker.Serve(); err != nil {
-				config.Logger.Fatal("Failed to serve HTTP tracker", zap.Error(err))
+				zap.L().Fatal("Failed to serve HTTP tracker", zap.Error(err))
 			}
 		}()
-	} else if config.Config.HTTP.Mode == config.TrackerModeInfo {
+	} else if conf.HTTP.Mode == config.TrackerModeInfo {
 		// serve basic html server
 		cache, err := config.GenerateEmbeddedCache()
 		if err != nil {
-			config.Logger.Fatal("failed to generate embedded cache", zap.Error(err))
+			zap.L().Fatal("failed to generate embedded cache", zap.Error(err))
 		}
 
 		// create big interval for announce response to reduce load
@@ -102,7 +102,7 @@ func Run() {
 		}
 
 		server := gohttp.Server{
-			Addr:         fmt.Sprintf(":%d", config.Config.HTTP.Port),
+			Addr:         fmt.Sprintf(":%d", conf.HTTP.Port),
 			Handler:      mux,
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 7 * time.Second,
@@ -110,32 +110,32 @@ func Run() {
 		}
 		server.SetKeepAlivesEnabled(false)
 
-		config.Logger.Info("Running HTTP info server", zap.Int("port", config.Config.HTTP.Port))
+		zap.L().Info("Running HTTP info server", zap.Int("port", conf.HTTP.Port))
 		go func() {
 			if err := server.ListenAndServe(); err != nil {
-				config.Logger.Error("Failed to start HTTP server", zap.Error(err))
+				zap.L().Error("Failed to start HTTP server", zap.Error(err))
 			}
 		}()
 	}
 
 	// UDP tracker
-	if config.Config.UDP.Enabled {
-		config.Logger.Info("UDP tracker enabled", zap.Int("port", config.Config.UDP.Port), zap.String("ip", config.Config.UDP.IP))
+	if conf.UDP.Enabled {
+		zap.L().Info("UDP tracker enabled", zap.Int("port", conf.UDP.Port), zap.String("ip", conf.UDP.IP))
 		udptracker.Init(peerdb)
 
 		go func() {
 			if err := udptracker.Serve(); err != nil {
-				config.Logger.Fatal("Failed to serve UDP tracker", zap.Error(err))
+				zap.L().Fatal("Failed to serve UDP tracker", zap.Error(err))
 			}
 		}()
 	}
 
-	if config.Config.ExpvarInterval > 0 {
+	if conf.ExpvarInterval > 0 {
 		stats.Publish(peerdb, func() int64 {
 			return int64(udptracker.Connections())
 		})
 	} else {
-		config.Logger.Debug("Finished Run() no expvar - blocking forever")
+		zap.L().Debug("Finished Run() no expvar - blocking forever")
 		select {}
 	}
 }

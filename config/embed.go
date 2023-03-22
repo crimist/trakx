@@ -3,29 +3,38 @@ package config
 import (
 	"embed"
 	"os"
+	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
 //go:embed embedded/*
-var embeddedFileSystem embed.FS
+var embeddedFS embed.FS
 
-func generateConfig() {
-	if _, err := os.Stat(configPath + "trakx.yaml"); os.IsNotExist(err) {
-		configData, err := embeddedFileSystem.ReadFile("embedded/trakx.yaml")
+func writeEmbeddedConfig(path string) error {
+	syscall.Umask(0)
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		configData, err := embeddedFS.ReadFile("embedded/trakx.yaml")
 		if err != nil {
-			Logger.Error("failed to read embedded config", zap.Error(err))
-			return
+			return errors.Wrap(err, "failed to read embedded FS")
 		}
-		err = os.WriteFile(configPath+"trakx.yaml", configData, FilePerm)
-		if err != nil {
-			Logger.Error("failed to write config file", zap.Error(err))
+
+		if err = os.MkdirAll(filepath.Dir(path), folderPerm); err != nil {
+			zap.L().Warn("failed to create config directory", zap.Error(err))
+		}
+
+		if err = os.WriteFile(path, configData, filePerm); err != nil {
+			return errors.Wrap(err, "failed to write configuration file to "+path)
 		}
 	} else if err != nil {
-		Logger.Error("failed to stat config file", zap.Error(err))
+		return errors.Wrap(err, "failed to stat config file "+path)
 	}
+
+	return nil
 }
 
 type EmbeddedCache map[string]string
@@ -37,7 +46,7 @@ func stripNewlineTabs(data string) string {
 }
 
 func GenerateEmbeddedCache() (EmbeddedCache, error) {
-	dir, err := embeddedFileSystem.ReadDir("embedded")
+	dir, err := embeddedFS.ReadDir("embedded")
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read embed directory to populate cache")
 	}
@@ -56,7 +65,7 @@ func GenerateEmbeddedCache() (EmbeddedCache, error) {
 			continue
 		}
 
-		data, err := embeddedFileSystem.ReadFile("embedded/" + filename)
+		data, err := embeddedFS.ReadFile("embedded/" + filename)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to open file %v from embedded", "embedded/"+filename)
 		}
@@ -67,7 +76,7 @@ func GenerateEmbeddedCache() (EmbeddedCache, error) {
 			dataStr = stripNewlineTabs(dataStr)
 		}
 
-		Logger.Debug("adding file to embedded cache", zap.String("filename", filename))
+		zap.L().Debug("adding file to embedded cache", zap.String("filename", filename))
 		cache["/"+filename] = dataStr
 	}
 
