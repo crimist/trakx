@@ -12,6 +12,7 @@ var (
 	Peers        *Pool[*storage.Peer]
 )
 
+// TODO: create these pools in their respective packages, most of these don't need to be global variables
 func Initialize(numwantLimit int) {
 	peerlist4Max := 6 * numwantLimit  // ipv4 + port
 	peerlist6Max := 18 * numwantLimit // ipv6 + port

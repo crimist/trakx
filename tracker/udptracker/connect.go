@@ -1,4 +1,4 @@
-package udp
+package udptracker
 
 import (
 	"math/rand"
@@ -6,14 +6,14 @@ import (
 	"net/netip"
 
 	"github.com/crimist/trakx/tracker/stats"
-	"github.com/crimist/trakx/tracker/udp/protocol"
+	"github.com/crimist/trakx/tracker/udptracker/protocol"
 )
 
-func (u *UDPTracker) connect(connect *protocol.Connect, remote *net.UDPAddr, addr netip.AddrPort) {
+func (u *Tracker) connect(connect protocol.Connect, remote *net.UDPAddr, addr netip.AddrPort) {
 	stats.Connects.Add(1)
 
 	id := rand.Int63()
-	u.conndb.add(id, addr)
+	u.connDB.add(id, addr)
 
 	resp := protocol.ConnectResp{
 		Action:        protocol.ActionConnect,
@@ -24,9 +24,9 @@ func (u *UDPTracker) connect(connect *protocol.Connect, remote *net.UDPAddr, add
 	respBytes, err := resp.Marshall()
 	if err != nil {
 		msg := u.newServerError("ConnectResp.Marshall()", err, connect.TransactionID)
-		u.sock.WriteToUDP(msg, remote)
+		u.socket.WriteToUDP(msg, remote)
 		return
 	}
 
-	u.sock.WriteToUDP(respBytes, remote)
+	u.socket.WriteToUDP(respBytes, remote)
 }

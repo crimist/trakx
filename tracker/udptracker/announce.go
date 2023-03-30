@@ -1,4 +1,4 @@
-package udp
+package udptracker
 
 import (
 	"math/rand"
@@ -8,15 +8,15 @@ import (
 	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/tracker/stats"
-	"github.com/crimist/trakx/tracker/udp/protocol"
+	"github.com/crimist/trakx/tracker/udptracker/protocol"
 )
 
-func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, addrPort netip.AddrPort) {
+func (u *Tracker) announce(announce *protocol.Announce, remote *net.UDPAddr, addrPort netip.AddrPort) {
 	stats.Announces.Add(1)
 
 	if announce.Port == 0 {
 		msg := u.newClientError("bad port", announce.TransactionID, cerrFields{"addrPort": addrPort, "port": announce.Port})
-		u.sock.WriteToUDP(msg, remote)
+		u.socket.WriteToUDP(msg, remote)
 		return
 	}
 
@@ -27,7 +27,7 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 	}
 
 	if announce.Event == protocol.EventStopped {
-		u.database.Drop(announce.InfoHash, announce.PeerID)
+		u.peerDB.Drop(announce.InfoHash, announce.PeerID)
 
 		resp := protocol.AnnounceResp{
 			Action:        protocol.ActionAnnounce,
@@ -40,11 +40,11 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 		respBytes, err := resp.Marshall()
 		if err != nil {
 			msg := u.newServerError("AnnounceResp.Marshall()", err, announce.TransactionID)
-			u.sock.WriteToUDP(msg, remote)
+			u.socket.WriteToUDP(msg, remote)
 			return
 		}
 
-		u.sock.WriteToUDP(respBytes, remote)
+		u.socket.WriteToUDP(respBytes, remote)
 		return
 	}
 
@@ -53,10 +53,10 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 		peerComplete = true
 	}
 
-	u.database.Save(addrPort.Addr(), announce.Port, peerComplete, announce.InfoHash, announce.PeerID)
+	u.peerDB.Save(addrPort.Addr(), announce.Port, peerComplete, announce.InfoHash, announce.PeerID)
 
-	complete, incomplete := u.database.HashStats(announce.InfoHash)
-	peers4, peers6 := u.database.PeerListBytes(announce.InfoHash, uint(announce.NumWant))
+	complete, incomplete := u.peerDB.HashStats(announce.InfoHash)
+	peers4, peers6 := u.peerDB.PeerListBytes(announce.InfoHash, uint(announce.NumWant))
 	interval := int32(config.Config.Announce.Base.Seconds())
 	if int32(config.Config.Announce.Fuzz.Seconds()) > 0 {
 		interval += rand.Int31n(int32(config.Config.Announce.Fuzz.Seconds()))
@@ -82,9 +82,9 @@ func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, 
 
 	if err != nil {
 		msg := u.newServerError("AnnounceResp.Marshall()", err, announce.TransactionID)
-		u.sock.WriteToUDP(msg, remote)
+		u.socket.WriteToUDP(msg, remote)
 		return
 	}
 
-	u.sock.WriteToUDP(respBytes, remote)
+	u.socket.WriteToUDP(respBytes, remote)
 }

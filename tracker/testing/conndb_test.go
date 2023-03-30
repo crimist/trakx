@@ -1,4 +1,4 @@
-package udp
+package testing
 
 import (
 	"encoding/binary"

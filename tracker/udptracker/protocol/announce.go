@@ -8,6 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TODO: everything in this package shoudl probably be moved to NewFoo() methods to parse the database
+// unless the objects are used multiple times
+
 // BitTorrent UDP tracker announce
 type Announce struct {
 	ConnectionID  int64

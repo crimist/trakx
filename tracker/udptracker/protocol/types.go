@@ -14,7 +14,8 @@ const (
 	ActionAnnounce  Action = 1
 	ActionScrape    Action = 2
 	ActionError     Action = 3
-	ActionHeartbeat Action = 4
+	ActionHeartbeat Action = 4 // not in spec, Trakx specific heartbeet
+	ActionInvalid   Action = 5
 )
 
 var (

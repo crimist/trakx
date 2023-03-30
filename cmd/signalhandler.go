@@ -17,7 +17,7 @@ var SigStop = os.Interrupt
 
 const exitSuccess = 0
 
-func signalHandler(peerdb storage.Database, udptracker *udp.UDPTracker, httptracker *http.HTTPTracker) {
+func signalHandler(peerdb storage.Database, udptracker *udp.Tracker, httptracker *http.HTTPTracker) {
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
 
