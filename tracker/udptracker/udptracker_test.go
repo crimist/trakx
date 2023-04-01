@@ -1,4 +1,4 @@
-package tracker
+package udptracker
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/crimist/trakx/tracker/udp/protocol"
+	"github.com/crimist/trakx/tracker/udptracker/udpprotocol"
 )
 
 const (
@@ -30,9 +30,9 @@ func TestUDPAnnounce(t *testing.T) {
 	conn.SetWriteDeadline(time.Now().Add(testTimeout))
 	conn.SetReadDeadline(time.Now().Add(testTimeout))
 
-	c := protocol.Connect{
-		ProtcolID:     protocol.UDPTrackerMagic,
-		Action:        protocol.ActionConnect,
+	c := udpprotocol.Connect{
+		ProtcolID:     udpprotocol.UDPTrackerMagic,
+		Action:        udpprotocol.ActionConnect,
 		TransactionID: 1337,
 	}
 
@@ -47,11 +47,11 @@ func TestUDPAnnounce(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cr := protocol.ConnectResp{}
+	cr := udpprotocol.ConnectResp{}
 	cr.Unmarshall(packet)
 
-	if cr.Action == protocol.ActionError {
-		e := protocol.Error{}
+	if cr.Action == udpprotocol.ActionError {
+		e := udpprotocol.Error{}
 		if err := e.Unmarshall(packet); err != nil {
 			t.Fatal("failed to unmarshall tracker error:", err)
 		}
@@ -61,13 +61,13 @@ func TestUDPAnnounce(t *testing.T) {
 	if cr.TransactionID != c.TransactionID {
 		t.Errorf("transactionID = %v, want %v", cr.TransactionID, c.TransactionID)
 	}
-	if cr.Action != protocol.ActionConnect {
+	if cr.Action != udpprotocol.ActionConnect {
 		t.Errorf("action = %v, want 0", cr.Action)
 	}
 
-	a := protocol.Announce{
+	a := udpprotocol.Announce{
 		ConnectionID:  cr.ConnectionID,
-		Action:        protocol.ActionAnnounce,
+		Action:        udpprotocol.ActionAnnounce,
 		TransactionID: 7331,
 		InfoHash:      [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14},
 		PeerID:        [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14},
@@ -92,11 +92,11 @@ func TestUDPAnnounce(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ar := protocol.AnnounceResp{}
+	ar := udpprotocol.AnnounceResp{}
 	ar.Unmarshall(packet)
 
-	if ar.Action == protocol.ActionError {
-		e := protocol.Error{}
+	if ar.Action == udpprotocol.ActionError {
+		e := udpprotocol.Error{}
 		if err := e.Unmarshall(packet); err != nil {
 			t.Fatal("failed to unmarshall tracker error:", err)
 		}
@@ -106,7 +106,7 @@ func TestUDPAnnounce(t *testing.T) {
 	if ar.TransactionID != a.TransactionID {
 		t.Errorf("transactionID = %v, want %v", ar.TransactionID, a.TransactionID)
 	}
-	if ar.Action != protocol.ActionAnnounce {
+	if ar.Action != udpprotocol.ActionAnnounce {
 		t.Errorf("action = %v, want 1", ar.Action)
 	}
 	if ar.Leechers != 1 {
@@ -141,9 +141,9 @@ func TestUDPAnnounce6(t *testing.T) {
 	conn.SetWriteDeadline(time.Now().Add(testTimeout))
 	conn.SetReadDeadline(time.Now().Add(testTimeout))
 
-	c := protocol.Connect{
-		ProtcolID:     protocol.UDPTrackerMagic,
-		Action:        protocol.ActionConnect,
+	c := udpprotocol.Connect{
+		ProtcolID:     udpprotocol.UDPTrackerMagic,
+		Action:        udpprotocol.ActionConnect,
 		TransactionID: 1337,
 	}
 
@@ -159,11 +159,11 @@ func TestUDPAnnounce6(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cr := protocol.ConnectResp{}
+	cr := udpprotocol.ConnectResp{}
 	cr.Unmarshall(packet)
 
-	if cr.Action == protocol.ActionError {
-		e := protocol.Error{}
+	if cr.Action == udpprotocol.ActionError {
+		e := udpprotocol.Error{}
 		e.Unmarshall(packet)
 		t.Error("Tracker err:", string(e.ErrorString))
 	}
@@ -171,13 +171,13 @@ func TestUDPAnnounce6(t *testing.T) {
 	if cr.TransactionID != c.TransactionID {
 		t.Error("Invalid transactionID should be", c.TransactionID, "but got", cr.TransactionID)
 	}
-	if cr.Action != protocol.ActionConnect {
+	if cr.Action != udpprotocol.ActionConnect {
 		t.Error("Invalid action should be 0 but got", cr.Action)
 	}
 
-	a := protocol.Announce{
+	a := udpprotocol.Announce{
 		ConnectionID:  cr.ConnectionID,
-		Action:        protocol.ActionAnnounce,
+		Action:        udpprotocol.ActionAnnounce,
 		TransactionID: 7331,
 		InfoHash:      [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14},
 		PeerID:        [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14},
@@ -203,11 +203,11 @@ func TestUDPAnnounce6(t *testing.T) {
 		t.Error(err)
 	}
 
-	ar := protocol.AnnounceResp{}
+	ar := udpprotocol.AnnounceResp{}
 	ar.Unmarshall(packet)
 
-	if ar.Action == protocol.ActionError {
-		e := protocol.Error{}
+	if ar.Action == udpprotocol.ActionError {
+		e := udpprotocol.Error{}
 		e.Unmarshall(packet)
 		t.Error("Tracker err:", string(e.ErrorString))
 		return
@@ -216,7 +216,7 @@ func TestUDPAnnounce6(t *testing.T) {
 	if ar.TransactionID != a.TransactionID {
 		t.Error("Invalid transactionID should be", a.TransactionID, "but got", ar.TransactionID)
 	}
-	if ar.Action != protocol.ActionAnnounce {
+	if ar.Action != udpprotocol.ActionAnnounce {
 		t.Error("Invalid action should be 1 but got", ar.Action)
 	}
 	if ar.Leechers != 1 {
@@ -254,9 +254,9 @@ func TestUDPBadAction(t *testing.T) {
 	conn.SetWriteDeadline(time.Now().Add(testTimeout))
 	conn.SetReadDeadline(time.Now().Add(testTimeout))
 
-	c := protocol.Connect{
-		ProtcolID:     protocol.UDPTrackerMagic,
-		Action:        protocol.ActionConnect,
+	c := udpprotocol.Connect{
+		ProtcolID:     udpprotocol.UDPTrackerMagic,
+		Action:        udpprotocol.ActionConnect,
 		TransactionID: 1337,
 	}
 
@@ -272,10 +272,10 @@ func TestUDPBadAction(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cr := protocol.ConnectResp{}
+	cr := udpprotocol.ConnectResp{}
 	cr.Unmarshall(packet)
 
-	c = protocol.Connect{
+	c = udpprotocol.Connect{
 		ProtcolID:     cr.ConnectionID,
 		Action:        0xBAD,
 		TransactionID: 0xDEAD,
@@ -293,7 +293,7 @@ func TestUDPBadAction(t *testing.T) {
 		t.Error(err)
 	}
 
-	e := protocol.Error{}
+	e := udpprotocol.Error{}
 	e.Unmarshall(packet[:s])
 
 	if !bytes.Equal(e.ErrorString, []byte("bad action")) {
@@ -316,9 +316,9 @@ func TestUDPBadConnID(t *testing.T) {
 	conn.SetWriteDeadline(time.Now().Add(testTimeout))
 	conn.SetReadDeadline(time.Now().Add(testTimeout))
 
-	a := protocol.Announce{
+	a := udpprotocol.Announce{
 		ConnectionID:  0xBAD, // bad connid
-		Action:        protocol.ActionAnnounce,
+		Action:        udpprotocol.ActionAnnounce,
 		TransactionID: 0xDEAD,
 	}
 
@@ -334,7 +334,7 @@ func TestUDPBadConnID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e := protocol.Error{}
+	e := udpprotocol.Error{}
 	e.Unmarshall(packet[:s])
 
 	if !bytes.Equal(e.ErrorString, []byte("bad connid")) {
@@ -357,9 +357,9 @@ func TestUDPBadPort(t *testing.T) {
 	conn.SetWriteDeadline(time.Now().Add(testTimeout))
 	conn.SetReadDeadline(time.Now().Add(testTimeout))
 
-	c := protocol.Connect{
-		ProtcolID:     protocol.UDPTrackerMagic,
-		Action:        protocol.ActionConnect,
+	c := udpprotocol.Connect{
+		ProtcolID:     udpprotocol.UDPTrackerMagic,
+		Action:        udpprotocol.ActionConnect,
 		TransactionID: 1337,
 	}
 
@@ -375,12 +375,12 @@ func TestUDPBadPort(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cr := protocol.ConnectResp{}
+	cr := udpprotocol.ConnectResp{}
 	cr.Unmarshall(packet)
 
-	a := protocol.Announce{
+	a := udpprotocol.Announce{
 		ConnectionID:  cr.ConnectionID,
-		Action:        protocol.ActionAnnounce,
+		Action:        udpprotocol.ActionAnnounce,
 		TransactionID: 7331,
 		InfoHash:      [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14},
 		PeerID:        [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14},
@@ -406,7 +406,7 @@ func TestUDPBadPort(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	e := protocol.Error{}
+	e := udpprotocol.Error{}
 	e.Unmarshall(packet[:s])
 
 	if !bytes.Equal(e.ErrorString, []byte("bad port")) {
@@ -429,9 +429,9 @@ func TestUDPTransactionID(t *testing.T) {
 	conn.SetWriteDeadline(time.Now().Add(testTimeout))
 	conn.SetReadDeadline(time.Now().Add(testTimeout))
 
-	c := protocol.Connect{
-		ProtcolID:     protocol.UDPTrackerMagic,
-		Action:        protocol.ActionConnect,
+	c := udpprotocol.Connect{
+		ProtcolID:     udpprotocol.UDPTrackerMagic,
+		Action:        udpprotocol.ActionConnect,
 		TransactionID: 0xBAD,
 	}
 	data, err := c.Marshall()
@@ -449,12 +449,12 @@ func TestUDPTransactionID(t *testing.T) {
 		}
 
 		if size != 16 {
-			e := protocol.Error{}
+			e := udpprotocol.Error{}
 			e.Unmarshall(packet)
 			t.Error(i, "Tracker err:", string(e.ErrorString))
 		}
 
-		cr := protocol.ConnectResp{}
+		cr := udpprotocol.ConnectResp{}
 		cr.Unmarshall(packet)
 
 		if cr.TransactionID != 0xBAD {

@@ -35,6 +35,8 @@ func Open() (Database, error) {
 	return driver.db, nil
 }
 
+// TODO: refacor these method names, create different methods depending on IP version
+
 type Database interface {
 	// Used to init the database after open()
 	Init(backup Backup) error

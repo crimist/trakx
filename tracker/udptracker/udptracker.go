@@ -8,12 +8,12 @@ import (
 	"encoding/binary"
 	"net"
 	"net/netip"
-	"time"
 
 	"github.com/crimist/trakx/pools"
+	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
-	"github.com/crimist/trakx/tracker/stats"
-	"github.com/crimist/trakx/tracker/udptracker/protocol"
+	"github.com/crimist/trakx/tracker/udptracker/conncache"
+	"github.com/crimist/trakx/tracker/udptracker/udpprotocol"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -23,7 +23,8 @@ const (
 	// maximum request size (a scrape request with 20/20 hashes)
 	maximumRequestSize = 1496
 	// min request size (a connect request)
-	minimumRequestSize = 16
+	minimumRequestSize  = 16
+	minimumAnnounceSize = 98
 )
 
 var (
@@ -32,27 +33,27 @@ var (
 )
 
 type TrackerConfig struct {
-	Validate                  bool
-	peerExpiry                time.Duration
-	connDatabasePath          string
-	connDatabaseSize          int
-	connDatabaseTrimFrequency time.Duration
+	Validate         bool
+	DefaultNumwant   int
+	MaximumNumwant   int
+	Interval         int32
+	IntervalVariance int32
 }
 
 type Tracker struct {
-	config   TrackerConfig
-	socket   *net.UDPConn
-	connDB   *connectionDatabase
-	peerDB   storage.Database
-	shutdown chan struct{}
+	config    TrackerConfig
+	socket    *net.UDPConn
+	connCache *conncache.ConnectionCache
+	peerDB    storage.Database
+	shutdown  chan struct{}
 }
 
-func NewTracker(peerDB storage.Database, connDB *connectionDatabase, config TrackerConfig) *Tracker {
+func NewTracker(peerDB storage.Database, connCache *conncache.ConnectionCache, config TrackerConfig) *Tracker {
 	tracker := Tracker{
-		config:   config,
-		peerDB:   peerDB,
-		connDB:   connDB,
-		shutdown: make(chan struct{}),
+		config:    config,
+		peerDB:    peerDB,
+		connCache: connCache,
+		shutdown:  make(chan struct{}),
 	}
 
 	return &tracker
@@ -70,13 +71,13 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 		return errors.Wrap(err, "Failed to open UDP listen socket")
 	}
 
-	requestPool := pools.NewPool[[]byte](func() any {
+	requestPool := pools.NewPool(func() any {
 		return make([]byte, maximumRequestSize)
 	}, func(slice []byte) {
 		slice = slice[:cap(slice)]
 	})
 
-	// TODO: figure out what optimal number of goroutines is
+	// TODO: figure out what optimal number of goroutines is (benchmark)
 	for i := 0; i < routines; i++ {
 		go func() {
 			for {
@@ -96,7 +97,6 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 					zap.L().Warn("UDP packet below minimum request size", zap.String("addr", remoteAddr.String()), zap.Int("size", size), zap.ByteString("data", (data)[:size]))
 					tracker.socket.WriteToUDP(requestTooSmall, remoteAddr)
 				} else {
-					// TODO: is there a way not slice the data here?
 					tracker.process((data)[:size], remoteAddr)
 				}
 
@@ -123,82 +123,54 @@ func (tracker *Tracker) Shutdown() {
 
 // ConnectionCount returns the number of BitTorrent UDP protocol connections in the connection database.
 func (tracker *Tracker) ConnectionCount() int {
-	if tracker == nil || tracker.connDB == nil {
-		return -1
-	}
-	return tracker.connDB.size()
+	return tracker.connCache.EntryCount()
 }
 
-func (tracker *Tracker) process(data []byte, remote *net.UDPAddr) {
+func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr) {
 	stats.Hits.Add(1)
 
-	action := protocol.Action(data[11])
+	action := udpprotocol.Action(data[11])
 	transactionID := int32(binary.BigEndian.Uint32(data[12:16]))
 
-	remoteAddr, ok := netip.AddrFromSlice(remote.IP)
+	addr, ok := netip.AddrFromSlice(udpAddr.IP)
 	if !ok {
-		tracker.sendError(remote, "failed to parse ip", transactionID)
-		zap.L().DPanic("failed to parse remote ip slice as netip", zap.ByteString("ip", remote.IP))
+		tracker.sendError(udpAddr, "failed to parse ip", transactionID)
+		zap.L().DPanic("failed to parse remote ip slice as netip", zap.ByteString("ip", udpAddr.IP))
 		return
 	}
-	remoteAddr = remoteAddr.Unmap() // use ipv4 instead of ipv6 mapped ipv4
-	remoteAddrPort := netip.AddrPortFrom(remoteAddr, uint16(remote.Port))
+	addr = addr.Unmap() // use ipv4 instead of ipv6 mapped ipv4
+	addrPort := netip.AddrPortFrom(addr, uint16(udpAddr.Port))
 
-	if action >= protocol.ActionInvalid {
-		tracker.sendError(remote, "invalid action", transactionID)
-		zap.L().Debug("client set invalid action", zap.Binary("packet", data), zap.Uint8("action", data[11]), zap.Any("remote", remoteAddrPort))
-		return
-	}
-
-	if action == protocol.ActionHeartbeat {
-		tracker.socket.WriteToUDP(protocol.HeartbeatOk, remote)
-		return
-	}
-
-	if action == protocol.ActionConnect {
-		connect := protocol.Connect{}
-		if err := connect.Unmarshall(data); err != nil {
-			tracker.sendError(remote, "failed to parse connect request", transactionID)
-			zap.L().Debug("client sent invalid connect request", zap.Binary("packet", data), zap.Any("remote", remoteAddrPort))
-			return
-		}
-		tracker.connect(connect, remote, remoteAddrPort)
-		return
-	}
-
-	// TODO: pick up refactoring from here, done with error.go
-
-	connid := int64(binary.BigEndian.Uint64(data[0:8]))
-	if ok := tracker.connDB.check(connid, remoteAddrPort); !ok && tracker.config.Validate {
-		msg := tracker.newClientError("bad connection id", transactionID, cerrFields{"clientID": connid, "addrPort": remoteAddrPort})
-		tracker.socket.WriteToUDP(msg, remote)
+	if action.IsInvalid() {
+		tracker.sendError(udpAddr, "invalid action", transactionID)
+		zap.L().Debug("client set invalid action", zap.Binary("packet", data), zap.Uint8("action", data[11]), zap.Any("remote", addrPort))
 		return
 	}
 
 	switch action {
-	case protocol.ActionAnnounce:
-		if len(data) < 98 {
-			msg := tracker.newClientError("bad announce size", transactionID, cerrFields{"size": len(data)})
-			tracker.socket.WriteToUDP(msg, remote)
+	case udpprotocol.ActionHeartbeat:
+		tracker.socket.WriteToUDP(udpprotocol.HeartbeatOk, udpAddr)
+		return
+	case udpprotocol.ActionConnect:
+		tracker.connect(udpAddr, addrPort, transactionID, data)
+		return
+	}
+
+	connectionID := int64(binary.BigEndian.Uint64(data[0:8]))
+	if tracker.config.Validate {
+		if validConnectionID := tracker.connCache.Validate(connectionID, addrPort); !validConnectionID {
+			tracker.sendError(udpAddr, "unregistered connection id", transactionID)
+			zap.L().Debug("client sent unregistered connection id", zap.Binary("packet", data), zap.Int64("connectionID", connectionID), zap.Any("remote", addrPort))
 			return
 		}
+	} else {
+		zap.L().Debug("insecure beaviour - skipping connection id validation")
+	}
 
-		announce := protocol.Announce{}
-		if err := announce.Unmarshall(data); err != nil {
-			msg := tracker.newServerError("announce.unmarshall()", err, transactionID)
-			tracker.socket.WriteToUDP(msg, remote)
-			return
-		}
-
-		tracker.announce(&announce, remote, remoteAddrPort)
-	case protocol.ActionScrape:
-		scrape := protocol.Scrape{}
-		if err := scrape.Unmarshall(data); err != nil {
-			msg := tracker.newServerError("scrape.unmarshall()", err, transactionID)
-			tracker.socket.WriteToUDP(msg, remote)
-			return
-		}
-
-		tracker.scrape(&scrape, remote)
+	switch action {
+	case udpprotocol.ActionAnnounce:
+		tracker.announce(udpAddr, addrPort, transactionID, data)
+	case udpprotocol.ActionScrape:
+		tracker.scrape(udpAddr, addrPort, transactionID, data)
 	}
 }

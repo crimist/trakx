@@ -1,5 +1,5 @@
 /*
-	Utils contains supporting utility functions for Trakx.
+Utils contains misc utility functions for Trakx.
 */
 package utils
 

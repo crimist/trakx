@@ -10,7 +10,7 @@ type BackupInfo struct {
 	Back Backup
 }
 
-type DatabaseInfo struct {
+type DatabaseMetadata struct {
 	Name    string
 	DB      Database
 	Backups []BackupInfo
@@ -21,7 +21,7 @@ var drivers map[string]DatabaseDriver
 func init() { drivers = make(map[string]DatabaseDriver) }
 
 // Register appends `databaseinfo` into the map of available drivers.
-func Register(dbnfo DatabaseInfo) {
+func Register(dbnfo DatabaseMetadata) {
 	drivers[dbnfo.Name] = DatabaseDriver{
 		db:      dbnfo.DB,
 		backups: make(map[string]Backup),

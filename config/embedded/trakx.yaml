@@ -2,6 +2,7 @@
 #   Values can be overridden with env vars
 #     Example: `TRAKX_LOGLEVEL=debug trakx run`
 
+# TODO: find better names for these, ie conndb.trim should be conncache.expiry
 
 # "debug", "info", "warn", "error", or "fatal"
 # "debug" will enable debug only panics
