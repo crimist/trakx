@@ -8,58 +8,57 @@ import (
 	"net/netip"
 
 	"github.com/pkg/errors"
-
-	"github.com/crimist/trakx/config"
 )
 
-// Open opens and initializes given database type through config.
-func Open() (Database, error) {
-	driver, ok := drivers[config.Config.DB.Type]
+type DatabaseConfig struct {
+}
+
+// OpenPeerDatabase opens and initializes given database type through config.
+func OpenPeerDatabase(databaseDriver string, backupDriver string, config DatabaseConfig) (Database, error) {
+	driver, ok := databaseDrivers[databaseDriver]
 	if !ok {
-		return nil, errors.New("Invalid database driver: '" + config.Config.DB.Type + "'")
+		return nil, errors.New("database driver does not exist with name: '" + databaseDriver + "'")
 	}
 
-	backup, ok := driver.backups[config.Config.DB.Backup.Type]
+	backup, ok := driver.backupDrivers[backupDriver]
 	if !ok {
-		return nil, errors.New("Invalid backup driver: '" + config.Config.DB.Backup.Type + "'")
+		return nil, errors.New("database backup does not exist with name: '" + backupDriver + "'")
 	}
 
-	if err := driver.db.Init(backup); err != nil {
+	if err := driver.database.Initialize(backup, config); err != nil {
 		return nil, errors.Wrap(err, "failed to init storage driver")
 	}
 
-	if err := driver.db.SyncExpvars(); err != nil {
+	if err := driver.database.SyncExpvars(); err != nil {
 		return nil, errors.Wrap(err, "failed to sync expvars on storage driver")
 	}
 
-	return driver.db, nil
+	return driver.database, nil
 }
 
 // TODO: refacor these method names, create different methods depending on IP version
 
 type Database interface {
-	// Used to init the database after open()
-	Init(backup Backup) error
+	// init when opened
+	Initialize(persistanceDriver Persistance, config DatabaseConfig) error
 
 	// Internal functions
-	Check() bool
-	Backup() Backup
+	PersistToDisk() error
 	Trim()
 	SyncExpvars() error
 
 	Save(netip.Addr, uint16, bool, Hash, PeerID)
 	Drop(Hash, PeerID)
 
-	HashStats(Hash) (uint16, uint16)
+	TorrentStats(Hash) (seeds uint16, leeches uint16)
 	PeerList(Hash, uint, bool) [][]byte
 	PeerListBytes(Hash, uint) ([]byte, []byte)
 
-	// Number of hashes for stats
-	Hashes() int
+	HashCount() (hashes int)
 }
 
-type Backup interface {
+type Persistance interface {
 	Init(Database) error
-	Save() error
-	Load() error
+	WriteToDisk() error
+	ReadFromDisk() error
 }

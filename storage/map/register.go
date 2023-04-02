@@ -1,25 +1,25 @@
 package gomap
 
 import (
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/storage"
 )
 
 func init() {
-	storage.Register(storage.DatabaseInfo{
-		Name: "gomap",
-		DB:   &Memory{},
-		Backups: []storage.BackupInfo{
+	storage.RegisterDriver(storage.DatabaseMetadata{
+		Name:     "memory",
+		Database: &Memory{},
+		PersistanceDrivers: []storage.PersistanceDriver{
 			{
-				Name: "file",
-				Back: &FileBackup{},
+				Name:   "file",
+				Backup: &FileBackup{},
 			},
 			{
-				Name: "pg",
-				Back: &PgBackup{},
+				Name:   "pg",
+				Backup: &PgBackup{},
 			},
 			{
-				Name: "none",
-				Back: &NoneBackup{},
+				Name:   "none",
+				Backup: &NoneBackup{},
 			},
 		},
 	})

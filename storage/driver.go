@@ -1,33 +1,35 @@
 package storage
 
 type DatabaseDriver struct {
-	db      Database
-	backups map[string]Backup
+	database      Database
+	backupDrivers map[string]Persistance
 }
 
-type BackupInfo struct {
-	Name string
-	Back Backup
+type PersistanceDriver struct {
+	Name   string
+	Backup Persistance
 }
 
 type DatabaseMetadata struct {
-	Name    string
-	DB      Database
-	Backups []BackupInfo
+	Name               string
+	Database           Database
+	PersistanceDrivers []PersistanceDriver
 }
 
-var drivers map[string]DatabaseDriver
+var databaseDrivers map[string]DatabaseDriver
 
-func init() { drivers = make(map[string]DatabaseDriver) }
+func init() {
+	databaseDrivers = make(map[string]DatabaseDriver)
+}
 
-// Register appends `databaseinfo` into the map of available drivers.
-func Register(dbnfo DatabaseMetadata) {
-	drivers[dbnfo.Name] = DatabaseDriver{
-		db:      dbnfo.DB,
-		backups: make(map[string]Backup),
+// RegisterDriver registers a database driver and its backup drivers into the driver list.
+func RegisterDriver(meta DatabaseMetadata) {
+	databaseDrivers[meta.Name] = DatabaseDriver{
+		database:      meta.Database,
+		backupDrivers: make(map[string]Persistance),
 	}
 
-	for _, backnfo := range dbnfo.Backups {
-		drivers[dbnfo.Name].backups[backnfo.Name] = backnfo.Back
+	for _, persistanceDriver := range meta.PersistanceDrivers {
+		databaseDrivers[meta.Name].backupDrivers[persistanceDriver.Name] = persistanceDriver.Backup
 	}
 }

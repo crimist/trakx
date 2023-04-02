@@ -2,6 +2,13 @@ package storage
 
 import "net/netip"
 
+type IPVersion uint8
+
+const (
+	IPv4 IPVersion = iota
+	IPv6           = iota
+)
+
 type (
 	// Hash stores a BitTorrent infohash.
 	Hash [20]byte

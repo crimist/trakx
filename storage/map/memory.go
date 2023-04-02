@@ -76,10 +76,6 @@ func (db *Memory) Backup() storage.Backup {
 	return db.backup
 }
 
-func (db *Memory) Check() bool {
-	return db.hashmap != nil
-}
-
 func (db *Memory) Trim() {
 	start := time.Now()
 	zap.L().Info("Trimming database")
