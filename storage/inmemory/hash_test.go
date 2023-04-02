@@ -1,4 +1,4 @@
-package gomap
+package inmemory
 
 import (
 	"math/rand"
@@ -8,8 +8,8 @@ import (
 	"github.com/crimist/trakx/tracker/storage"
 )
 
-func dbWithHashesAndPeers(hashes, peers int) *Memory {
-	var db Memory
+func dbWithHashesAndPeers(hashes, peers int) *InMemory {
+	var db InMemory
 	db.make()
 
 	peerid := storage.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
@@ -35,8 +35,8 @@ func dbWithHashesAndPeers(hashes, peers int) *Memory {
 	return &db
 }
 
-func dbWithHashes(count int) *Memory {
-	var db Memory
+func dbWithHashes(count int) *InMemory {
+	var db InMemory
 	db.make()
 
 	peerid := storage.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
@@ -59,8 +59,8 @@ func dbWithHashes(count int) *Memory {
 	return &db
 }
 
-func dbWithPeers(count int) (*Memory, storage.Hash) {
-	var db Memory
+func dbWithPeers(count int) (*InMemory, storage.Hash) {
+	var db InMemory
 	db.make()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}

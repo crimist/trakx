@@ -1,4 +1,4 @@
-package gomap
+package inmemory
 
 import (
 	"net/netip"
@@ -15,7 +15,7 @@ var (
 )
 
 func TestSaveDrop(t *testing.T) {
-	var db Memory
+	var db InMemory
 	db.make()
 
 	peerWrite := storage.Peer{
@@ -24,7 +24,7 @@ func TestSaveDrop(t *testing.T) {
 		Port:     4321,
 	}
 	db.Save(peerWrite.IP, peerWrite.Port, peerWrite.Complete, testHash, testId)
-	peerRead, ok := db.hashmap[testHash].Peers[testId]
+	peerRead, ok := db.hashes[testHash].Peers[testId]
 
 	if !ok {
 		t.Error("Failed to read peer from database map")
@@ -43,21 +43,21 @@ func TestSaveDrop(t *testing.T) {
 	}
 
 	db.Drop(testHash, testId)
-	_, ok = db.hashmap[testHash].Peers[testId]
+	_, ok = db.hashes[testHash].Peers[testId]
 
 	if ok {
 		t.Error("Failed top drop peer from database")
 	}
 }
 
-func benchmarkSave(b *testing.B, db *Memory, peer storage.Peer, hash storage.Hash, peerid storage.PeerID) {
+func benchmarkSave(b *testing.B, db *InMemory, peer storage.Peer, hash storage.Hash, peerid storage.PeerID) {
 	for n := 0; n < b.N; n++ {
 		db.Save(peer.IP, peer.Port, peer.Complete, hash, peerid)
 	}
 }
 
 func BenchmarkSave(b *testing.B) {
-	var db Memory
+	var db InMemory
 	db.make()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
@@ -74,14 +74,14 @@ func BenchmarkSave(b *testing.B) {
 	benchmarkSave(b, &db, peer, hash, peerid)
 }
 
-func benchmarkDrop(b *testing.B, db *Memory, hash storage.Hash, peerid storage.PeerID) {
+func benchmarkDrop(b *testing.B, db *InMemory, hash storage.Hash, peerid storage.PeerID) {
 	for n := 0; n < b.N; n++ {
 		db.Drop(hash, peerid)
 	}
 }
 
 func BenchmarkDrop(b *testing.B) {
-	var db Memory
+	var db InMemory
 	db.make()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
@@ -92,7 +92,7 @@ func BenchmarkDrop(b *testing.B) {
 	benchmarkDrop(b, &db, hash, peerid)
 }
 
-func benchmarkSaveDrop(b *testing.B, db *Memory, peer storage.Peer, hash storage.Hash, peerid storage.PeerID) {
+func benchmarkSaveDrop(b *testing.B, db *InMemory, peer storage.Peer, hash storage.Hash, peerid storage.PeerID) {
 	for n := 0; n < b.N; n++ {
 		db.Save(peer.IP, peer.Port, peer.Complete, hash, peerid)
 		db.Drop(hash, peerid)
@@ -100,7 +100,7 @@ func benchmarkSaveDrop(b *testing.B, db *Memory, peer storage.Peer, hash storage
 }
 
 func BenchmarkSaveDrop(b *testing.B) {
-	var db Memory
+	var db InMemory
 	db.make()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
@@ -118,7 +118,7 @@ func BenchmarkSaveDrop(b *testing.B) {
 }
 
 func benchmarkSaveDropParallel(b *testing.B, routines int) {
-	var db Memory
+	var db InMemory
 	db.make()
 
 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}

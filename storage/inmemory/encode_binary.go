@@ -1,4 +1,4 @@
-package gomap
+package inmemory
 
 import (
 	"bufio"
@@ -12,12 +12,12 @@ import (
 	"github.com/crimist/trakx/tracker/storage"
 )
 
-func (db *Memory) encodeBinary() ([]byte, error) {
+func (db *InMemory) encodeBinary() ([]byte, error) {
 	var buff bytes.Buffer
 	writer := bufio.NewWriter(&buff)
 
 	db.mutex.RLock()
-	for hash, submap := range db.hashmap {
+	for hash, submap := range db.hashes {
 		db.mutex.RUnlock()
 
 		// write hash and peermap size
@@ -65,7 +65,7 @@ func (db *Memory) encodeBinary() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (db *Memory) decodeBinary(data []byte) (peers, hashes int, err error) {
+func (db *InMemory) decodeBinary(data []byte) (peers, hashes int, err error) {
 	db.make()
 	reader := bufio.NewReader(bytes.NewBuffer(data))
 

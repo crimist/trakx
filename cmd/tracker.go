@@ -17,7 +17,7 @@ import (
 	"go.uber.org/zap"
 
 	// import database types so init is called
-	_ "github.com/crimist/trakx/storage/map"
+	_ "github.com/crimist/trakx/storage/inmemory"
 )
 
 func checkMisconfiguration(conf *config.Configuration) {

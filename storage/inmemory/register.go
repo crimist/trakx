@@ -1,13 +1,13 @@
-package gomap
+package inmemory
 
 import (
 	"github.com/crimist/trakx/storage"
 )
 
 func init() {
-	storage.RegisterDriver(storage.DatabaseMetadata{
-		Name:     "memory",
-		Database: &Memory{},
+	storage.RegisterDriver(storage.Metadata{
+		Name:    "inmemory",
+		Creator: NewInMemory,
 		PersistanceDrivers: []storage.PersistanceDriver{
 			{
 				Name:   "file",

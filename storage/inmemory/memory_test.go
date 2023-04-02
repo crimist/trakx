@@ -1,4 +1,4 @@
-package gomap
+package inmemory
 
 import (
 	"testing"
@@ -14,7 +14,7 @@ const (
 )
 
 func TestCheck(t *testing.T) {
-	var db Memory
+	var db InMemory
 	if db.Check() != false {
 		t.Error("check() on empty db returned true")
 	}

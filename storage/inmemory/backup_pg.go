@@ -1,4 +1,4 @@
-package gomap
+package inmemory
 
 import (
 	"database/sql"
@@ -32,7 +32,7 @@ const (
 // PgBackup backs up the peer database to a postgres sql database.
 type PgBackup struct {
 	pg *sql.DB
-	db *Memory
+	db *InMemory
 }
 
 func (bck *PgBackup) Init(db storage.Database) error {

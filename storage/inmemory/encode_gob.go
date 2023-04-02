@@ -1,4 +1,4 @@
-package gomap
+package inmemory
 
 import (
 	"bufio"
@@ -6,13 +6,13 @@ import (
 	"encoding/gob"
 )
 
-func (db *Memory) encodeGob() ([]byte, error) {
+func (db *InMemory) encodeGob() ([]byte, error) {
 	var buff bytes.Buffer
 	w := bufio.NewWriter(&buff)
 	encoder := gob.NewEncoder(w)
 
 	db.mutex.RLock()
-	if err := encoder.Encode(db.hashmap); err != nil {
+	if err := encoder.Encode(db.hashes); err != nil {
 		return nil, err
 	}
 	db.mutex.RUnlock()
@@ -24,12 +24,12 @@ func (db *Memory) encodeGob() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (db *Memory) decodeGob(data []byte) (err error) {
+func (db *InMemory) decodeGob(data []byte) (err error) {
 	db.make()
 	buff := bytes.NewBuffer(data)
 	decoder := gob.NewDecoder(bufio.NewReader(buff))
 
-	err = decoder.Decode(&db.hashmap)
+	err = decoder.Decode(&db.hashes)
 
 	return
 }

@@ -1,4 +1,4 @@
-package gomap
+package inmemory
 
 import (
 	"encoding/binary"
@@ -8,15 +8,15 @@ import (
 )
 
 // Hashes gets the number of hashes
-func (db *Memory) Hashes() int {
+func (db *InMemory) Hashes() int {
 	// race condition but doesn't matter as it's just for metrics
-	return len(db.hashmap)
+	return len(db.hashes)
 }
 
 // HashStats returns number of complete and incomplete peers associated with the hash
-func (db *Memory) HashStats(hash storage.Hash) (complete, incomplete uint16) {
+func (db *InMemory) HashStats(hash storage.Hash) (complete, incomplete uint16) {
 	db.mutex.RLock()
-	peermap, ok := db.hashmap[hash]
+	peermap, ok := db.hashes[hash]
 	db.mutex.RUnlock()
 	if !ok {
 		return
@@ -31,9 +31,9 @@ func (db *Memory) HashStats(hash storage.Hash) (complete, incomplete uint16) {
 }
 
 // PeerList returns a peer list for the given hash capped at max
-func (db *Memory) PeerList(hash storage.Hash, numWant uint, removePeerId bool) (peers [][]byte) {
+func (db *InMemory) PeerList(hash storage.Hash, numWant uint, removePeerId bool) (peers [][]byte) {
 	db.mutex.RLock()
-	peermap, ok := db.hashmap[hash]
+	peermap, ok := db.hashes[hash]
 	db.mutex.RUnlock()
 	if !ok {
 		return
@@ -80,12 +80,12 @@ func (db *Memory) PeerList(hash storage.Hash, numWant uint, removePeerId bool) (
 }
 
 // PeerListBytes returns a byte encoded peer list for the given hash capped at num
-func (db *Memory) PeerListBytes(hash storage.Hash, numWant uint) (peers4 []byte, peers6 []byte) {
+func (db *InMemory) PeerListBytes(hash storage.Hash, numWant uint) (peers4 []byte, peers6 []byte) {
 	peers4 = pools.Peerlists4.Get()
 	peers6 = pools.Peerlists6.Get()
 
 	db.mutex.RLock()
-	peermap, ok := db.hashmap[hash]
+	peermap, ok := db.hashes[hash]
 	db.mutex.RUnlock()
 	if !ok {
 		return

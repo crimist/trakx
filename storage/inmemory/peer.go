@@ -1,4 +1,4 @@
-package gomap
+package inmemory
 
 import (
 	"net/netip"
@@ -9,10 +9,10 @@ import (
 	"github.com/crimist/trakx/tracker/storage"
 )
 
-func (memoryDb *Memory) Save(ip netip.Addr, port uint16, complete bool, hash storage.Hash, id storage.PeerID) {
+func (memoryDb *InMemory) Save(ip netip.Addr, port uint16, complete bool, hash storage.Hash, id storage.PeerID) {
 	// get/create the map
 	memoryDb.mutex.RLock()
-	peermap, ok := memoryDb.hashmap[hash]
+	peermap, ok := memoryDb.hashes[hash]
 	memoryDb.mutex.RUnlock()
 
 	// if submap doesn't exist create it
@@ -92,7 +92,7 @@ func (memoryDb *Memory) Save(ip netip.Addr, port uint16, complete bool, hash sto
 }
 
 // delete is similar to drop but doesn't lock
-func (db *Memory) delete(peer *storage.Peer, peermap *PeerMap, id storage.PeerID) {
+func (db *InMemory) delete(peer *storage.Peer, peermap *PeerMap, id storage.PeerID) {
 	delete(peermap.Peers, id)
 
 	if peer.Complete {
@@ -117,10 +117,10 @@ func (db *Memory) delete(peer *storage.Peer, peermap *PeerMap, id storage.PeerID
 }
 
 // Drop deletes peer
-func (db *Memory) Drop(hash storage.Hash, id storage.PeerID) {
+func (db *InMemory) Drop(hash storage.Hash, id storage.PeerID) {
 	// get the peermap
 	db.mutex.RLock()
-	peermap, ok := db.hashmap[hash]
+	peermap, ok := db.hashes[hash]
 	db.mutex.RUnlock()
 	if !ok {
 		return

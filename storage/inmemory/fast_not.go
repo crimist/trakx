@@ -1,5 +1,6 @@
+//go:build !fast
 // +build !fast
 
-package gomap
+package inmemory
 
 const fast = false

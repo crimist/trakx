@@ -2,22 +2,17 @@
 	Map implements a trakx database through go maps in local memory. It is heavily optimized for performance but cannot be shared accross multiple trackers as it resides in local memory.
 */
 
-package gomap
+package inmemory
 
 import (
 	"sync"
 	"time"
 
 	"github.com/crimist/trakx/config"
-	"github.com/crimist/trakx/tracker/storage"
-	"github.com/crimist/trakx/tracker/utils"
+	"github.com/crimist/trakx/storage"
+	"github.com/crimist/trakx/utils"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-)
-
-const (
-	hashMapPrealloc = 250_000
-	peerMapPrealloc = 1
 )
 
 type PeerMap struct {
@@ -27,17 +22,18 @@ type PeerMap struct {
 	Peers      map[storage.PeerID]*storage.Peer
 }
 
-type Memory struct {
-	mutex   sync.RWMutex
-	hashmap map[storage.Hash]*PeerMap
-
-	backup storage.Backup
+type InMemory struct {
+	mutex  sync.RWMutex
+	hashes map[storage.Hash]*PeerMap
 }
 
-func (db *Memory) Init(backup storage.Backup) error {
-	*db = Memory{
-		backup: backup,
-	}
+func NewInMemory(config storage.Config) (storage.Database, error) {
+	InMemory := InMemory{}
+	return InMemory, nil
+}
+
+func (db *InMemory) Init(persistance storage.Persistance, config storage.Config) error {
+	*db = InMemory{}
 
 	if err := db.backup.Init(db); err != nil {
 		return errors.Wrap(err, "failed to initialize backup")
@@ -60,35 +56,35 @@ func (db *Memory) Init(backup storage.Backup) error {
 	return nil
 }
 
-func (db *Memory) make() {
-	db.hashmap = make(map[storage.Hash]*PeerMap, hashMapPrealloc)
+func (db *InMemory) make() {
+	db.hashes = make(map[storage.Hash]*PeerMap, prealloactedHashes)
 }
 
-func (db *Memory) makePeermap(h storage.Hash) (peermap *PeerMap) {
+func (db *InMemory) makePeermap(h storage.Hash) (peermap *PeerMap) {
 	// build struct and assign
 	peermap = new(PeerMap)
 	peermap.Peers = make(map[storage.PeerID]*storage.Peer, peerMapPrealloc)
-	db.hashmap[h] = peermap
+	db.hashes[h] = peermap
 	return
 }
 
-func (db *Memory) Backup() storage.Backup {
+func (db *InMemory) Backup() storage.Backup {
 	return db.backup
 }
 
-func (db *Memory) Trim() {
+func (db *InMemory) Trim() {
 	start := time.Now()
 	zap.L().Info("Trimming database")
 	peers, hashes := db.trim()
 	zap.L().Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Since(start)))
 }
 
-func (db *Memory) trim() (peers, hashes int) {
+func (db *InMemory) trim() (peers, hashes int) {
 	now := time.Now().Unix()
 	peerTimeout := int64(config.Config.DB.Expiry.Seconds())
 
 	db.mutex.RLock()
-	for hash, peermap := range db.hashmap {
+	for hash, peermap := range db.hashes {
 		db.mutex.RUnlock()
 
 		peermap.mutex.Lock()
@@ -103,7 +99,7 @@ func (db *Memory) trim() (peers, hashes int) {
 
 		if peersize == 0 {
 			db.mutex.Lock()
-			delete(db.hashmap, hash)
+			delete(db.hashes, hash)
 			db.mutex.Unlock()
 			hashes++
 		}

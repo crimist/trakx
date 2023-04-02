@@ -1,4 +1,4 @@
-package gomap
+package inmemory
 
 import (
 	"github.com/crimist/trakx/tracker/storage"

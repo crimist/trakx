@@ -10,55 +10,33 @@ import (
 	"github.com/pkg/errors"
 )
 
-type DatabaseConfig struct {
+type Config struct {
 }
 
-// OpenPeerDatabase opens and initializes given database type through config.
-func OpenPeerDatabase(databaseDriver string, backupDriver string, config DatabaseConfig) (Database, error) {
-	driver, ok := databaseDrivers[databaseDriver]
+// Open initalizes a database using the given driver
+func Open(driver string, config Config) (Database, error) {
+	creator, ok := drivers[driver]
 	if !ok {
-		return nil, errors.New("database driver does not exist with name: '" + databaseDriver + "'")
+		return nil, errors.New("database driver does not exist with name '" + driver + "'")
 	}
 
-	backup, ok := driver.backupDrivers[backupDriver]
-	if !ok {
-		return nil, errors.New("database backup does not exist with name: '" + backupDriver + "'")
+	db, err := creator(config)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create database of type '"+driver+"'")
 	}
 
-	if err := driver.database.Initialize(backup, config); err != nil {
-		return nil, errors.Wrap(err, "failed to init storage driver")
-	}
-
-	if err := driver.database.SyncExpvars(); err != nil {
-		return nil, errors.Wrap(err, "failed to sync expvars on storage driver")
-	}
-
-	return driver.database, nil
+	return db, nil
 }
-
-// TODO: refacor these method names, create different methods depending on IP version
 
 type Database interface {
-	// init when opened
-	Initialize(persistanceDriver Persistance, config DatabaseConfig) error
+	PeerAdd(hash Hash, peerID PeerID, addr netip.Addr, port uint16, complete bool)
+	PeerRemove(hash Hash, peerID PeerID)
 
-	// Internal functions
-	PersistToDisk() error
-	Trim()
-	SyncExpvars() error
-
-	Save(netip.Addr, uint16, bool, Hash, PeerID)
-	Drop(Hash, PeerID)
-
+	// TODO: figure out the parameters for these methods
 	TorrentStats(Hash) (seeds uint16, leeches uint16)
-	PeerList(Hash, uint, bool) [][]byte
-	PeerListBytes(Hash, uint) ([]byte, []byte)
+	TorrentPeers(Hash, uint, bool) [][]byte
+	TorrentPeersBytes(Hash, uint) ([]byte, []byte)
 
+	// Hashcount returns the total number of hashes registered in the database
 	HashCount() (hashes int)
-}
-
-type Persistance interface {
-	Init(Database) error
-	WriteToDisk() error
-	ReadFromDisk() error
 }

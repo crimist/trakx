@@ -12,7 +12,7 @@ import (
 // need to refactor the peer database stuff to be able to use it
 
 func TestConnect(t *testing.T) {
-	peerDB, err := storage.OpenPeerDatabase()
+	peerDB, err := storage.Open()
 	if err != nil {
 		t.Error("Failed to initialize storage", err)
 	}

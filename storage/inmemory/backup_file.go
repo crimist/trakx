@@ -1,4 +1,4 @@
-package gomap
+package inmemory
 
 import (
 	"os"
@@ -12,7 +12,7 @@ import (
 
 // FileBackup backs up the peer database to a local file.
 type FileBackup struct {
-	db *Memory
+	db *InMemory
 }
 
 func (bck *FileBackup) Init(db storage.Database) error {
@@ -49,7 +49,7 @@ func (bck *FileBackup) Load() error {
 	return nil
 }
 
-func (db *Memory) loadFile(filename string) (peers int, hashes int, err error) {
+func (db *InMemory) loadFile(filename string) (peers int, hashes int, err error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		err = errors.Wrap(err, "failed to read file from disk")
