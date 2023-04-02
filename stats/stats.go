@@ -1,18 +1,10 @@
 package stats
 
 import (
-	"net/netip"
-	"sync"
 	"sync/atomic"
 )
 
-type ipStats struct {
-	sync.Mutex
-	submap map[netip.Addr]int16
-}
-
-var (
-	// requests
+type Statistics struct {
 	Hits      atomic.Int64 // requests received
 	Connects  atomic.Int64 // udp connects
 	Announces atomic.Int64 // announces
@@ -21,9 +13,15 @@ var (
 	// db
 	Seeds   atomic.Int64 // total seeds
 	Leeches atomic.Int64 // total leeches
-	IPStats ipStats      // total (unique) ips
+	IPStats ipStatistics // total (unique) ips
 
 	// errors
 	ServerErrors atomic.Int64
 	ClientErrors atomic.Int64
-)
+}
+
+func NewStats(ipPreallocate int) *Statistics {
+	return &Statistics{
+		IPStats: newIPStatistics(ipPreallocate),
+	}
+}

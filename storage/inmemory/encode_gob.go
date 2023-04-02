@@ -6,30 +6,31 @@ import (
 	"encoding/gob"
 )
 
-func (db *InMemory) encodeGob() ([]byte, error) {
+// gob coders scale better than binary coders, the break even point is around 1.5 million peers
+
+func encodeGob(db *InMemory) ([]byte, error) {
 	var buff bytes.Buffer
-	w := bufio.NewWriter(&buff)
-	encoder := gob.NewEncoder(w)
+	writer := bufio.NewWriter(&buff)
 
 	db.mutex.RLock()
-	if err := encoder.Encode(db.hashes); err != nil {
+	if err := gob.NewEncoder(writer).Encode(db.torrents); err != nil {
+		db.mutex.RUnlock()
 		return nil, err
 	}
 	db.mutex.RUnlock()
 
-	if err := w.Flush(); err != nil {
+	if err := writer.Flush(); err != nil {
 		return nil, err
 	}
 
 	return buff.Bytes(), nil
 }
 
-func (db *InMemory) decodeGob(data []byte) (err error) {
-	db.make()
+func decodeGob(db *InMemory, data []byte) (err error) {
 	buff := bytes.NewBuffer(data)
 	decoder := gob.NewDecoder(bufio.NewReader(buff))
 
-	err = decoder.Decode(&db.hashes)
+	err = decoder.Decode(&db.torrents)
 
 	return
 }

@@ -2,14 +2,12 @@ package pools
 
 import (
 	"github.com/crimist/trakx/bencoding"
-	"github.com/crimist/trakx/tracker/storage"
 )
 
 var (
 	Peerlists4   *Pool[[]byte]
 	Peerlists6   *Pool[[]byte]
 	Dictionaries *Pool[*bencoding.Dictionary]
-	Peers        *Pool[*storage.Peer]
 )
 
 // TODO: create these pools in their respective packages, most of these don't need to be global variables
@@ -38,8 +36,4 @@ func Initialize(numwantLimit int) {
 	}, func(dictionary *bencoding.Dictionary) {
 		dictionary.Reset()
 	})
-
-	Peers = NewPool[*storage.Peer](func() any {
-		return new(storage.Peer)
-	}, nil)
 }

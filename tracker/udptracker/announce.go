@@ -6,13 +6,13 @@ import (
 	"net/netip"
 
 	"github.com/crimist/trakx/pools"
-	"github.com/crimist/trakx/stats"
+	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/tracker/udptracker/udpprotocol"
 	"go.uber.org/zap"
 )
 
 func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
-	stats.Announces.Add(1)
+	tracker.stats.Announces.Add(1)
 
 	if len(data) < minimumAnnounceSize {
 		tracker.sendError(udpAddr, "announce too short", transactionID)
@@ -44,10 +44,10 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 		interval += rand.Int31n(tracker.config.IntervalVariance)
 	}
 
-	seeds, leeches := tracker.peerDB.HashStats(announceRequest.InfoHash)
+	seeds, leeches := tracker.peerDB.TorrentStats(announceRequest.InfoHash)
 
 	if announceRequest.Event == udpprotocol.EventStopped {
-		tracker.peerDB.Drop(announceRequest.InfoHash, announceRequest.PeerID)
+		tracker.peerDB.PeerRemove(announceRequest.InfoHash, announceRequest.PeerID)
 
 		marshalledResp := udpprotocol.AnnounceResponse{
 			Action:        udpprotocol.ActionAnnounce,
@@ -73,9 +73,16 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 		peerComplete = true
 	}
 
-	tracker.peerDB.Save(addrPort.Addr(), announceRequest.Port, peerComplete, announceRequest.InfoHash, announceRequest.PeerID)
+	tracker.peerDB.PeerAdd(announceRequest.InfoHash, announceRequest.PeerID, addrPort.Addr(), announceRequest.Port, peerComplete)
 
-	peers4, peers6 := tracker.peerDB.PeerListBytes(announceRequest.InfoHash, uint(announceRequest.NumWant))
+	var ipversion storage.IPVersion
+	if addrPort.Addr().Is4() {
+		ipversion = storage.IPv4
+	} else {
+		ipversion = storage.IPv6
+	}
+
+	peers4, peers6 := tracker.peerDB.TorrentPeersCompact(announceRequest.InfoHash, uint(announceRequest.NumWant), ipversion)
 
 	marshalledResp := udpprotocol.AnnounceResponse{
 		Action:        udpprotocol.ActionAnnounce,
@@ -85,15 +92,18 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 		Seeders:       int32(seeds),
 	}
 
-	if addrPort.Addr().Is4() {
+	if ipversion == storage.IPv4 {
 		marshalledResp.Peers = peers4
 	} else {
 		marshalledResp.Peers = peers6
 	}
 
 	respBytes, err := marshalledResp.Marshall()
-	pools.Peerlists4.Put(peers4)
-	pools.Peerlists6.Put(peers6)
+	if peers4 != nil {
+		pools.Peerlists4.Put(peers4)
+	} else {
+		pools.Peerlists6.Put(peers6)
+	}
 
 	if err != nil {
 		tracker.sendError(udpAddr, "failed to marshall announce response", announceRequest.TransactionID)

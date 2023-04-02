@@ -1,46 +1,126 @@
 package inmemory
 
 import (
+	"fmt"
+	"math/rand"
 	"testing"
 	"time"
 
-	"github.com/crimist/trakx/config"
+	"github.com/crimist/trakx/stats"
+	"github.com/crimist/trakx/storage"
 )
 
-const (
-	benchHashes     = 150_000
-	benchPeers      = 3
-	benchPeersTotal = benchHashes * benchPeers
-)
-
-func TestCheck(t *testing.T) {
-	var db InMemory
-	if db.Check() != false {
-		t.Error("check() on empty db returned true")
+func TestNewInMemory(t *testing.T) {
+	_, err := NewInMemory(1, nil, "", 1*time.Minute, 1*time.Minute, stats.NewStats(1))
+	if err != nil {
+		t.Fatal("Failed to create database")
 	}
 }
 
-func TestTrim(t *testing.T) {
-	config.Config.DB.Expiry = 0
+func TestTorrents(t *testing.T) {
+	db, err := NewInMemory(1, nil, "", 1*time.Minute, 1*time.Microsecond, stats.NewStats(1))
+	if err != nil {
+		t.Fatal("Failed to create database")
+	}
+	var hash storage.Hash
+	var peerid storage.PeerID
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	db := dbWithHashes(150_000)
-	db.trim()
+	rnd.Read(hash[:])
+	rnd.Read(peerid[:])
+	db.PeerAdd(hash, peerid, testPeerIP, 1234, true)
+	rnd.Read(peerid[:])
+	db.PeerAdd(hash, peerid, testPeerIP, 1234, true)
+	rnd.Read(hash[:])
+	rnd.Read(peerid[:])
+	db.PeerAdd(hash, peerid, testPeerIP, 1234, true)
+	torrents := db.Torrents()
 
-	db, _ = dbWithPeers(200_000)
-	db.trim()
+	if torrents != 2 {
+		t.Errorf("torrents count = %v, want 2", torrents)
+	}
 }
 
-func BenchmarkTrim(b *testing.B) {
-	config.Config.DB.Expiry = -1 * time.Second
+func TestEviction(t *testing.T) {
+	db, err := NewInMemory(1, nil, "", 1*time.Minute, 1*time.Microsecond, stats.NewStats(1))
+	if err != nil {
+		t.Fatal("Failed to create database")
+	}
 
-	b.StopTimer()
-	b.ResetTimer()
+	db.PeerAdd(testTorrentHash1, testPeerID1, testPeerIP, 1234, true)
+	db.PeerAdd(testTorrentHash2, testPeerID1, testPeerIP, 1234, true)
+	time.Sleep(1 * time.Second)
+	db.PeerAdd(testTorrentHash2, testPeerID2, testPeerIP, 1234, true)
+	db.evictExpired(0)
 
-	for i := 0; i < b.N; i++ {
-		peerdb := dbWithHashesAndPeers(benchHashes, benchPeers)
+	_, ok := db.torrents[testTorrentHash1]
+	if ok {
+		t.Error("empty torrent not evicted from database")
+	}
+	_, ok = db.torrents[testTorrentHash2].Peers[testPeerID1]
+	if ok {
+		t.Error("expired peer not evicted from database")
+	}
+	_, ok = db.torrents[testTorrentHash2].Peers[testPeerID2]
+	if !ok {
+		t.Error("unexpired peer evicted from database")
+	}
+}
 
-		b.StartTimer()
-		peerdb.trim()
-		b.StopTimer()
+func BenchmarkEvictionSingle(b *testing.B) {
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	for peers := 1000; peers < 1e7; peers *= 10 {
+		b.Run(fmt.Sprintf("%d", peers), func(b *testing.B) {
+			b.StopTimer()
+			b.ResetTimer()
+
+			db, err := NewInMemory(1, nil, "", 1*time.Hour, 1*time.Hour, stats.NewStats(1))
+			if err != nil {
+				b.Fatal("Failed to create database")
+			}
+			var peerid storage.PeerID
+
+			for n := 0; n < b.N; n++ {
+				for i := 0; i < peers; i++ {
+					rnd.Read(peerid[:])
+					db.PeerAdd(testTorrentHash1, peerid, testPeerIP, 1234, true)
+				}
+
+				b.StartTimer()
+				db.evictExpired(-1)
+				b.StopTimer()
+			}
+		})
+	}
+}
+
+func BenchmarkEvictionMulti(b *testing.B) {
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	for peers := 1000; peers < 1e7; peers *= 10 {
+		b.Run(fmt.Sprintf("%d", peers), func(b *testing.B) {
+			b.StopTimer()
+			b.ResetTimer()
+
+			db, err := NewInMemory(1, nil, "", 1*time.Hour, 1*time.Hour, stats.NewStats(1))
+			if err != nil {
+				b.Fatal("Failed to create database")
+			}
+			var hash storage.Hash
+			var peerid storage.PeerID
+
+			for n := 0; n < b.N; n++ {
+				for i := 0; i < peers; i++ {
+					rnd.Read(peerid[:])
+					rnd.Read(hash[:])
+					db.PeerAdd(hash, peerid, testPeerIP, 1234, true)
+				}
+
+				b.StartTimer()
+				db.evictExpired(-1)
+				b.StopTimer()
+			}
+		})
 	}
 }

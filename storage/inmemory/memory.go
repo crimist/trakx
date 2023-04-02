@@ -8,104 +8,130 @@ import (
 	"sync"
 	"time"
 
-	"github.com/crimist/trakx/config"
+	"github.com/crimist/trakx/pools"
+	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/utils"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
-type PeerMap struct {
-	mutex      sync.RWMutex // can't be embedded (https://github.com/golang/go/issues/5819#issuecomment-250596051)
-	Complete   uint16
-	Incomplete uint16
-	Peers      map[storage.PeerID]*storage.Peer
+const torrentPeerPrealloc = 1
+
+type Torrent struct {
+	mutex   sync.RWMutex // can't be embedded (https://github.com/golang/go/issues/5819#issuecomment-250596051)
+	Seeds   uint16
+	Leeches uint16
+	Peers   map[storage.PeerID]*storage.Peer
 }
 
 type InMemory struct {
-	mutex  sync.RWMutex
-	hashes map[storage.Hash]*PeerMap
+	mutex    sync.RWMutex
+	torrents map[storage.Hash]*Torrent
+	stats    *stats.Statistics
+	peerPool *pools.Pool[*storage.Peer]
 }
 
-func NewInMemory(config storage.Config) (storage.Database, error) {
-	InMemory := InMemory{}
-	return InMemory, nil
-}
-
-func (db *InMemory) Init(persistance storage.Persistance, config storage.Config) error {
-	*db = InMemory{}
-
-	if err := db.backup.Init(db); err != nil {
-		return errors.Wrap(err, "failed to initialize backup")
-	}
-	if err := db.backup.Load(); err != nil {
-		return errors.Wrap(err, "failed to load backup")
+func NewInMemory(initalSize int, persistance PersistanceStrategy, persistanceAddress string, evictionFrequency time.Duration, expirationTime time.Duration, stats *stats.Statistics) (*InMemory, error) {
+	db := &InMemory{
+		stats: stats,
+		peerPool: pools.NewPool[*storage.Peer](func() any {
+			return new(storage.Peer)
+		}, nil),
 	}
 
-	if config.Config.DB.Backup.Frequency > 0 {
-		go utils.RunOn(config.Config.DB.Backup.Frequency, func() {
-			if err := db.backup.Save(); err != nil {
-				zap.L().Info("Failed to backup the database", zap.Error(err))
-			}
+	if persistance != nil {
+		if err := persistance.read(db, persistanceAddress); err != nil {
+			zap.L().Warn("Failed to load database from persistance", zap.Any("persistance", persistance), zap.String("address", persistanceAddress), zap.Error(err))
+			db.torrents = make(map[storage.Hash]*Torrent, initalSize)
+		} else {
+			zap.L().Info("Loaded database from persistance", zap.Any("persistance", persistance), zap.String("address", persistanceAddress), zap.Int("torrents", db.Torrents()))
+		}
+	} else {
+		db.torrents = make(map[storage.Hash]*Torrent, initalSize)
+	}
+
+	// TODO: refactor the stats package
+	db.syncExpvars()
+
+	if evictionFrequency > 0 {
+		go utils.RunOn(evictionFrequency, func() {
+			db.evictExpired(int64(expirationTime.Seconds()))
 		})
 	}
-	if config.Config.DB.Trim > 0 {
-		go utils.RunOn(config.Config.DB.Trim, db.Trim)
-	}
 
-	return nil
+	return db, nil
 }
 
-func (db *InMemory) make() {
-	db.hashes = make(map[storage.Hash]*PeerMap, prealloactedHashes)
+// Torrents returns the number of torrents registered in the database
+func (db *InMemory) Torrents() int {
+	db.mutex.RLock()
+	torrents := len(db.torrents)
+	db.mutex.RUnlock()
+	return torrents
 }
 
-func (db *InMemory) makePeermap(h storage.Hash) (peermap *PeerMap) {
-	// build struct and assign
-	peermap = new(PeerMap)
-	peermap.Peers = make(map[storage.PeerID]*storage.Peer, peerMapPrealloc)
-	db.hashes[h] = peermap
-	return
+func (db *InMemory) createTorrent(h storage.Hash) *Torrent {
+	torrent := new(Torrent)
+	torrent.Peers = make(map[storage.PeerID]*storage.Peer, torrentPeerPrealloc)
+
+	db.mutex.Lock()
+	db.torrents[h] = torrent
+	db.mutex.Unlock()
+
+	return torrent
 }
 
-func (db *InMemory) Backup() storage.Backup {
-	return db.backup
-}
+func (db *InMemory) evictExpired(expirationTime int64) {
+	now := time.Now()
+	zap.L().Info("trimming inmemory database")
 
-func (db *InMemory) Trim() {
-	start := time.Now()
-	zap.L().Info("Trimming database")
-	peers, hashes := db.trim()
-	zap.L().Info("Trimmed database", zap.Int("peers", peers), zap.Int("hashes", hashes), zap.Duration("duration", time.Since(start)))
-}
-
-func (db *InMemory) trim() (peers, hashes int) {
-	now := time.Now().Unix()
-	peerTimeout := int64(config.Config.DB.Expiry.Seconds())
+	trimmedPeers, trimmedTorrents := 0, 0
+	nowUnix := now.Unix()
 
 	db.mutex.RLock()
-	for hash, peermap := range db.hashes {
+	for hash, torrent := range db.torrents {
 		db.mutex.RUnlock()
 
-		peermap.mutex.Lock()
-		for id, peer := range peermap.Peers {
-			if now-peer.LastSeen > peerTimeout {
-				db.delete(peer, peermap, id)
-				peers++
+		torrent.mutex.Lock()
+		for id, peer := range torrent.Peers {
+			if nowUnix-peer.LastSeen > expirationTime {
+				delete(torrent.Peers, id)
+
+				if peer.Complete {
+					torrent.Seeds--
+				} else {
+					torrent.Leeches--
+				}
+
+				if dbStats {
+					if peer.Complete {
+						db.stats.Seeds.Add(-1)
+					} else {
+						db.stats.Leeches.Add(-1)
+					}
+
+					db.stats.IPStats.Lock()
+					db.stats.IPStats.Remove(peer.IP)
+					db.stats.IPStats.Unlock()
+				}
+
+				db.peerPool.Put(peer)
+				trimmedPeers++
 			}
 		}
-		peersize := len(peermap.Peers)
-		peermap.mutex.Unlock()
+		numPeers := len(torrent.Peers)
+		torrent.mutex.Unlock()
 
-		if peersize == 0 {
+		if numPeers == 0 {
 			db.mutex.Lock()
-			delete(db.hashes, hash)
+			delete(db.torrents, hash)
 			db.mutex.Unlock()
-			hashes++
+			trimmedTorrents++
 		}
+
 		db.mutex.RLock()
 	}
 	db.mutex.RUnlock()
 
-	return
+	zap.L().Info("trimmed inmemory database", zap.Int("peers", trimmedPeers), zap.Int("torrents", trimmedTorrents), zap.Duration("elapsed", time.Since(now)))
 }

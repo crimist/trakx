@@ -46,14 +46,16 @@ type Tracker struct {
 	connCache *conncache.ConnectionCache
 	peerDB    storage.Database
 	shutdown  chan struct{}
+	stats     *stats.Statistics
 }
 
-func NewTracker(peerDB storage.Database, connCache *conncache.ConnectionCache, config TrackerConfig) *Tracker {
+func NewTracker(peerDB storage.Database, connCache *conncache.ConnectionCache, stats *stats.Statistics, config TrackerConfig) *Tracker {
 	tracker := Tracker{
 		config:    config,
 		peerDB:    peerDB,
 		connCache: connCache,
 		shutdown:  make(chan struct{}),
+		stats:     stats,
 	}
 
 	return &tracker
@@ -127,7 +129,7 @@ func (tracker *Tracker) ConnectionCount() int {
 }
 
 func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr) {
-	stats.Hits.Add(1)
+	tracker.stats.Hits.Add(1)
 
 	action := udpprotocol.Action(data[11])
 	transactionID := int32(binary.BigEndian.Uint32(data[12:16]))

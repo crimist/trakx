@@ -4,7 +4,6 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/tracker/udptracker/udpprotocol"
 	"github.com/crimist/trakx/utils"
 	"go.uber.org/zap"
@@ -13,7 +12,7 @@ import (
 const maximumScrapeHashes = 74
 
 func (tracker *Tracker) scrape(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
-	stats.Scrapes.Add(1)
+	tracker.stats.Scrapes.Add(1)
 
 	scrape, err := udpprotocol.NewScrapeRequest(data)
 	if err != nil {
@@ -35,16 +34,15 @@ func (tracker *Tracker) scrape(udpAddr *net.UDPAddr, addrPort netip.AddrPort, tr
 
 	for _, hash := range scrape.InfoHashes {
 		if len(hash) != 20 {
-			// TODO: fast string cast
 			tracker.sendError(udpAddr, "hash "+utils.ByteToStringUnsafe(hash[0:7])+" is missized", scrape.TransactionID)
 			zap.L().Debug("client sent scrape with missized hash", zap.Any("hash", hash), zap.Any("scrape", scrape), zap.Any("remote", udpAddr))
 			return
 		}
 
-		complete, incomplete := tracker.peerDB.HashStats(hash)
+		seeds, leeches := tracker.peerDB.TorrentStats(hash)
 		info := udpprotocol.ScrapeResponseInfo{
-			Complete:   int32(complete),
-			Incomplete: int32(incomplete),
+			Complete:   int32(seeds),
+			Incomplete: int32(leeches),
 			Downloaded: -1,
 		}
 		resp.Info = append(resp.Info, info)

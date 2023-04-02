@@ -1,74 +1,112 @@
 package inmemory
 
 import (
-	"net/netip"
+	"fmt"
+	"math/rand"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/crimist/trakx/pools"
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/stats"
+	"github.com/crimist/trakx/storage"
 )
 
-func TestEncodeDecodeBinary(t *testing.T) {
-	var db InMemory
-	db.make()
-	pools.Initialize(10)
-
-	hash := storage.Hash{0x48, 0x61, 0x73, 0x68, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
-	peerid := storage.PeerID{0x49, 0x44, 0x49, 0x44, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
-	peer := storage.Peer{
-		Complete: true,
-		IP:       netip.MustParseAddr("127.0.0.1"),
-		Port:     0x4f50,
-		LastSeen: time.Now().Unix(),
+func TestBinaryCoder(t *testing.T) {
+	db, err := NewInMemory(1, nil, "", 1*time.Minute, 1*time.Minute, stats.NewStats(1))
+	if err != nil {
+		t.Fatal("Failed to create database")
 	}
-	db.Save(peer.IP, peer.Port, peer.Complete, hash, peerid)
+	testPeer := storage.Peer{
+		Complete: true,
+		IP:       testPeerIP,
+		Port:     1234,
+	}
+	db.PeerAdd(testTorrentHash1, testPeerID1, testPeer.IP, testPeer.Port, testPeer.Complete)
 
-	oldhahmap := db.hashes
-	data, err := db.encodeBinary()
+	data, err := encodeBinary(db)
 	if err != nil {
 		t.Fatal("encodeBinary threw error: ", err)
 	}
-	db = InMemory{}
-	if _, _, err := db.decodeBinary(data); err != nil {
+	oldtorrents := db.torrents
+	db, err = NewInMemory(1, nil, "", 1*time.Minute, 1*time.Minute, stats.NewStats(1))
+	if err != nil {
+		t.Fatal("Failed to create database")
+	}
+	if _, _, err = decodeBinary(db, data); err != nil {
 		t.Fatal("decodeBinary threw error: ", err)
 	}
 
-	if _, ok := db.hashes[hash]; !ok {
-		t.Fatal("hashmap not equal, missing hash entry")
+	if _, ok := db.torrents[testTorrentHash1]; !ok {
+		t.Fatal("torrent missing peer")
 	}
-	if oldhahmap[hash].Complete != db.hashes[hash].Complete {
-		t.Fatalf("Complete not equal: should %v, got %v", oldhahmap[hash].Complete, db.hashes[hash].Complete)
+	if db.torrents[testTorrentHash1].Seeds != oldtorrents[testTorrentHash1].Seeds {
+		t.Fatalf("seeds = %v, want %v", db.torrents[testTorrentHash1].Seeds, oldtorrents[testTorrentHash1].Seeds)
 	}
-	if oldhahmap[hash].Incomplete != db.hashes[hash].Incomplete {
-		t.Fatalf("Incomplete not equal: should %v, got %v", oldhahmap[hash].Incomplete, db.hashes[hash].Incomplete)
+	if db.torrents[testTorrentHash1].Leeches != oldtorrents[testTorrentHash1].Leeches {
+		t.Fatalf("leeches = %v, want %v", db.torrents[testTorrentHash1].Leeches, oldtorrents[testTorrentHash1].Leeches)
 	}
-	if !reflect.DeepEqual(oldhahmap[hash].Peers, db.hashes[hash].Peers) {
-		t.Fatalf("Peer not equal: should %v, got %v", oldhahmap[hash].Peers, db.hashes[hash].Peers)
+	if !reflect.DeepEqual(db.torrents[testTorrentHash1].Peers, oldtorrents[testTorrentHash1].Peers) {
+		t.Fatalf("peers = %v, want %v", db.torrents[testTorrentHash1].Peers, oldtorrents[testTorrentHash1].Peers)
 	}
 }
 
-// binary benchmarks
-
 func BenchmarkEncodeBinary(b *testing.B) {
-	db := dbWithHashesAndPeers(benchHashes, benchPeers)
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		db.encodeBinary()
+	for peers := 1000; peers < 1e7; peers *= 10 {
+		b.Run(fmt.Sprintf("%d", peers), func(b *testing.B) {
+			b.StopTimer()
+			b.ResetTimer()
+
+			db, err := NewInMemory(1, nil, "", 1*time.Hour, 1*time.Hour, stats.NewStats(1))
+			if err != nil {
+				b.Fatal("Failed to create database")
+			}
+			var hash storage.Hash
+			var peerid storage.PeerID
+
+			for n := 0; n < b.N; n++ {
+				for i := 0; i < peers; i++ {
+					rnd.Read(peerid[:])
+					rnd.Read(hash[:])
+					db.PeerAdd(hash, peerid, testPeerIP, 1234, true)
+				}
+
+				b.StartTimer()
+				encodeBinary(db)
+				b.StopTimer()
+			}
+		})
 	}
 }
 
 func BenchmarkDecodeBinary(b *testing.B) {
-	db := dbWithHashesAndPeers(benchHashes, benchPeers)
-	buff, err := db.encodeBinary()
-	if err != nil {
-		b.Fatal(err)
-	}
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		db.decodeBinary(buff)
+	for peers := 1000; peers < 1e7; peers *= 10 {
+		b.Run(fmt.Sprintf("%d", peers), func(b *testing.B) {
+			b.StopTimer()
+			b.ResetTimer()
+
+			db, err := NewInMemory(1, nil, "", 1*time.Hour, 1*time.Hour, stats.NewStats(1))
+			if err != nil {
+				b.Fatal("Failed to create database")
+			}
+			var hash storage.Hash
+			var peerid storage.PeerID
+
+			for n := 0; n < b.N; n++ {
+				for i := 0; i < peers; i++ {
+					rnd.Read(peerid[:])
+					rnd.Read(hash[:])
+					db.PeerAdd(hash, peerid, testPeerIP, 1234, true)
+				}
+
+				data, _ := encodeBinary(db)
+				b.StartTimer()
+				decodeBinary(db, data)
+				b.StopTimer()
+			}
+		})
 	}
 }

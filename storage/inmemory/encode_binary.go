@@ -8,51 +8,59 @@ import (
 	"io"
 	"net/netip"
 
-	"github.com/crimist/trakx/pools"
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/storage"
 )
 
-func (db *InMemory) encodeBinary() ([]byte, error) {
+// binary coders are better than gob coders below ~1.5 million peers
+
+func encodeBinary(db *InMemory) ([]byte, error) {
 	var buff bytes.Buffer
 	writer := bufio.NewWriter(&buff)
 
 	db.mutex.RLock()
-	for hash, submap := range db.hashes {
+	for hash, torrent := range db.torrents {
 		db.mutex.RUnlock()
 
-		// write hash and peermap size
+		// hash + number of torrent peers
 		if err := binary.Write(writer, binary.LittleEndian, &hash); err != nil {
 			return nil, err
 		}
-		if err := binary.Write(writer, binary.LittleEndian, uint32(len(submap.Peers))); err != nil {
+		torrent.mutex.RLock()
+		if err := binary.Write(writer, binary.LittleEndian, uint32(len(torrent.Peers))); err != nil {
+			torrent.mutex.RUnlock()
 			return nil, err
 		}
 
-		// write peerid and peer
-		submap.mutex.RLock()
-		for id, peer := range submap.Peers {
+		// peerid + peer
+		for id, peer := range torrent.Peers {
 			if err := binary.Write(writer, binary.LittleEndian, &id); err != nil {
+				torrent.mutex.RUnlock()
 				return nil, err
 			}
 
 			addrSlice := peer.IP.AsSlice()
 			if err := binary.Write(writer, binary.LittleEndian, peer.Complete); err != nil {
+				torrent.mutex.RUnlock()
 				return nil, err
 			}
 			if err := binary.Write(writer, binary.LittleEndian, int32(len(addrSlice))); err != nil {
+				torrent.mutex.RUnlock()
 				return nil, err
 			}
 			if err := binary.Write(writer, binary.LittleEndian, addrSlice); err != nil {
+				torrent.mutex.RUnlock()
 				return nil, err
 			}
 			if err := binary.Write(writer, binary.LittleEndian, peer.Port); err != nil {
+				torrent.mutex.RUnlock()
 				return nil, err
 			}
 			if err := binary.Write(writer, binary.LittleEndian, peer.LastSeen); err != nil {
+				torrent.mutex.RUnlock()
 				return nil, err
 			}
 		}
-		submap.mutex.RUnlock()
+		torrent.mutex.RUnlock()
 
 		db.mutex.RLock()
 	}
@@ -65,12 +73,11 @@ func (db *InMemory) encodeBinary() ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func (db *InMemory) decodeBinary(data []byte) (peers, hashes int, err error) {
-	db.make()
+func decodeBinary(db *InMemory, data []byte) (numPeers, numTorrents int, err error) {
 	reader := bufio.NewReader(bytes.NewBuffer(data))
 
 	for {
-		// decode hash and number of peers
+		// decode hash + number of torrent peers
 		var hash storage.Hash
 		err = binary.Read(reader, binary.LittleEndian, &hash)
 		if errors.Is(err, io.EOF) {
@@ -80,21 +87,21 @@ func (db *InMemory) decodeBinary(data []byte) (peers, hashes int, err error) {
 			return
 		}
 
-		var count uint32
-		var complete uint16
-		peermap := db.makePeermap(hash)
-		if err = binary.Read(reader, binary.LittleEndian, &count); err != nil {
+		var peerCount uint32
+		var seeds uint16
+		torrent := db.createTorrent(hash)
+		if err = binary.Read(reader, binary.LittleEndian, &peerCount); err != nil {
 			return
 		}
 
 		// decode peerid and peers
-		for ; count > 0; count-- {
+		for ; peerCount > 0; peerCount-- {
 			var id storage.PeerID
 			if err = binary.Read(reader, binary.LittleEndian, &id); err != nil {
 				return
 			}
 
-			peer := pools.Peers.Get()
+			peer := db.peerPool.Get()
 			var addrSliceLen int32
 			if err = binary.Read(reader, binary.LittleEndian, &peer.Complete); err != nil {
 				return
@@ -118,19 +125,18 @@ func (db *InMemory) decodeBinary(data []byte) (peers, hashes int, err error) {
 			if err = binary.Read(reader, binary.LittleEndian, &peer.LastSeen); err != nil {
 				return
 			}
-			peermap.Peers[id] = peer
-			peers++
+			torrent.Peers[id] = peer
 
+			numPeers++
 			if peer.Complete {
-				complete++
+				seeds++
 			}
 		}
 
-		// set complete and incomplete
-		peermap.Complete = complete
-		peermap.Incomplete = uint16(len(peermap.Peers)) - complete
+		torrent.Seeds = seeds
+		torrent.Leeches = uint16(len(torrent.Peers)) - seeds
 
-		hashes++
+		numTorrents++
 	}
 
 	return

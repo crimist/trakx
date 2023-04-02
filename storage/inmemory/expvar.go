@@ -1,21 +1,12 @@
 package inmemory
 
-import (
-	"github.com/crimist/trakx/tracker/stats"
-	"github.com/pkg/errors"
-)
-
-func (db *InMemory) SyncExpvars() error {
-	if ok := db.Check(); !ok {
-		return errors.New("driver not initiated before SyncExpvars")
-	}
-
+func (db *InMemory) syncExpvars() {
 	var seeds, leeches int64
 
 	// Called on main thread before thread/queue dispatch no locking needed
-	for _, peermap := range db.hashes {
+	for _, peermap := range db.torrents {
 		for _, peer := range peermap.Peers {
-			stats.IPStats.Inc(peer.IP)
+			db.stats.IPStats.Inc(peer.IP)
 			if peer.Complete {
 				seeds++
 			} else {
@@ -24,8 +15,6 @@ func (db *InMemory) SyncExpvars() error {
 		}
 	}
 
-	stats.Seeds.Store(seeds)
-	stats.Leeches.Store(leeches)
-
-	return nil
+	db.stats.Seeds.Store(seeds)
+	db.stats.Leeches.Store(leeches)
 }

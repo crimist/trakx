@@ -1,149 +1,174 @@
 package inmemory
 
 import (
+	"fmt"
+	"math/rand"
 	"net/netip"
 	"testing"
 	"time"
 
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/stats"
+	"github.com/crimist/trakx/storage"
 )
 
 var (
-	testIP   = netip.AddrFrom4([4]byte{1, 2, 3, 4})
-	testHash = storage.Hash([20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
-	testId   = storage.PeerID([20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+	testTorrentHash1 = storage.Hash([20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+	testTorrentHash2 = storage.Hash([20]byte{1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+	testPeerIP       = netip.AddrFrom4([4]byte{1, 2, 3, 4})
+	testPeerID1      = storage.PeerID([20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+	testPeerID2      = storage.PeerID([20]byte{1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
 )
 
-func TestSaveDrop(t *testing.T) {
-	var db InMemory
-	db.make()
-
-	peerWrite := storage.Peer{
-		Complete: true,
-		IP:       testIP,
-		Port:     4321,
+func TestPeerAdd(t *testing.T) {
+	db, err := NewInMemory(1, nil, "", 1*time.Minute, 1*time.Minute, stats.NewStats(1))
+	if err != nil {
+		t.Fatal("Failed to create database")
 	}
-	db.Save(peerWrite.IP, peerWrite.Port, peerWrite.Complete, testHash, testId)
-	peerRead, ok := db.hashes[testHash].Peers[testId]
+	testPeer := storage.Peer{
+		Complete: true,
+		IP:       testPeerIP,
+		Port:     1234,
+	}
 
+	nowUnix := time.Now().Unix()
+	db.PeerAdd(testTorrentHash1, testPeerID1, testPeer.IP, testPeer.Port, testPeer.Complete)
+
+	dbPeer, ok := db.torrents[testTorrentHash1].Peers[testPeerID1]
 	if !ok {
-		t.Error("Failed to read peer from database map")
+		t.Error("peer not added to database")
 	}
-	if peerRead.Complete != peerWrite.Complete {
-		t.Errorf("Peer complete not equal %v:%v", peerRead.Complete, peerWrite.Complete)
+	if dbPeer.Complete != testPeer.Complete {
+		t.Errorf("peer complete = %v, want %v", dbPeer.Complete, testPeer.Complete)
 	}
-	if peerRead.IP != peerWrite.IP {
-		t.Errorf("Peer IP not equal %v:%v", peerRead.IP, peerWrite.IP)
+	if dbPeer.IP != testPeer.IP {
+		t.Errorf("peer ip = %v, want %v", dbPeer.IP, testPeer.IP)
 	}
-	if peerRead.Port != peerWrite.Port {
-		t.Errorf("Peer port not equal %v:%v", peerRead.Port, peerWrite.Port)
+	if dbPeer.Port != testPeer.Port {
+		t.Errorf("peer port = %v, want %v", dbPeer.Port, testPeer.Port)
 	}
-	if peerRead.LastSeen != time.Now().Unix() {
-		t.Errorf("Peer LastSeen not correct %v:%v", peerRead.LastSeen, time.Now().Unix())
+	if dbPeer.LastSeen != nowUnix {
+		t.Errorf("peer lastseen = %v, want %v", dbPeer.LastSeen, nowUnix)
+	}
+}
+
+func TestPeerRemove(t *testing.T) {
+	db, err := NewInMemory(1, nil, "", 1*time.Minute, 1*time.Minute, stats.NewStats(1))
+	if err != nil {
+		t.Fatal("Failed to create database")
+	}
+	testPeer := storage.Peer{
+		Complete: true,
+		IP:       testPeerIP,
+		Port:     1234,
 	}
 
-	db.Drop(testHash, testId)
-	_, ok = db.hashes[testHash].Peers[testId]
+	db.PeerAdd(testTorrentHash1, testPeerID1, testPeer.IP, testPeer.Port, testPeer.Complete)
+	db.PeerRemove(testTorrentHash1, testPeerID1)
 
+	_, ok := db.torrents[testTorrentHash1].Peers[testPeerID1]
 	if ok {
-		t.Error("Failed top drop peer from database")
+		t.Error("peer not removed from database")
 	}
 }
 
-func benchmarkSave(b *testing.B, db *InMemory, peer storage.Peer, hash storage.Hash, peerid storage.PeerID) {
-	for n := 0; n < b.N; n++ {
-		db.Save(peer.IP, peer.Port, peer.Complete, hash, peerid)
+func BenchmarkPeerAddSingle(b *testing.B) {
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	db, err := NewInMemory(1, nil, "", 1*time.Minute, 1*time.Minute, stats.NewStats(1))
+	if err != nil {
+		b.Fatal("Failed to create database")
 	}
-}
-
-func BenchmarkSave(b *testing.B) {
-	var db InMemory
-	db.make()
-
-	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := storage.Hash(bytes)
-	peerid := storage.PeerID(bytes)
-	peer := storage.Peer{
+	benchPeer := storage.Peer{
 		Complete: true,
-		IP:       testIP,
-		Port:     4321,
-		LastSeen: 1234567890,
+		IP:       testPeerIP,
+		Port:     1234,
 	}
+	var peerid storage.PeerID
 
 	b.ResetTimer()
-	benchmarkSave(b, &db, peer, hash, peerid)
-}
-
-func benchmarkDrop(b *testing.B, db *InMemory, hash storage.Hash, peerid storage.PeerID) {
 	for n := 0; n < b.N; n++ {
-		db.Drop(hash, peerid)
+		rnd.Read(peerid[:])
+		db.PeerAdd(testTorrentHash1, peerid, benchPeer.IP, benchPeer.Port, benchPeer.Complete)
 	}
 }
 
-func BenchmarkDrop(b *testing.B) {
-	var db InMemory
-	db.make()
+func BenchmarkPeerAddSingleParallell(b *testing.B) {
+	for routines := 1; routines < 1000; routines *= 10 {
+		b.Run(fmt.Sprintf("%d", routines), func(b *testing.B) {
+			db, err := NewInMemory(1, nil, "", 1*time.Minute, 1*time.Minute, stats.NewStats(1))
+			if err != nil {
+				b.Fatal("Failed to create database")
+			}
+			benchPeer := storage.Peer{
+				Complete: true,
+				IP:       testPeerIP,
+				Port:     1234,
+			}
 
-	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := storage.Hash(bytes)
-	peerid := storage.PeerID(bytes)
+			b.SetParallelism(routines)
+			b.ResetTimer()
+			b.RunParallel(func(pb *testing.PB) {
+				rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+				var peerid storage.PeerID
 
-	b.ResetTimer()
-	benchmarkDrop(b, &db, hash, peerid)
+				for pb.Next() {
+					rnd.Read(peerid[:])
+					db.PeerAdd(testTorrentHash1, peerid, benchPeer.IP, benchPeer.Port, benchPeer.Complete)
+				}
+			})
+		})
+	}
 }
 
-func benchmarkSaveDrop(b *testing.B, db *InMemory, peer storage.Peer, hash storage.Hash, peerid storage.PeerID) {
+func BenchmarkPeerAddMulti(b *testing.B) {
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	db, err := NewInMemory(1, nil, "", 1*time.Minute, 1*time.Minute, stats.NewStats(1))
+	if err != nil {
+		b.Fatal("Failed to create database")
+	}
+	benchPeer := storage.Peer{
+		Complete: true,
+		IP:       testPeerIP,
+		Port:     1234,
+	}
+	var peerid storage.PeerID
+	var hash storage.Hash
+
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		db.Save(peer.IP, peer.Port, peer.Complete, hash, peerid)
-		db.Drop(hash, peerid)
+		rnd.Read(peerid[:])
+		rnd.Read(hash[:])
+		db.PeerAdd(hash, peerid, benchPeer.IP, benchPeer.Port, benchPeer.Complete)
 	}
 }
 
-func BenchmarkSaveDrop(b *testing.B) {
-	var db InMemory
-	db.make()
+func BenchmarkPeerAddMultiParallell(b *testing.B) {
+	for routines := 1; routines < 1000; routines *= 10 {
+		b.Run(fmt.Sprintf("%d", routines), func(b *testing.B) {
+			db, err := NewInMemory(1, nil, "", 1*time.Minute, 1*time.Minute, stats.NewStats(1))
+			if err != nil {
+				b.Fatal("Failed to create database")
+			}
+			benchPeer := storage.Peer{
+				Complete: true,
+				IP:       testPeerIP,
+				Port:     1234,
+			}
 
-	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := storage.Hash(bytes)
-	peerid := storage.PeerID(bytes)
-	peer := storage.Peer{
-		Complete: true,
-		IP:       testIP,
-		Port:     4321,
-		LastSeen: 1234567890,
+			b.SetParallelism(routines)
+			b.ResetTimer()
+			b.RunParallel(func(pb *testing.PB) {
+				rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+				var peerid storage.PeerID
+				var hash storage.Hash
+
+				for pb.Next() {
+					rnd.Read(peerid[:])
+					rnd.Read(hash[:])
+					db.PeerAdd(hash, peerid, benchPeer.IP, benchPeer.Port, benchPeer.Complete)
+				}
+			})
+		})
 	}
-
-	b.ResetTimer()
-	benchmarkSaveDrop(b, &db, peer, hash, peerid)
 }
-
-func benchmarkSaveDropParallel(b *testing.B, routines int) {
-	var db InMemory
-	db.make()
-
-	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	hash := storage.Hash(bytes)
-	peerid := storage.PeerID(bytes)
-	peer := storage.Peer{
-		Complete: true,
-		IP:       testIP,
-		Port:     4321,
-		LastSeen: 1234567890,
-	}
-
-	b.SetParallelism(routines)
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			db.Save(peer.IP, peer.Port, peer.Complete, hash, peerid)
-			db.Drop(hash, peerid)
-		}
-	})
-}
-
-func BenchmarkSaveDropParallel16(b *testing.B)  { benchmarkSaveDropParallel(b, 16) }
-func BenchmarkSaveDropParallel32(b *testing.B)  { benchmarkSaveDropParallel(b, 32) }
-func BenchmarkSaveDropParallel64(b *testing.B)  { benchmarkSaveDropParallel(b, 64) }
-func BenchmarkSaveDropParallel128(b *testing.B) { benchmarkSaveDropParallel(b, 128) }
-func BenchmarkSaveDropParallel256(b *testing.B) { benchmarkSaveDropParallel(b, 256) }
-func BenchmarkSaveDropParallel512(b *testing.B) { benchmarkSaveDropParallel(b, 512) }

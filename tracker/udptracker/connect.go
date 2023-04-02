@@ -5,13 +5,12 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/tracker/udptracker/udpprotocol"
 	"go.uber.org/zap"
 )
 
 func (tracker *Tracker) connect(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
-	stats.Connects.Add(1)
+	tracker.stats.Connects.Add(1)
 
 	connectRequest, err := udpprotocol.NewConnectRequest(data)
 	if err != nil {

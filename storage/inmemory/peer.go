@@ -4,156 +4,119 @@ import (
 	"net/netip"
 	"time"
 
-	"github.com/crimist/trakx/pools"
-	"github.com/crimist/trakx/tracker/stats"
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/storage"
 )
 
-func (memoryDb *InMemory) Save(ip netip.Addr, port uint16, complete bool, hash storage.Hash, id storage.PeerID) {
-	// get/create the map
-	memoryDb.mutex.RLock()
-	peermap, ok := memoryDb.hashes[hash]
-	memoryDb.mutex.RUnlock()
-
-	// if submap doesn't exist create it
-	if !ok {
-		memoryDb.mutex.Lock()
-		peermap = memoryDb.makePeermap(hash)
-		memoryDb.mutex.Unlock()
+func (db *InMemory) PeerAdd(hash storage.Hash, id storage.PeerID, ip netip.Addr, port uint16, complete bool) {
+	db.mutex.RLock()
+	torrent, torrentExists := db.torrents[hash]
+	db.mutex.RUnlock()
+	if !torrentExists {
+		torrent = db.createTorrent(hash)
 	}
 
-	// get peer
-	peermap.mutex.RLock()
-	peer, peerExists := peermap.Peers[id]
-	peermap.mutex.RUnlock()
+	torrent.mutex.RLock()
+	peer, peerExists := torrent.Peers[id]
+	torrent.mutex.RUnlock()
 
-	peermap.mutex.Lock()
-	// if peer does not exist then create
 	if !peerExists {
-		peer = pools.Peers.Get()
-		peermap.Peers[id] = peer
+		peer = db.peerPool.Get()
+		torrent.mutex.Lock()
+		torrent.Peers[id] = peer
+		torrent.mutex.Unlock()
 	}
 
-	// update peermap completion counts
+	// TODO: test if this claim of performance is true
 	// raw increment is 19x faster than atomic so we might as well just wrap it in the mutex
+	torrent.mutex.Lock()
 	if peerExists {
 		if !peer.Complete && complete {
-			peermap.Incomplete--
-			peermap.Complete++
+			torrent.Leeches--
+			torrent.Seeds++
 		} else if peer.Complete && !complete {
-			peermap.Complete--
-			peermap.Incomplete++
+			torrent.Seeds--
+			torrent.Leeches++
 		}
 	} else {
 		if complete {
-			peermap.Complete++
+			torrent.Seeds++
 		} else {
-			peermap.Incomplete++
+			torrent.Leeches++
 		}
 	}
-	peermap.mutex.Unlock()
+	torrent.mutex.Unlock()
 
 	// update metrics
-	if !fast {
+	if dbStats {
 		if peerExists {
-			// They completed
 			if !peer.Complete && complete {
-				stats.Leeches.Add(-1)
-				stats.Seeds.Add(1)
-			} else if peer.Complete && !complete { // They uncompleted?
-				stats.Seeds.Add(-1)
-				stats.Leeches.Add(1)
+				db.stats.Leeches.Add(-1)
+				db.stats.Seeds.Add(1)
+			} else if peer.Complete && !complete {
+				db.stats.Seeds.Add(-1)
+				db.stats.Leeches.Add(1)
 			}
-			// IP changed
 			if peer.IP != ip {
-				stats.IPStats.Lock()
-				stats.IPStats.Remove(peer.IP)
-				stats.IPStats.Inc(ip)
-				stats.IPStats.Unlock()
+				db.stats.IPStats.Lock()
+				db.stats.IPStats.Remove(peer.IP)
+				db.stats.IPStats.Inc(ip)
+				db.stats.IPStats.Unlock()
 			}
 		} else {
-			stats.IPStats.Lock()
-			stats.IPStats.Inc(ip)
-			stats.IPStats.Unlock()
+			db.stats.IPStats.Lock()
+			db.stats.IPStats.Inc(ip)
+			db.stats.IPStats.Unlock()
 
 			if complete {
-				stats.Seeds.Add(1)
+				db.stats.Seeds.Add(1)
 			} else {
-				stats.Leeches.Add(1)
+				db.stats.Leeches.Add(1)
 			}
 		}
 	}
 
-	// update peer
 	peer.Complete = complete
 	peer.IP = ip
 	peer.Port = port
 	peer.LastSeen = time.Now().Unix()
 }
 
-// delete is similar to drop but doesn't lock
-func (db *InMemory) delete(peer *storage.Peer, peermap *PeerMap, id storage.PeerID) {
-	delete(peermap.Peers, id)
-
-	if peer.Complete {
-		peermap.Complete--
-	} else {
-		peermap.Incomplete--
-	}
-
-	if !fast {
-		if peer.Complete {
-			stats.Seeds.Add(-1)
-		} else {
-			stats.Leeches.Add(-1)
-		}
-
-		stats.IPStats.Lock()
-		stats.IPStats.Remove(peer.IP)
-		stats.IPStats.Unlock()
-	}
-
-	pools.Peers.Put(peer)
-}
-
-// Drop deletes peer
-func (db *InMemory) Drop(hash storage.Hash, id storage.PeerID) {
-	// get the peermap
+// PeerRemove removes the given peer with id from the torrent with hash
+func (db *InMemory) PeerRemove(hash storage.Hash, id storage.PeerID) {
 	db.mutex.RLock()
-	peermap, ok := db.hashes[hash]
+	torrent, torrentExists := db.torrents[hash]
 	db.mutex.RUnlock()
-	if !ok {
+	if !torrentExists {
 		return
 	}
 
-	// get the peer and remove it
-	peermap.mutex.Lock()
-	peer, ok := peermap.Peers[id]
-	if !ok {
-		peermap.mutex.Unlock()
+	torrent.mutex.RLock()
+	peer, peerExists := torrent.Peers[id]
+	torrent.mutex.RUnlock()
+	if !peerExists {
 		return
 	}
-	delete(peermap.Peers, id)
 
+	torrent.mutex.Lock()
+	delete(torrent.Peers, id)
 	if peer.Complete {
-		peermap.Complete--
+		torrent.Seeds--
 	} else {
-		peermap.Incomplete--
+		torrent.Leeches--
 	}
-	peermap.mutex.Unlock()
+	torrent.mutex.Unlock()
 
-	if !fast {
+	if dbStats {
 		if peer.Complete {
-			stats.Seeds.Add(-1)
+			db.stats.Seeds.Add(-1)
 		} else {
-			stats.Leeches.Add(-1)
+			db.stats.Leeches.Add(-1)
 		}
 
-		stats.IPStats.Lock()
-		stats.IPStats.Remove(peer.IP)
-		stats.IPStats.Unlock()
+		db.stats.IPStats.Lock()
+		db.stats.IPStats.Remove(peer.IP)
+		db.stats.IPStats.Unlock()
 	}
 
-	// free the peer back to the pool
-	pools.Peers.Put(peer)
+	db.peerPool.Put(peer)
 }
