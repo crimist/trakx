@@ -11,8 +11,8 @@ import (
 	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/stats"
+	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/tracker/http"
-	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp"
 	"go.uber.org/zap"
 

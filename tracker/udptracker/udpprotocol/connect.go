@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	UDPTrackerMagic = 0x41727101980
+	ProtocolMagic = 0x41727101980
 )
 
 // UDP tracker connect request

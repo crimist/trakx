@@ -7,12 +7,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
 )
 
 func TestGobCoder(t *testing.T) {
-	db, err := NewInMemory(1, nil, "", 1*time.Minute, 1*time.Minute, stats.NewStats(1))
+	db, err := NewInMemory(Config{
+		InitalSize:         1,
+		Persistance:        nil,
+		PersistanceAddress: "",
+		EvictionFrequency:  1 * time.Minute,
+		ExpirationTime:     1 * time.Minute,
+		Stats:              nil,
+	})
 	if err != nil {
 		t.Fatal("Failed to create database")
 	}
@@ -28,7 +34,14 @@ func TestGobCoder(t *testing.T) {
 		t.Fatal("encodeGob threw error: ", err)
 	}
 	oldtorrents := db.torrents
-	db, err = NewInMemory(1, nil, "", 1*time.Minute, 1*time.Minute, stats.NewStats(1))
+	db, err = NewInMemory(Config{
+		InitalSize:         1,
+		Persistance:        nil,
+		PersistanceAddress: "",
+		EvictionFrequency:  1 * time.Minute,
+		ExpirationTime:     1 * time.Minute,
+		Stats:              nil,
+	})
 	if err != nil {
 		t.Fatal("Failed to create database")
 	}
@@ -58,7 +71,14 @@ func BenchmarkEncodeGob(b *testing.B) {
 			b.StopTimer()
 			b.ResetTimer()
 
-			db, err := NewInMemory(1, nil, "", 1*time.Hour, 1*time.Hour, stats.NewStats(1))
+			db, err := NewInMemory(Config{
+				InitalSize:         1,
+				Persistance:        nil,
+				PersistanceAddress: "",
+				EvictionFrequency:  1 * time.Hour,
+				ExpirationTime:     1 * time.Hour,
+				Stats:              nil,
+			})
 			if err != nil {
 				b.Fatal("Failed to create database")
 			}
@@ -88,7 +108,14 @@ func BenchmarkDecodeGob(b *testing.B) {
 			b.StopTimer()
 			b.ResetTimer()
 
-			db, err := NewInMemory(1, nil, "", 1*time.Hour, 1*time.Hour, stats.NewStats(1))
+			db, err := NewInMemory(Config{
+				InitalSize:         1,
+				Persistance:        nil,
+				PersistanceAddress: "",
+				EvictionFrequency:  1 * time.Hour,
+				ExpirationTime:     1 * time.Hour,
+				Stats:              nil,
+			})
 			if err != nil {
 				b.Fatal("Failed to create database")
 			}

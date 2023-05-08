@@ -12,7 +12,9 @@ import (
 const maximumScrapeHashes = 74
 
 func (tracker *Tracker) scrape(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
-	tracker.stats.Scrapes.Add(1)
+	if tracker.stats != nil {
+		tracker.stats.Scrapes.Add(1)
+	}
 
 	scrape, err := udpprotocol.NewScrapeRequest(data)
 	if err != nil {

@@ -10,7 +10,9 @@ import (
 )
 
 func (tracker *Tracker) connect(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
-	tracker.stats.Connects.Add(1)
+	if tracker.stats != nil {
+		tracker.stats.Connects.Add(1)
+	}
 
 	connectRequest, err := udpprotocol.NewConnectRequest(data)
 	if err != nil {

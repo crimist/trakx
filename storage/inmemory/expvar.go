@@ -6,7 +6,9 @@ func (db *InMemory) syncExpvars() {
 	// Called on main thread before thread/queue dispatch no locking needed
 	for _, peermap := range db.torrents {
 		for _, peer := range peermap.Peers {
-			db.stats.IPStats.Inc(peer.IP)
+			if dbStats && db.stats != nil {
+				db.stats.IPStats.Inc(peer.IP)
+			}
 			if peer.Complete {
 				seeds++
 			} else {
@@ -15,6 +17,8 @@ func (db *InMemory) syncExpvars() {
 		}
 	}
 
-	db.stats.Seeds.Store(seeds)
-	db.stats.Leeches.Store(leeches)
+	if dbStats && db.stats != nil {
+		db.stats.Seeds.Store(seeds)
+		db.stats.Leeches.Store(leeches)
+	}
 }

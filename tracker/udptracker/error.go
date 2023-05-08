@@ -8,7 +8,9 @@ import (
 )
 
 func (tracker *Tracker) sendError(remote *net.UDPAddr, message string, TransactionID int32) {
-	tracker.stats.ServerErrors.Add(1)
+	if tracker.stats != nil {
+		tracker.stats.ServerErrors.Add(1)
+	}
 
 	protoError := udpprotocol.ErrorResponse{
 		Action:        udpprotocol.ActionError,

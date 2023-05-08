@@ -1,22 +1,54 @@
 package udptracker
 
 import (
+	"fmt"
+	"net"
 	"testing"
-	"time"
 
-	"github.com/crimist/trakx/storage"
-	"github.com/crimist/trakx/storage/inmemory"
-	"github.com/crimist/trakx/tracker/udptracker/conncache"
+	"github.com/crimist/trakx/tracker/udptracker/udpprotocol"
+	"github.com/davecgh/go-spew/spew"
 )
 
 // TODO: resume here, writing tests for UDP tracker
-// need to refactor the peer database stuff to be able to use it
 
 func TestConnect(t *testing.T) {
-	peerDB, err := inmemory.NewInMemory(1, nil, storage.Config{})
+	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", testAddress, testPort))
 	if err != nil {
-		t.Error("failed to create database", err)
+		t.Fatal("Error resolving UDP address:", err.Error())
 	}
-	connCache := conncache.NewConnectionCache(1, 1*time.Minute, 1*time.Minute, "")
-	NewTracker(peerDB, connCache, TrackerConfig{})
+	conn, err := net.DialUDP("udp", nil, serverAddr)
+	if err != nil {
+		t.Fatal("Error connecting to UDP server", err.Error())
+	}
+	defer conn.Close()
+
+	connectReq := udpprotocol.ConnectRequest{
+		ProtcolID:     udpprotocol.ProtocolMagic,
+		Action:        udpprotocol.ActionConnect,
+		TransactionID: 0x1337,
+	}
+	data, err := connectReq.Marshall()
+	if err != nil {
+		t.Fatal("Error marshalling connect request:", err.Error())
+	}
+	_, err = conn.Write(data)
+	if err != nil {
+		t.Fatal("Error sending message to UDP server", err.Error())
+	}
+
+	data = make([]byte, 1024)
+	conn.Read(data)
+	connectResp, err := udpprotocol.NewConnectResponse(data)
+	if err != nil {
+		t.Fatal("Error unmarshalling connect response:", err.Error())
+	}
+
+	if connectResp.Action != udpprotocol.ActionConnect {
+		t.Error("Expected action = 0; got", connectResp.Action)
+	}
+	if connectResp.TransactionID != 0x1337 {
+		t.Error("Expected transaction ID = 0x1337; got", connectResp.TransactionID)
+	}
+
+	spew.Dump(connectResp)
 }

@@ -12,7 +12,9 @@ import (
 )
 
 func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
-	tracker.stats.Announces.Add(1)
+	if tracker.stats != nil {
+		tracker.stats.Announces.Add(1)
+	}
 
 	if len(data) < minimumAnnounceSize {
 		tracker.sendError(udpAddr, "announce too short", transactionID)

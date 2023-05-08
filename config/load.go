@@ -93,9 +93,7 @@ func Load() (*Configuration, error) {
 	conf.LogLevel = LogLevel(strings.ToLower(string(conf.LogLevel)))
 	conf.HTTP.Mode = strings.ToLower(conf.HTTP.Mode)
 
-	if conf.LogLevel.Debug() {
-		cfg.Development = true
-	} else {
+	if !conf.LogLevel.Debug() {
 		cfg.Development = false
 	}
 

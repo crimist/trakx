@@ -47,7 +47,7 @@ func (db *InMemory) PeerAdd(hash storage.Hash, id storage.PeerID, ip netip.Addr,
 	torrent.mutex.Unlock()
 
 	// update metrics
-	if dbStats {
+	if dbStats && db.stats != nil {
 		if peerExists {
 			if !peer.Complete && complete {
 				db.stats.Leeches.Add(-1)
@@ -106,7 +106,7 @@ func (db *InMemory) PeerRemove(hash storage.Hash, id storage.PeerID) {
 	}
 	torrent.mutex.Unlock()
 
-	if dbStats {
+	if dbStats && db.stats != nil {
 		if peer.Complete {
 			db.stats.Seeds.Add(-1)
 		} else {

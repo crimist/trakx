@@ -129,7 +129,9 @@ func (tracker *Tracker) ConnectionCount() int {
 }
 
 func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr) {
-	tracker.stats.Hits.Add(1)
+	if tracker.stats != nil {
+		tracker.stats.Hits.Add(1)
+	}
 
 	action := udpprotocol.Action(data[11])
 	transactionID := int32(binary.BigEndian.Uint32(data[12:16]))

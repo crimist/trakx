@@ -31,31 +31,31 @@ type InMemory struct {
 	peerPool *pools.Pool[*storage.Peer]
 }
 
-func NewInMemory(initalSize int, persistance PersistanceStrategy, persistanceAddress string, evictionFrequency time.Duration, expirationTime time.Duration, stats *stats.Statistics) (*InMemory, error) {
+func NewInMemory(config Config) (*InMemory, error) {
 	db := &InMemory{
-		stats: stats,
+		stats: config.Stats,
 		peerPool: pools.NewPool[*storage.Peer](func() any {
 			return new(storage.Peer)
 		}, nil),
 	}
 
-	if persistance != nil {
-		if err := persistance.read(db, persistanceAddress); err != nil {
-			zap.L().Warn("Failed to load database from persistance", zap.Any("persistance", persistance), zap.String("address", persistanceAddress), zap.Error(err))
-			db.torrents = make(map[storage.Hash]*Torrent, initalSize)
+	if config.Persistance != nil {
+		if err := config.Persistance.read(db, config.PersistanceAddress); err != nil {
+			zap.L().Warn("Failed to load database from persistance", zap.Any("persistance", config.Persistance), zap.String("address", config.PersistanceAddress), zap.Error(err))
+			db.torrents = make(map[storage.Hash]*Torrent, config.InitalSize)
 		} else {
-			zap.L().Info("Loaded database from persistance", zap.Any("persistance", persistance), zap.String("address", persistanceAddress), zap.Int("torrents", db.Torrents()))
+			zap.L().Info("Loaded database from persistance", zap.Any("persistance", config.Persistance), zap.String("address", config.PersistanceAddress), zap.Int("torrents", db.Torrents()))
 		}
 	} else {
-		db.torrents = make(map[storage.Hash]*Torrent, initalSize)
+		db.torrents = make(map[storage.Hash]*Torrent, config.InitalSize)
 	}
 
 	// TODO: refactor the stats package
 	db.syncExpvars()
 
-	if evictionFrequency > 0 {
-		go utils.RunOn(evictionFrequency, func() {
-			db.evictExpired(int64(expirationTime.Seconds()))
+	if config.EvictionFrequency > 0 {
+		go utils.RunOn(config.EvictionFrequency, func() {
+			db.evictExpired(int64(config.ExpirationTime.Seconds()))
 		})
 	}
 
@@ -103,7 +103,7 @@ func (db *InMemory) evictExpired(expirationTime int64) {
 					torrent.Leeches--
 				}
 
-				if dbStats {
+				if dbStats && db.stats != nil {
 					if peer.Complete {
 						db.stats.Seeds.Add(-1)
 					} else {
