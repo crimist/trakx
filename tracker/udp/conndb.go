@@ -5,14 +5,20 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/gob"
+	"io/ioutil"
 	"net/netip"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/crimist/trakx/tracker/config"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+)
+
+const (
+	connectionInfoSize = 16 // int64 + int64
+	addrPortSize       = 18 // netip.AddrPort
+	entrySize          = connectionInfoSize + addrPortSize
 )
 
 type connectionInfo struct {
@@ -92,7 +98,7 @@ func (connDb *connectionDatabase) writeToFile(path string) error {
 		return errors.Wrap(err, "failed to marshall connection database")
 	}
 
-	if err := os.WriteFile(path, encoded, 0644); err != nil {
+	if err := ioutil.WriteFile(path, encoded, 0644); err != nil {
 		return errors.Wrap(err, "failed to write file")
 	}
 
@@ -105,7 +111,7 @@ func (db *connectionDatabase) loadFromFile(path string) error {
 	config.Logger.Info("Loading connection database")
 	start := time.Now()
 
-	data, err := os.ReadFile(path)
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to read connection database file from disk")
 	}
