@@ -5,7 +5,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/crimist/trakx/config"
+	"github.com/crimist/trakx/tracker/config"
 	"go.uber.org/zap"
 )
 

@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/tracker"
+	"github.com/crimist/trakx/tracker/config"
 	udpprotocol "github.com/crimist/trakx/tracker/udp/protocol"
 	"github.com/pkg/errors"
 )

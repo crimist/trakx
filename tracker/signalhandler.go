@@ -5,7 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/crimist/trakx/config"
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/http"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp"

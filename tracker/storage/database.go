@@ -9,7 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/crimist/trakx/config"
+	"github.com/crimist/trakx/tracker/config"
 )
 
 // Open opens and initializes given database type through config.

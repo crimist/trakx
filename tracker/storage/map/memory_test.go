@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/crimist/trakx/config"
+	"github.com/crimist/trakx/tracker/config"
 )
 
 const (

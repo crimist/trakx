@@ -5,8 +5,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/pools"
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/utils"
 	"go.uber.org/zap"

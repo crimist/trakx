@@ -5,8 +5,8 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/pools"
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/udp/protocol"
 )

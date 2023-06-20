@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/crimist/trakx/bencoding"
-	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/pools"
+	"github.com/crimist/trakx/tracker/config"
 	"github.com/crimist/trakx/tracker/http"
 	"github.com/crimist/trakx/tracker/stats"
 	"github.com/crimist/trakx/tracker/storage"
