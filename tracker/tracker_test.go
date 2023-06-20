@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/crimist/trakx/tracker/config"
+	"github.com/crimist/trakx/config"
 )
 
 func TestMain(m *testing.M) {
@@ -17,7 +17,6 @@ func TestMain(m *testing.M) {
 
 	config.Config.Debug.Pprof = 0
 	config.Config.ExpvarInterval = 0
-	config.Config.Debug.NofileLimit = 0
 	config.Config.UDP.ConnDB.Validate = true
 
 	config.Config.Announce.Base = 0

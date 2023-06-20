@@ -8,7 +8,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/crimist/trakx/tracker/config"
+	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/tracker/stats"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
