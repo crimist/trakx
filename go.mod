@@ -2,7 +2,7 @@
 
 module github.com/crimist/trakx
 
-go 1.19
+go 1.20
 
 require (
 	github.com/cbeuw/connutil v0.0.0-20200411215123-966bfaa51ee3
@@ -15,6 +15,7 @@ require (
 )
 
 require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	go.uber.org/atomic v1.10.0 // indirect

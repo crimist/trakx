@@ -21,7 +21,7 @@ type workers struct {
 }
 
 func (w *workers) startWorkers(num int) {
-	config.Logger.Debug("Starting http workers", zap.Int("count", num))
+	zap.L().Debug("Starting http workers", zap.Int("count", num))
 	for i := 0; i < num; i++ {
 		go w.work()
 	}
@@ -41,7 +41,7 @@ func (w *workers) work() {
 			}
 
 			// otherwise log the error
-			config.Logger.Error("http connection accept failed", zap.Error(err))
+			zap.L().Error("http connection accept failed", zap.Error(err))
 			stats.ServerErrors.Add(1)
 			continue
 		}
@@ -65,7 +65,7 @@ func (w *workers) work() {
 			continue
 		} else if err != nil {
 			// error in parse
-			config.Logger.Error("error parsing request", zap.Error(err), zap.Any("request data", data))
+			zap.L().Error("error parsing request", zap.Error(err), zap.Any("request data", data))
 			writeStatus(conn, "500")
 			conn.Close()
 
@@ -129,7 +129,7 @@ func (w *workers) work() {
 
 			ip, err := netip.ParseAddr(ipStr)
 			if err != nil {
-				config.Logger.Warn("Failed to parse value from X-Forwarded-For", zap.String("ip string", ipStr), zap.Error(err))
+				zap.L().Warn("Failed to parse value from X-Forwarded-For", zap.String("ip string", ipStr), zap.Error(err))
 				w.tracker.clientError(conn, "Failed to parse forwarded IP")
 				break
 			}

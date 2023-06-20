@@ -2,6 +2,7 @@
 #   Values can be overridden with env vars
 #     Example: `TRAKX_LOGLEVEL=debug trakx run`
 
+# TODO: find better names for these, ie conndb.trim should be conncache.expiry
 
 # "debug", "info", "warn", "error", or "fatal"
 # "debug" will enable debug only panics
@@ -9,6 +10,9 @@ loglevel: "info"
 
 # how often to update expvar vals, 0 to disable
 expvarinterval: 1s
+
+# cachepath is the directory in which trakx will write it's pid, logs, and database
+cachepath: ~/.cache/trakx/
 
 debug:
   # port to serve pprof over, 0 to disable
@@ -105,8 +109,3 @@ db:
   # max peer age before marked expired
   # should: expiry >= announce_base + announce_fuzz
   expiry: 40m
-
-# file paths
-path:
-  log: "~/.cache/trakx/trakx.log"
-  pid: "~/.cache/trakx/trakx.pid"
