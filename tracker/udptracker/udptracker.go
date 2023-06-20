@@ -2,6 +2,7 @@
 	Contains UDP tracker for trakx.
 */
 
+// TODO: rename this to `udp`
 package udptracker
 
 import (

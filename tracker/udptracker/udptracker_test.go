@@ -9,35 +9,43 @@ import (
 
 	"github.com/crimist/trakx/storage/inmemory"
 	"github.com/crimist/trakx/tracker/udptracker/conncache"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 const (
-	testAddress = "127.0.0.1"
+	testNetworkAddress = "127.0.0.1"
+	testStartupDelay   = 10 * time.Millisecond
 )
 
-var testPort = 10000
+var testNetworkPort = 10000
+
+func findOpenPort() int {
+	for {
+		udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", testNetworkPort))
+		if err != nil {
+			zap.L().Fatal("failed to resolve UDP address", zap.Int("port", testNetworkPort), zap.Error(err))
+		}
+		listener, err := net.ListenUDP("udp", udpAddr)
+		if err != nil {
+			zap.L().Debug("Port is already bound", zap.Int("port", testNetworkPort), zap.Error(err))
+			testNetworkPort++
+			continue
+		}
+		listener.Close()
+		break
+	}
+
+	return testNetworkPort
+}
 
 func TestMain(m *testing.M) {
 	loggerConfig := zap.NewDevelopmentConfig()
 	logger := zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(loggerConfig.EncoderConfig), zapcore.Lock(os.Stdout), zap.NewAtomicLevelAt(zap.DebugLevel)))
 	zap.ReplaceGlobals(logger)
 
-	for {
-		udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", testPort))
-		if err != nil {
-			zap.L().Fatal("failed to resolve UDP address", zap.Int("port", testPort), zap.Error(err))
-		}
-		listener, err := net.ListenUDP("udp", udpAddr)
-		if err != nil {
-			zap.L().Debug("Port is already bound", zap.Int("port", testPort), zap.Error(err))
-			testPort++
-			continue
-		}
-		listener.Close()
-		break
-	}
+	findOpenPort()
 
 	peerDB, err := inmemory.NewInMemory(inmemory.Config{})
 	if err != nil {
@@ -52,15 +60,28 @@ func TestMain(m *testing.M) {
 		IntervalVariance: 0,
 	})
 	go func() {
-		tracker.Serve(nil, testPort, 1)
+		tracker.Serve(nil, testNetworkPort, 1)
 		if err != nil {
 			zap.L().Fatal("failed to serve tracker")
 		}
 	}()
 
+	time.Sleep(testStartupDelay)
 	m.Run()
 
 	tracker.Shutdown()
+}
+
+func dialTestTracker() (*net.UDPConn, error) {
+	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", testNetworkAddress, testNetworkPort))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to resolve UDP address")
+	}
+	conn, err := net.DialUDP("udp", nil, serverAddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to dial UDP address")
+	}
+	return conn, nil
 }
 
 // const (

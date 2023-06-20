@@ -5,8 +5,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/tracker/http"
-	"github.com/crimist/trakx/tracker/storage"
 	"github.com/crimist/trakx/tracker/udp"
 
 	"go.uber.org/zap"
