@@ -23,8 +23,10 @@ Try Trakx for yourself! These instances are hosted on Oracles always free tier.
 |--------------|-----------|-------------------------------------|
 | ✅Ok         | IPv4 UDP  | `udp://u4.trakx.crim.ist:1337`      |
 | ✅Ok         | IPv6 UDP  | `udp://u6.trakx.crim.ist:1337`      |
-| ✅Ok         | IPv4 HTTP | `http://h4.trakx.crim.ist/announce` |
-| ✅Ok         | IPv6 HTTP | `http://h6.trakx.crim.ist/announce` |
+| ⚠️Deprecated | IPv4 HTTP | `http://h4.trakx.crim.ist/announce` |
+| ⚠️Deprecated | IPv6 HTTP | `http://h6.trakx.crim.ist/announce` |
+
+<sup>HTTP trackers are deprecated due to TCPs high load. Use UDP trackers for reliable uptime.</sup>
 
 ## 🚀 Install
 
