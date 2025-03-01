@@ -32,7 +32,7 @@ func announceSuccess(t *testing.T, conn *net.UDPConn, announceReq udpprotocol.An
 	if announceResp.TransactionID != announceReq.TransactionID {
 		t.Errorf("Expected action = %v; got %v", announceReq.TransactionID, announceResp.Action)
 	}
-	if announceResp.Interval != testTrackerConfig.Interval {
+	if uint(announceResp.Interval) != testTrackerConfig.Interval {
 		t.Errorf("Expected interval = %v; got %v", 0, announceResp.Interval)
 	}
 

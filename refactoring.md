@@ -8,10 +8,11 @@
 
 ## Future
 
-* Refactor HTTP tracker tests
+* Refactor HTTP tracker tests (commented out rn)
+* Rip out most of the embedded bs, KISS! Leave files in with Caddy reverse proxy example
 * Refactor tracker main()
-* Refactor controller / command line interface
-* Cover all TODOs
+* Refactor controller / command line interface - KISS!
+* Deal w/ every TODO
 * Implement new features
 
 ## Features
@@ -36,3 +37,7 @@
 
 * Throw out pg backups
   * Make backup config setting just an optional path
+
+### Add blacklist
+
+* Maybe?

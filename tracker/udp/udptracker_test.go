@@ -10,6 +10,7 @@ import (
 
 	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/storage/inmemory"
+	"github.com/crimist/trakx/tracker"
 	"github.com/crimist/trakx/tracker/udp/connections"
 	"github.com/crimist/trakx/tracker/udp/udpprotocol"
 	"go.uber.org/zap"
@@ -23,7 +24,7 @@ const (
 )
 
 var (
-	testTrackerConfig = TrackerConfig{
+	testTrackerConfig = tracker.TrackerConfig{
 		Validate:         true,
 		DefaultNumwant:   10,
 		MaximumNumwant:   100,

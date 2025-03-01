@@ -10,7 +10,6 @@ import (
 func parseForwarded(data []byte) (bool, []byte) {
 	headerKey := []byte("X-Forwarded-For: ")
 
-	// find X-Forwarded-For header value start and end index
 	headerValueStart := bytes.Index(data, headerKey)
 	if headerValueStart == -1 {
 		return false, nil
@@ -26,6 +25,7 @@ func parseForwarded(data []byte) (bool, []byte) {
 	headerValue := data[headerValueStart:headerValueEnd]
 
 	// if list contains multiple addresses use rightmost (most recent)
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For
 	if bytes.Contains(headerValue, []byte(",")) {
 		lastItemIndex := bytes.LastIndex(headerValue, []byte(",")) + 2
 		return true, headerValue[lastItemIndex:]

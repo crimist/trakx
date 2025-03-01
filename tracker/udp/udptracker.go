@@ -9,9 +9,9 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
+	"github.com/crimist/trakx/tracker"
 	"github.com/crimist/trakx/tracker/udp/connections"
 	"github.com/crimist/trakx/tracker/udp/udpprotocol"
 	"github.com/pkg/errors"
@@ -34,16 +34,8 @@ var (
 	fatalUnregisteredConnection = []byte("unregistered connection id")
 )
 
-type TrackerConfig struct {
-	Validate         bool
-	DefaultNumwant   int
-	MaximumNumwant   int
-	Interval         int32
-	IntervalVariance int32
-}
-
 type Tracker struct {
-	config      TrackerConfig
+	config      tracker.TrackerConfig
 	socket      *net.UDPConn
 	connections *connections.Connections
 	peerDB      storage.Database
@@ -51,16 +43,14 @@ type Tracker struct {
 	stats       *stats.Statistics
 }
 
-func NewTracker(peerDB storage.Database, connections *connections.Connections, stats *stats.Statistics, config TrackerConfig) *Tracker {
-	tracker := Tracker{
+func NewTracker(peerDB storage.Database, connections *connections.Connections, stats *stats.Statistics, config tracker.TrackerConfig) *Tracker {
+	return &Tracker{
 		config:      config,
 		peerDB:      peerDB,
 		connections: connections,
 		shutdown:    make(chan struct{}),
 		stats:       stats,
 	}
-
-	return &tracker
 }
 
 // Serve begins listening and serving clients.
@@ -75,18 +65,12 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 		return errors.Wrap(err, "Failed to open UDP listen socket")
 	}
 
-	requestPool := pools.NewPool(func() any {
-		return make([]byte, maximumRequestSize)
-	}, func(slice []byte) {
-		slice = slice[:cap(slice)]
-	})
-
 	// TODO: figure out what optimal number of goroutines is (benchmark)
 	// Going to need to write a tool that can simulate a large number of clients
 	for i := 0; i < routines; i++ {
 		go func() {
+			data := make([]byte, maximumRequestSize)
 			for {
-				data := requestPool.Get()
 				size, remoteAddr, err := tracker.socket.ReadFromUDP(data)
 				if err != nil {
 					if errors.Unwrap(err).Error() == errSocketClosed {
@@ -94,7 +78,6 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 					}
 
 					zap.L().Error("Failed to read from UDP socket", zap.Error(err))
-					requestPool.Put(data)
 					continue
 				}
 
@@ -104,8 +87,6 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 				} else {
 					tracker.process((data)[:size], remoteAddr)
 				}
-
-				requestPool.Put(data)
 			}
 		}()
 	}

@@ -16,17 +16,17 @@ func TestParse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error when parsing: %v", err)
 	}
-	if len(p.Params[0]) == 0 {
+	if len(p.Parameters[0]) == 0 {
 		t.Fatal("Params not found")
 	}
-	for _, param := range p.Params {
+	for _, param := range p.Parameters {
 		switch string(param) {
 		case "":
 		case "param=1":
 		case "param2=two":
 		case "test=test?test":
 		default:
-			t.Fatalf("Incorrect params: %v", p.Params)
+			t.Fatalf("Incorrect params: %v", p.Parameters)
 		}
 	}
 	if p.Path != "/test" {
@@ -41,7 +41,7 @@ func TestParse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error when parsing: %v", err)
 	}
-	if !bytes.Equal(p.Params[0], []byte("key=value")) {
+	if !bytes.Equal(p.Parameters[0], []byte("key=value")) {
 		t.Fatal("Bad params")
 	}
 	if p.Path != "/url" {
@@ -153,4 +153,14 @@ func BenchmarkUnescape(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		unescapeFast(escapedParameterBytes)
 	}
+}
+
+func FuzzParse(f *testing.F) {
+	f.Add([]byte("GET /test?param=1&param2=two&test=test%3Ftest HTTP/1.1 bla bla"), 60)
+	f.Fuzz(func(t *testing.T, data []byte, length int) {
+		_, err := parse(data, length)
+		if err != nil {
+			t.Skip()
+		}
+	})
 }

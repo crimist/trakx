@@ -47,7 +47,7 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 
 	interval := tracker.config.Interval
 	if tracker.config.IntervalVariance > 0 {
-		interval += rand.Int31n(tracker.config.IntervalVariance)
+		interval += uint(rand.Int31n(int32(tracker.config.IntervalVariance)))
 	}
 
 	seeds, leeches := tracker.peerDB.TorrentStats(announceRequest.InfoHash)
@@ -58,7 +58,7 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 		marshalledResp := udpprotocol.AnnounceResponse{
 			Action:        udpprotocol.ActionAnnounce,
 			TransactionID: announceRequest.TransactionID,
-			Interval:      interval,
+			Interval:      int32(interval),
 			Leeches:       int32(leeches),
 			Seeds:         int32(seeds),
 			Peers:         []byte{},
@@ -93,7 +93,7 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 	marshalledResp := udpprotocol.AnnounceResponse{
 		Action:        udpprotocol.ActionAnnounce,
 		TransactionID: announceRequest.TransactionID,
-		Interval:      interval,
+		Interval:      int32(interval),
 		Leeches:       int32(leeches),
 		Seeds:         int32(seeds),
 	}
