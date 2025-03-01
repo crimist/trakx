@@ -4,11 +4,10 @@
 
 ## Current
 
-* Refactor HTTP tracker
+* Refactor HTTP tracker tests based on udp tracker tests
 
 ## Future
 
-* Refactor HTTP tracker tests (commented out rn)
 * Rip out most of the embedded bs, KISS! Leave files in with Caddy reverse proxy example
 * Refactor tracker main()
 * Refactor controller / command line interface - KISS!

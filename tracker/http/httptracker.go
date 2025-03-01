@@ -82,7 +82,8 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 				}
 
 				tracker.stats.Hits.Add(1)
-				tracker.process(conn, data, size)
+				data = data[:size]
+				tracker.process(conn, data)
 			}
 		}()
 	}
@@ -104,10 +105,10 @@ func (t *Tracker) Shutdown() {
 	t.shutdown <- die
 }
 
-func (tracker *Tracker) process(conn net.Conn, data []byte, size int) {
+func (tracker *Tracker) process(conn net.Conn, data []byte) {
 	defer conn.Close()
 
-	reqData, err := parse(data, size)
+	reqData, err := parse(data)
 	if err == invalidParse || reqData.Method != "GET" {
 		writeStatus(conn, "400")
 		return

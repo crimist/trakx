@@ -3,8 +3,8 @@ package http
 import (
 	"bytes"
 	"encoding/base64"
-	"unsafe"
 
+	"github.com/crimist/trakx/utils"
 	"github.com/pkg/errors"
 )
 
@@ -21,61 +21,58 @@ type (
 	requestData struct {
 		Path       string
 		Parameters parameters
-		URLend     int
+		UrlEnd     int
 		Method     string
-		pathstart  int
-		pathend    int
+		pathStart  int
+		pathEnd    int
 	}
 )
 
-// Custom HTTP parser
-// only supports GET request and up to `maxparams` params but uses no heap memory
-func parse(data []byte, size int) (requestData, error) {
-	// uTorrent sometimes encodes scrape req in b64
-	// Example: R0VUIC9zY3JhcGU/aW5mb19oYXNoPS = GET /scrape?info_hash=
+// Custom HTTP parser only supports GET request and up to `maxparams` params but uses no heap memory
+func parse(data []byte) (requestData, error) {
+	// workaround: uTorrent sometimes encodes scrape requests in base64, `R0VU` = `GET `
 	if bytes.HasPrefix(data, []byte("R0VU")) {
-		decoded, err := base64.StdEncoding.Decode(data, data[:size])
+		decoded, err := base64.StdEncoding.Decode(data, data)
 		if err != nil {
 			return requestData{}, errors.Wrap(err, "failed to decode base64 encoded request")
 		}
-		data = data[:decoded] // this only modifies the local copy since `len int` vs `data uintptr`
+		data = data[:decoded]
 	}
 
 	p := requestData{
-		URLend:    bytes.Index(data, []byte(" HTTP/")),
-		pathstart: bytes.Index(data, []byte("GET /")) + 4, // includes leading slash
-		pathend:   bytes.Index(data, []byte("?")),
+		UrlEnd:    bytes.Index(data, []byte(" HTTP/")),
+		pathStart: bytes.Index(data, []byte("GET /")) + 4, // includes leading slash
+		pathEnd:   bytes.Index(data, []byte("?")),
 	}
 
-	methodend := bytes.Index(data, []byte(" /"))
-	if methodend == -1 {
+	methodEnd := bytes.Index(data, []byte(" /"))
+	if methodEnd == -1 {
 		return requestData{}, invalidParse
 	}
 
-	tmp := data[:methodend]
-	p.Method = *(*string)(unsafe.Pointer(&tmp))
+	p.Method = utils.BytesToStringUnsafe(data[:methodEnd])
 
-	if p.URLend == -1 {
+	if p.UrlEnd == -1 {
 		return requestData{}, invalidParse
 	}
 
 	// less than "GET / HTTP..."
-	if p.URLend < 5 {
+	if p.UrlEnd < 5 {
 		return requestData{}, invalidParse
 	}
 
 	// pathstart should come before URLend
-	if p.pathstart > p.URLend {
+	if p.pathStart > p.UrlEnd {
 		return requestData{}, invalidParse
 	}
 
 	// if the ? is part of a query then parse it
-	if p.pathend != -1 && p.pathend < p.URLend {
-		if p.pathend < p.pathstart {
+	if p.pathEnd != -1 && p.pathEnd < p.UrlEnd {
+		if p.pathEnd < p.pathStart {
 			return requestData{}, invalidParse
 		}
 
-		paramsBytes := data[p.pathend+1 : p.URLend]
+		paramsBytes := data[p.pathEnd+1 : p.UrlEnd]
 
 		var pos, pIndex int
 		for i := 0; i < len(paramsBytes) && pIndex < maxParameters; i++ {
@@ -101,18 +98,14 @@ func parse(data []byte, size int) (requestData, error) {
 			}
 		}
 
-		tmp = data[p.pathstart:p.pathend]
-		p.Path = *(*string)(unsafe.Pointer(&tmp))
+		p.Path = utils.BytesToStringUnsafe(data[p.pathStart:p.pathEnd])
 	} else {
-		tmp = data[p.pathstart:p.URLend]
-		p.Path = *(*string)(unsafe.Pointer(&tmp))
+		p.Path = utils.BytesToStringUnsafe(data[p.pathStart:p.UrlEnd])
 	}
 
 	return p, nil
 }
 
-// from stdlib
-// https://github.com/golang/go/blob/2ebe77a2fda1ee9ff6fd9a3e08933ad1ebaea039/src/encoding/hex/hex.go#L84
 func fromHexChar(c byte) byte {
 	switch {
 	case '0' <= c && c <= '9':
@@ -128,26 +121,25 @@ func fromHexChar(c byte) byte {
 
 // unescapeFast unescapes url encoded []byte
 // returns nil if escape is invalid
-func unescapeFast(bs []byte) []byte {
-	l := len(bs)
+func unescapeFast(msg []byte) []byte {
+	l := len(msg)
 
 	for i := 0; i < l; i++ {
-		// match escape
-		if bs[i] == '%' {
+		if msg[i] == '%' {
 			// make sure there's 2 escape chars
 			if i+2 >= l {
 				return nil
 			}
 
 			// get hex chars
-			a := fromHexChar(bs[i+1])
-			b := fromHexChar(bs[i+2])
+			a := fromHexChar(msg[i+1])
+			b := fromHexChar(msg[i+2])
 			// change percent to real byte
-			bs[i] = (a << 4) | b
+			msg[i] = (a << 4) | b
 
 			// shift everything left by 2
-			for x := i; x < len(bs)-3; x++ {
-				bs[x+1] = bs[x+3]
+			for x := i; x < len(msg)-3; x++ {
+				msg[x+1] = msg[x+3]
 			}
 
 			// decrease slice length by 2
@@ -155,6 +147,6 @@ func unescapeFast(bs []byte) []byte {
 		}
 	}
 
-	bs = bs[:l]
-	return bs
+	msg = msg[:l]
+	return msg
 }
