@@ -50,10 +50,9 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 		interval += uint(rand.Int31n(int32(tracker.config.IntervalVariance)))
 	}
 
-	seeds, leeches := tracker.peerDB.TorrentStats(announceRequest.InfoHash)
-
 	if announceRequest.Event == udpprotocol.EventStopped {
 		tracker.peerDB.PeerRemove(announceRequest.InfoHash, announceRequest.PeerID)
+		seeds, leeches := tracker.peerDB.TorrentStats(announceRequest.InfoHash)
 
 		marshalledResp := udpprotocol.AnnounceResponse{
 			Action:        udpprotocol.ActionAnnounce,
@@ -80,6 +79,7 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 	}
 
 	tracker.peerDB.PeerAdd(announceRequest.InfoHash, announceRequest.PeerID, addrPort.Addr(), announceRequest.Port, peerComplete)
+	seeds, leeches := tracker.peerDB.TorrentStats(announceRequest.InfoHash)
 
 	var ipversion storage.IPVersion
 	if addrPort.Addr().Is4() {
@@ -90,7 +90,7 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 
 	peers4, peers6 := tracker.peerDB.TorrentPeersCompact(announceRequest.InfoHash, uint(announceRequest.NumWant), ipversion)
 
-	marshalledResp := udpprotocol.AnnounceResponse{
+	response := udpprotocol.AnnounceResponse{
 		Action:        udpprotocol.ActionAnnounce,
 		TransactionID: announceRequest.TransactionID,
 		Interval:      int32(interval),
@@ -99,15 +99,16 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 	}
 
 	if ipversion == storage.IPv4 {
-		marshalledResp.Peers = peers4
+		response.Peers = peers4
 	} else {
-		marshalledResp.Peers = peers6
+		response.Peers = peers6
 	}
 
-	respBytes, err := marshalledResp.Marshal()
+	respBytes, err := response.Marshal()
 	if peers4 != nil {
 		pools.Peerlists4.Put(peers4)
-	} else {
+	}
+	if peers6 != nil {
 		pools.Peerlists6.Put(peers6)
 	}
 

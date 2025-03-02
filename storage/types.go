@@ -5,8 +5,8 @@ import "net/netip"
 type IPVersion uint8
 
 const (
-	IPv4 IPVersion = iota
-	IPv6           = iota
+	IPv4 IPVersion = 1 << iota
+	IPv6
 )
 
 type (

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/storage/inmemory"
 	"github.com/crimist/trakx/tracker"
@@ -62,6 +63,8 @@ func TestMain(m *testing.M) {
 	findOpenPort()
 	zap.L().Debug("Found open port for UDP tracker", zap.Int("port", testNetworkPort))
 
+	pools.Initialize(int(testTrackerConfig.MaximumNumwant))
+
 	peerDB, err := inmemory.NewInMemory(inmemory.Config{})
 	if err != nil {
 		zap.L().Fatal("UDP tracker received shutdown")
@@ -82,11 +85,11 @@ func TestMain(m *testing.M) {
 }
 
 func dialMockTracker(address string) (*net.UDPConn, error) {
-	resolvedAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", address, testNetworkPort))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to resolve UDP address")
+	addr := &net.UDPAddr{
+		IP:   net.ParseIP(address),
+		Port: testNetworkPort,
 	}
-	conn, err := net.DialUDP("udp", nil, resolvedAddr)
+	conn, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to dial UDP address")
 	}
@@ -122,7 +125,7 @@ func TestUnregisteredConnection(t *testing.T) {
 	})
 
 	if !bytes.Equal(errorResp.ErrorString, []byte(fatalUnregisteredConnection)) {
-		t.Errorf("Expected error = %v; got %v", fatalUnregisteredConnection, errorResp.ErrorString)
+		t.Errorf("Expected error = %s; got %s", string(fatalUnregisteredConnection), string(errorResp.ErrorString))
 	}
 }
 

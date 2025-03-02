@@ -10,7 +10,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/crimist/trakx/pools"
 	_ "github.com/crimist/trakx/storage/inmemory"
 )
 
@@ -20,8 +19,6 @@ func TestAnnounce(t *testing.T) {
 	// rand.Seed deprecated, need GODEBUG to enforce deterministic rand
 	os.Setenv("GODEBUG", "randseednop=0")
 	rand.Seed(1)
-
-	pools.Initialize(int(testTrackerConfig.MaximumNumwant))
 
 	var cases = []struct {
 		name           string

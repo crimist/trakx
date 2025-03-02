@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage/inmemory"
 	"github.com/crimist/trakx/tracker"
@@ -62,6 +63,8 @@ func TestMain(m *testing.M) {
 	findOpenPort()
 	zap.L().Debug("Found open port for HTTP tracker", zap.Int("port", testNetworkPort))
 
+	pools.Initialize(int(testTrackerConfig.MaximumNumwant))
+
 	peerDB, err := inmemory.NewInMemory(inmemory.Config{})
 	if err != nil {
 		zap.L().Fatal("TCP tracker received shutdown")
@@ -83,11 +86,11 @@ func TestMain(m *testing.M) {
 }
 
 func dialMockTracker(address string) (*net.TCPConn, error) {
-	resolvedAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", address, testNetworkPort))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to resolve TCP address")
+	addr := &net.TCPAddr{
+		IP:   net.ParseIP(address),
+		Port: testNetworkPort,
 	}
-	conn, err := net.DialTCP("tcp", nil, resolvedAddr)
+	conn, err := net.DialTCP("tcp", nil, addr)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to dial TCP address")
 	}

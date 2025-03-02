@@ -73,6 +73,7 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 			data := make([]byte, maximumRequestSize)
 
 			for {
+				data = data[:cap(data)]
 				size, remoteAddr, err := tracker.socket.ReadFromUDP(data)
 				if err != nil {
 					if errors.Unwrap(err).Error() == errSocketClosed {
