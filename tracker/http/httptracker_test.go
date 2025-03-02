@@ -26,8 +26,8 @@ const (
 var (
 	testTrackerConfig = tracker.TrackerConfig{
 		Validate:         true,
-		DefaultNumwant:   10,
-		MaximumNumwant:   100,
+		DefaultNumwant:   2,
+		MaximumNumwant:   3,
 		Interval:         10,
 		IntervalVariance: 0,
 		ReadTimeout:      100 * time.Second,

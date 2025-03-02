@@ -41,7 +41,7 @@ func sendAnnounce(address string, params url.Values) (map[string]interface{}, []
 	}
 
 	if _, ok := root["failure reason"]; ok {
-		return nil, nil, errors.New("tracker error: " + root["failure reason"].(string))
+		return nil, nil, errors.Wrap(errors.New(root["failure reason"].(string)), "tracker error")
 	}
 
 	dictPeers := root["peers"]
@@ -390,5 +390,110 @@ func TestAnnounceStopped(t *testing.T) {
 	}
 	if len(peers) != 0 {
 		t.Errorf("Expected 0 peers; got %d", len(peers))
+	}
+}
+
+func TestAnnounceInvalidPort(t *testing.T) {
+	params := url.Values{}
+	params.Add("info_hash", "00000000000000000009")
+	params.Add("peer_id", "00000000000000000001")
+	params.Add("port", "0")
+	params.Add("downloaded", "0")
+	params.Add("left", "1000")
+	params.Add("uploaded", "0")
+	params.Add("event", "started")
+	_, _, err := sendAnnounce(testNetAddress4, params)
+
+	if err.Error() != "tracker error: Invalid port" {
+		t.Errorf("Expected error = %v; got %v", "tracker error: Invalid port", err)
+	}
+}
+
+func TestAnnounceCompleted(t *testing.T) {
+	params := url.Values{}
+	params.Add("info_hash", "00000000000000000010")
+	params.Add("peer_id", "00000000000000000001")
+	params.Add("port", "1")
+	params.Add("downloaded", "0")
+	params.Add("left", "1000")
+	params.Add("uploaded", "0")
+	params.Add("event", "completed")
+	root, peers, err := sendAnnounce(testNetAddress4, params)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if root["complete"] != 1 {
+		t.Errorf("Expected complete = %v; got %v", 1, root["complete"])
+	}
+	if root["incomplete"] != 0 {
+		t.Errorf("Expected incomplete = %v; got %v", 0, root["incomplete"])
+	}
+	if len(peers) != 1 {
+		t.Errorf("Expected 1 peers; got %d", len(peers))
+	}
+
+	params.Set("peer_id", "00000000000000000002")
+	params.Set("left", "0")
+	params.Del("event")
+	root, peers, err = sendAnnounce(testNetAddress4, params)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if root["complete"] != 2 {
+		t.Errorf("Expected complete = %v; got %v", 2, root["complete"])
+	}
+	if root["incomplete"] != 0 {
+		t.Errorf("Expected incomplete = %v; got %v", 0, root["incomplete"])
+	}
+	if len(peers) != 2 {
+		t.Errorf("Expected 2 peers; got %d", len(peers))
+	}
+}
+
+func TestAnnounceNumwant(t *testing.T) {
+	params := url.Values{}
+	params.Add("info_hash", "00000000000000000011")
+	params.Add("peer_id", "00000000000000000001")
+	params.Add("port", "1")
+	params.Add("downloaded", "0")
+	params.Add("left", "1000")
+	params.Add("uploaded", "0")
+	_, _, err := sendAnnounce(testNetAddress4, params)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	params.Set("peer_id", "00000000000000000002")
+	_, _, err = sendAnnounce(testNetAddress4, params)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	params.Set("peer_id", "00000000000000000003")
+	root, peers, err := sendAnnounce(testNetAddress4, params)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if root["complete"] != 0 {
+		t.Errorf("Expected complete = %v; got %v", 0, root["complete"])
+	}
+	if root["incomplete"] != 3 {
+		t.Errorf("Expected incomplete = %v; got %v", 3, root["incomplete"])
+	}
+	if len(peers) != 2 {
+		t.Errorf("Expected 2 peers; got %d", len(peers))
+	}
+
+	params.Add("numwant", "3")
+	_, peers, err = sendAnnounce(testNetAddress4, params)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(peers) != 3 {
+		t.Errorf("Expected len(peers) = %v; got %d", 3, len(peers))
 	}
 }
