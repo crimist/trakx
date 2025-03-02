@@ -41,14 +41,19 @@ func (tracker *Tracker) announce(conn net.Conn, parameters *announceParameters, 
 
 	if parameters.event == "stopped" {
 		tracker.peerdb.PeerRemove(hash, peerid)
-		conn.Write(httpSuccessBytes)
-		return
-	}
+	} else {
+		portInt, err := strconv.Atoi(parameters.port)
+		if err != nil || (portInt > 65535 || portInt < 1) {
+			writeFailure(conn, "Invalid port")
+			return
+		}
 
-	portInt, err := strconv.Atoi(parameters.port)
-	if err != nil || (portInt > 65535 || portInt < 1) {
-		writeFailure(conn, "Invalid port")
-		return
+		peerComplete := false
+		if parameters.event == "completed" || parameters.noneleft {
+			peerComplete = true
+		}
+
+		tracker.peerdb.PeerAdd(hash, peerid, addr, uint16(portInt), peerComplete)
 	}
 
 	numwant := tracker.config.DefaultNumwant
@@ -62,12 +67,6 @@ func (tracker *Tracker) announce(conn net.Conn, parameters *announceParameters, 
 		numwant = min(uint(numwantInt), tracker.config.MaximumNumwant)
 	}
 
-	peerComplete := false
-	if parameters.event == "completed" || parameters.noneleft {
-		peerComplete = true
-	}
-
-	tracker.peerdb.PeerAdd(hash, peerid, addr, uint16(portInt), peerComplete)
 	seeds, leeches := tracker.peerdb.TorrentStats(hash)
 
 	interval := tracker.config.Interval

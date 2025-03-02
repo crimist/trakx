@@ -361,3 +361,34 @@ func TestAnnounceCompact(t *testing.T) {
 		t.Errorf("Expected ip = %v; got %v", "::1", ips[1])
 	}
 }
+
+func TestAnnounceStopped(t *testing.T) {
+	params := url.Values{}
+	params.Add("info_hash", "00000000000000000008")
+	params.Add("peer_id", "00000000000000000001")
+	params.Add("port", "1")
+	params.Add("downloaded", "0")
+	params.Add("left", "1000")
+	params.Add("uploaded", "0")
+	params.Add("event", "started")
+	_, _, err := sendAnnounce(testNetAddress4, params)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	params.Set("event", "stopped")
+	root, peers, err := sendAnnounce(testNetAddress4, params)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if root["complete"] != 0 {
+		t.Errorf("Expected complete = %v; got %v", 0, root["complete"])
+	}
+	if root["incomplete"] != 0 {
+		t.Errorf("Expected incomplete = %v; got %v", 0, root["incomplete"])
+	}
+	if len(peers) != 0 {
+		t.Errorf("Expected 0 peers; got %d", len(peers))
+	}
+}
