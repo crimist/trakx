@@ -8,11 +8,12 @@
 
 ## Future
 
-* Rip out most of the embedded bs, KISS! Leave files in with Caddy reverse proxy example
+* Consider ripping out embedded HTTP files, a reverse proxy should handle that, can provide example with existing files and Caddyfile
 * Refactor tracker main()
 * Refactor controller / command line interface - KISS!
 * Deal w/ every TODO
 * Implement new features
+* Refactor stats, create helpers for inc a dec which also do null check or smt
 
 ## Features
 
