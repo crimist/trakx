@@ -87,7 +87,7 @@ func (tracker *Tracker) announce(conn net.Conn, parameters *announceParameters, 
 		pools.Peerlists4.Put(peers4)
 		pools.Peerlists6.Put(peers6)
 	} else {
-		dictionary.BytesliceSlice("peers", tracker.peerdb.TorrentPeers(hash, numwant, parameters.nopeerid))
+		dictionary.BytesliceSlice("peers", tracker.peerdb.TorrentPeers(hash, numwant, !parameters.nopeerid))
 	}
 
 	conn.Write(append(httpSuccessBytes, dictionary.GetBytes()...))

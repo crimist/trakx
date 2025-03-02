@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"expvar"
-	"fmt"
 	"net"
 	"net/http"
 	"net/netip"
@@ -43,10 +42,14 @@ func NewTracker(peerDB storage.Database, stats *stats.Statistics, config tracker
 
 // Serve begins listening and serving clients.
 func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip.String(), port))
+	listener, err := net.ListenTCP("tcp", &net.TCPAddr{
+		IP:   ip,
+		Port: port,
+	})
 	if err != nil {
 		return errors.Wrap(err, "Failed to open TCP listen socket")
 	}
+	zap.L().Debug("Serving HTTP tracker on", zap.String("address", listener.Addr().String()))
 
 	tracker.embeddedCache, err = config.GenerateEmbeddedCache()
 	if err != nil {
@@ -109,7 +112,7 @@ func (tracker *Tracker) process(conn net.Conn, data []byte) {
 	defer conn.Close()
 
 	reqData, err := parse(data)
-	if err == invalidParse || reqData.Method != "GET" {
+	if errors.Is(err, invalidParse) || reqData.Method != "GET" {
 		writeStatus(conn, "400")
 		return
 	} else if err != nil {

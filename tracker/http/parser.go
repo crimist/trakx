@@ -47,29 +47,29 @@ func parse(data []byte) (requestData, error) {
 
 	methodEnd := bytes.Index(data, []byte(" /"))
 	if methodEnd == -1 {
-		return requestData{}, invalidParse
+		return requestData{}, errors.Wrap(invalidParse, "method end not found")
 	}
 
 	p.Method = utils.BytesToStringUnsafe(data[:methodEnd])
 
 	if p.UrlEnd == -1 {
-		return requestData{}, invalidParse
+		return requestData{}, errors.Wrap(invalidParse, "url end not found")
 	}
 
 	// less than "GET / HTTP..."
 	if p.UrlEnd < 5 {
-		return requestData{}, invalidParse
+		return requestData{}, errors.Wrap(invalidParse, "message too short to be valid")
 	}
 
 	// pathstart should come before URLend
 	if p.pathStart > p.UrlEnd {
-		return requestData{}, invalidParse
+		return requestData{}, errors.Wrap(invalidParse, "path start after URL end")
 	}
 
 	// if the ? is part of a query then parse it
 	if p.pathEnd != -1 && p.pathEnd < p.UrlEnd {
 		if p.pathEnd < p.pathStart {
-			return requestData{}, invalidParse
+			return requestData{}, errors.Wrap(invalidParse, "path end before path start")
 		}
 
 		paramsBytes := data[p.pathEnd+1 : p.UrlEnd]
@@ -94,7 +94,7 @@ func parse(data []byte) (requestData, error) {
 
 			// nil if escape was invalid
 			if p.Parameters[i] == nil {
-				return requestData{}, invalidParse
+				return requestData{}, errors.Wrap(invalidParse, "invalid url escape sequence")
 			}
 		}
 
