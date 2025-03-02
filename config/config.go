@@ -26,7 +26,8 @@ type Configuration struct {
 			Read  time.Duration
 			Write time.Duration
 		}
-		Threads int
+		Threads   int
+		ServePath string
 	}
 	UDP struct {
 		Enabled bool

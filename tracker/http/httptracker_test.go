@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -70,8 +71,13 @@ func TestMain(m *testing.M) {
 		zap.L().Fatal("TCP tracker received shutdown")
 	}
 
+	servePath, err := filepath.Abs(".")
+	if err != nil {
+		zap.L().Fatal("failed to get absolute path", zap.Error(err))
+	}
+
 	stats := stats.NewStats(0)
-	tracker := NewTracker(peerDB, stats, testTrackerConfig)
+	tracker := NewTracker(peerDB, servePath, stats, testTrackerConfig)
 	go func() {
 		err = tracker.Serve(nil, testNetworkPort, 1)
 		if err != nil {
@@ -160,5 +166,54 @@ func TestHeartbeat(t *testing.T) {
 
 	if resp.StatusCode != 200 {
 		t.Errorf("Expected code 200, got %d", resp.StatusCode)
+	}
+}
+
+func TestServe(t *testing.T) {
+	resp, err := http.Get(fmt.Sprintf("http://%s:%d/.", testNetAddress4, testNetworkPort))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != 403 {
+		t.Errorf("Expected code 403, got %d", resp.StatusCode)
+	}
+
+	resp, err = http.Get(fmt.Sprintf("http://%s:%d/../", testNetAddress4, testNetworkPort))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != 403 {
+		t.Errorf("Expected code 403, got %d", resp.StatusCode)
+	}
+
+	resp, err = http.Get(fmt.Sprintf("http://%s:%d/../../../../../../../../../../../etc/passwd", testNetAddress4, testNetworkPort))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != 404 {
+		t.Errorf("Expected code 404, got %d", resp.StatusCode)
+	}
+
+	resp, err = http.Get(fmt.Sprintf("http://%s:%d/httptracker_test.go", testNetAddress4, testNetworkPort))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != 200 {
+		t.Errorf("Expected code 200, got %d", resp.StatusCode)
+	}
+
+	body := make([]byte, 65535)
+	n, err := resp.Body.Read(body)
+	if err != nil {
+		t.Fatal("Failed to read response body", err)
+	}
+	body = body[:n]
+
+	if string(body[:13]) != "package http\n" {
+		t.Errorf("Expected file to read 'package http\\n', got %s", body)
 	}
 }

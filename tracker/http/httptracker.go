@@ -6,9 +6,13 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"os"
+	"path"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
-	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/tracker"
@@ -27,16 +31,17 @@ type Tracker struct {
 	shutdown      chan struct{}
 	stats         *stats.Statistics
 	expvarHandler http.Handler
-	embeddedCache config.EmbeddedCache
+	servePath     string
 }
 
-func NewTracker(peerDB storage.Database, stats *stats.Statistics, config tracker.TrackerConfig) *Tracker {
+func NewTracker(peerDB storage.Database, servePath string, stats *stats.Statistics, config tracker.TrackerConfig) *Tracker {
 	return &Tracker{
 		config:        config,
 		peerdb:        peerDB,
 		shutdown:      make(chan struct{}),
 		stats:         stats,
 		expvarHandler: expvar.Handler(),
+		servePath:     servePath,
 	}
 }
 
@@ -50,11 +55,6 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 		return errors.Wrap(err, "Failed to open TCP listen socket")
 	}
 	zap.L().Debug("Serving HTTP tracker on", zap.String("address", listener.Addr().String()))
-
-	tracker.embeddedCache, err = config.GenerateEmbeddedCache()
-	if err != nil {
-		return errors.Wrap(err, "failed to generate embedded cache")
-	}
 
 	// TODO: figure out what optimal number of goroutines is (benchmark)
 	// Going to need to write a tool that can simulate a large number of clients
@@ -222,10 +222,61 @@ func (tracker *Tracker) process(conn net.Conn, data []byte) {
 			conn: conn,
 		}, nil)
 	default:
-		if data, ok := tracker.embeddedCache[reqData.Path]; ok {
-			writeSuccess(conn, data)
-		} else {
+		if tracker.servePath == "" {
 			writeStatus(conn, "404")
+			break
 		}
+
+		cleanPath := filepath.FromSlash(path.Clean("/" + reqData.Path))
+		filePath := filepath.Join(tracker.servePath, cleanPath)
+
+		if !strings.HasPrefix(filePath, tracker.servePath) {
+			writeStatus(conn, "403")
+			tracker.stats.ClientErrors.Add(1)
+			break
+		}
+
+		fileInfo, err := os.Stat(filePath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				writeStatus(conn, "404")
+			} else {
+				zap.L().Debug("Error accessing file", zap.Error(err), zap.String("path", filePath))
+				writeStatus(conn, "500")
+			}
+			break
+		}
+
+		if fileInfo.IsDir() {
+			writeStatus(conn, "403")
+			break
+		}
+
+		fileContent, err := os.ReadFile(filePath)
+		if err != nil {
+			zap.L().Debug("Error reading file", zap.Error(err), zap.String("path", filePath))
+			writeStatus(conn, "500")
+			break
+		}
+
+		contentType := "application/octet-stream"
+		switch filepath.Ext(filePath) {
+		case ".html", ".htm":
+			contentType = "text/html"
+		case ".css":
+			contentType = "text/css"
+		case ".js":
+			contentType = "application/javascript"
+		case ".jpg", ".jpeg":
+			contentType = "image/jpeg"
+		case ".png":
+			contentType = "image/png"
+		case ".gif":
+			contentType = "image/gif"
+		case ".txt":
+			contentType = "text/plain"
+		}
+
+		conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: " + contentType + "\r\nContent-Length: " + strconv.Itoa(len(fileContent)) + "\r\n\r\n" + string(fileContent)))
 	}
 }

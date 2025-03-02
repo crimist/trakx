@@ -8,13 +8,14 @@ import (
 )
 
 var (
-	httpSuccessBytes = []byte("HTTP/1.1 200\r\n\r\n")
+	httpSuccess      = "HTTP/1.1 200 OK\r\n\r\n"
+	httpSuccessBytes = []byte(httpSuccess)
 )
 
 // string concats are optimized in go so these are faster than []byte appends etc.
 
 func writeSuccess(c net.Conn, body string) {
-	c.Write(utils.StringToBytesUnsafe("HTTP/1.1 200\r\n\r\n" + body))
+	c.Write(utils.StringToBytesUnsafe(httpSuccess + body))
 }
 
 func writeStatus(c net.Conn, status string) {

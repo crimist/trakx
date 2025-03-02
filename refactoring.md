@@ -4,13 +4,10 @@
 
 ## Current
 
-* Refactor HTTP tracker tests based on udp tracker tests
-* Add UDP tracker scrape tests
+* Refactor tracker main()
 
 ## Future
 
-* Consider ripping out embedded HTTP files, a reverse proxy should handle that, can provide example with existing files and Caddyfile
-* Refactor tracker main()
 * Refactor controller / command line interface - KISS!
 * Deal w/ every TODO
 * Implement new features
