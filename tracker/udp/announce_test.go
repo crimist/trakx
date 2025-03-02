@@ -38,7 +38,7 @@ func announceSuccess(t *testing.T, conn *net.UDPConn, announceReq udpprotocol.An
 		t.Errorf("Expected action = %v; got %v", announceReq.TransactionID, announceResp.Action)
 	}
 	if uint(announceResp.Interval) != testTrackerConfig.Interval {
-		t.Errorf("Expected interval = %v; got %v", 0, announceResp.Interval)
+		t.Errorf("Expected interval = %v; got %v", testTrackerConfig.Interval, announceResp.Interval)
 	}
 
 	return *announceResp
@@ -322,3 +322,5 @@ func TestAnnounceInvalidPort(t *testing.T) {
 		t.Errorf("Expected error = %v; got %v", fatalInvalidPort, errorResp.ErrorString)
 	}
 }
+
+// TODO: add test case for multiple peers

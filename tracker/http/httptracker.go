@@ -63,6 +63,7 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 			data := make([]byte, maximumRequestSize)
 
 			for {
+				data = data[:cap(data)]
 				conn, err := listener.Accept()
 				if err != nil {
 					if errors.Unwrap(err) == net.ErrClosed {
@@ -114,6 +115,7 @@ func (tracker *Tracker) process(conn net.Conn, data []byte) {
 	reqData, err := parse(data)
 	if errors.Is(err, invalidParse) || reqData.Method != "GET" {
 		writeStatus(conn, "400")
+		zap.L().Debug("invalid request", zap.Error(err), zap.ByteString("request data", data))
 		return
 	} else if err != nil {
 		zap.L().Error("error parsing request", zap.Error(err), zap.ByteString("request data", data))
@@ -226,6 +228,4 @@ func (tracker *Tracker) process(conn net.Conn, data []byte) {
 			writeStatus(conn, "404")
 		}
 	}
-
-	conn.Close()
 }

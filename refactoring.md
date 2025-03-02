@@ -5,6 +5,7 @@
 ## Current
 
 * Refactor HTTP tracker tests based on udp tracker tests
+* Add UDP tracker scrape tests
 
 ## Future
 

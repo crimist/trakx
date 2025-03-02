@@ -5,7 +5,6 @@ import (
 
 	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/storage"
-	"github.com/crimist/trakx/utils"
 )
 
 func (db *InMemory) TorrentStats(hash storage.Hash) (seeds, leeches uint16) {
@@ -51,16 +50,14 @@ func (db *InMemory) TorrentPeers(hash storage.Hash, numWant uint, includePeerID 
 	torrent.mutex.RLock()
 	for id, peer := range torrent.Peers {
 		if includePeerID {
-			dictionary.String("peer id", utils.BytesToStringUnsafe(id[:]))
+			dictionary.String("peer id", string(id[:]))
 		}
 		dictionary.String("ip", peer.IP.String())
 		dictionary.Int64("port", int64(peer.Port))
 
-		// peers[i] = make([]byte, len(data))
-		// copy(peers[i], data)
-		// TODO: test this
-		peers[i] = dictionary.GetBytes()
-
+		dictBytes := dictionary.GetBytes()
+		peers[i] = make([]byte, len(dictBytes))
+		copy(peers[i], dictBytes)
 		dictionary.Reset()
 
 		i++

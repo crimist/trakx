@@ -7,7 +7,11 @@ import (
 	"github.com/crimist/trakx/utils"
 )
 
-// string concats are optimized in go so this if faster than []byte appends etc.
+var (
+	httpSuccessBytes = []byte("HTTP/1.1 200\r\n\r\n")
+)
+
+// string concats are optimized in go so these are faster than []byte appends etc.
 
 func writeSuccess(c net.Conn, body string) {
 	c.Write(utils.StringToBytesUnsafe("HTTP/1.1 200\r\n\r\n" + body))

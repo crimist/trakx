@@ -59,9 +59,9 @@ type Configuration struct {
 type Warnings int
 
 const (
-	WarningNone          Warnings = iota
-	WarningUDPValidation Warnings = 1 << iota
-	WarningPeerExpiry    Warnings = 1 << iota
+	WarningNone Warnings = 1 << iota
+	WarningUDPValidation
+	WarningPeerExpiry
 )
 
 // Validate ensures that configuration values are sane and returns warnings for potential misconfigurations or security issues
