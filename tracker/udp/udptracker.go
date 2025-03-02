@@ -64,12 +64,14 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to open UDP listen socket")
 	}
+	zap.L().Debug("Serving UDP tracker on", zap.String("address", tracker.socket.LocalAddr().String()))
 
 	// TODO: figure out what optimal number of goroutines is (benchmark)
 	// Going to need to write a tool that can simulate a large number of clients
 	for i := 0; i < routines; i++ {
 		go func() {
 			data := make([]byte, maximumRequestSize)
+
 			for {
 				size, remoteAddr, err := tracker.socket.ReadFromUDP(data)
 				if err != nil {
@@ -85,7 +87,8 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 					tracker.socket.WriteToUDP(fatalMinReqLen, remoteAddr)
 					zap.L().Debug("client sent packet below minimum request size", zap.String("addr", remoteAddr.String()), zap.Int("size", size), zap.ByteString("data", (data)[:size]))
 				} else {
-					tracker.process((data)[:size], remoteAddr)
+					data = data[:size]
+					tracker.process(data, remoteAddr)
 				}
 			}
 		}()

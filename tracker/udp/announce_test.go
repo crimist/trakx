@@ -60,7 +60,11 @@ func announceError(t *testing.T, conn *net.UDPConn, announceReq udpprotocol.Anno
 }
 
 func TestAnnounceStarted(t *testing.T) {
-	conn := dialMockTracker(t, testNetAddress4)
+	conn, err := dialMockTracker(testNetAddress4)
+	if err != nil {
+		t.Fatal("failed to dial mock tracker", err)
+	}
+
 	connectResp := connect(t, conn, udpprotocol.ConnectRequest{
 		ProtocolID:    udpprotocol.ProtocolMagic,
 		Action:        udpprotocol.ActionConnect,
@@ -101,7 +105,11 @@ func TestAnnounceStarted(t *testing.T) {
 }
 
 func TestAnnounceStarted6(t *testing.T) {
-	conn := dialMockTracker(t, testNetAddress4)
+	conn, err := dialMockTracker(testNetAddress4)
+	if err != nil {
+		t.Fatal("failed to dial mock tracker", err)
+	}
+
 	connectResp := connect(t, conn, udpprotocol.ConnectRequest{
 		ProtocolID:    udpprotocol.ProtocolMagic,
 		Action:        udpprotocol.ActionConnect,
@@ -143,7 +151,11 @@ func TestAnnounceStarted6(t *testing.T) {
 
 // Test an announce with event = completed
 func TestAnnounceCompleteEvent(t *testing.T) {
-	conn := dialMockTracker(t, testNetAddress4)
+	conn, err := dialMockTracker(testNetAddress4)
+	if err != nil {
+		t.Fatal("failed to dial mock tracker", err)
+	}
+
 	connectResp := connect(t, conn, udpprotocol.ConnectRequest{
 		ProtocolID:    udpprotocol.ProtocolMagic,
 		Action:        udpprotocol.ActionConnect,
@@ -185,7 +197,11 @@ func TestAnnounceCompleteEvent(t *testing.T) {
 
 // Test an announce where left = 0
 func TestAnnounceCompleteLeft(t *testing.T) {
-	conn := dialMockTracker(t, testNetAddress4)
+	conn, err := dialMockTracker(testNetAddress4)
+	if err != nil {
+		t.Fatal("failed to dial mock tracker", err)
+	}
+
 	connectResp := connect(t, conn, udpprotocol.ConnectRequest{
 		ProtocolID:    udpprotocol.ProtocolMagic,
 		Action:        udpprotocol.ActionConnect,
@@ -226,7 +242,11 @@ func TestAnnounceCompleteLeft(t *testing.T) {
 }
 
 func TestAnnounceStopped(t *testing.T) {
-	conn := dialMockTracker(t, testNetAddress4)
+	conn, err := dialMockTracker(testNetAddress4)
+	if err != nil {
+		t.Fatal("failed to dial mock tracker", err)
+	}
+
 	connectResp := connect(t, conn, udpprotocol.ConnectRequest{
 		ProtocolID:    udpprotocol.ProtocolMagic,
 		Action:        udpprotocol.ActionConnect,
@@ -261,7 +281,11 @@ func TestAnnounceStopped(t *testing.T) {
 }
 
 func TestAnnounceInvalidPort(t *testing.T) {
-	conn := dialMockTracker(t, testNetAddress4)
+	conn, err := dialMockTracker(testNetAddress4)
+	if err != nil {
+		t.Fatal("failed to dial mock tracker", err)
+	}
+
 	connectResp := connect(t, conn, udpprotocol.ConnectRequest{
 		ProtocolID:    udpprotocol.ProtocolMagic,
 		Action:        udpprotocol.ActionConnect,

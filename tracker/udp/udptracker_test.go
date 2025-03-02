@@ -13,6 +13,7 @@ import (
 	"github.com/crimist/trakx/tracker"
 	"github.com/crimist/trakx/tracker/udp/connections"
 	"github.com/crimist/trakx/tracker/udp/udpprotocol"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -59,6 +60,7 @@ func TestMain(m *testing.M) {
 	zap.ReplaceGlobals(logger)
 
 	findOpenPort()
+	zap.L().Debug("Found open port for UDP tracker", zap.Int("port", testNetworkPort))
 
 	peerDB, err := inmemory.NewInMemory(inmemory.Config{})
 	if err != nil {
@@ -67,7 +69,7 @@ func TestMain(m *testing.M) {
 	connections := connections.NewConnections(1, 1*time.Minute, 1*time.Minute)
 	tracker := NewTracker(peerDB, connections, nil, testTrackerConfig)
 	go func() {
-		tracker.Serve(nil, testNetworkPort, 1)
+		err = tracker.Serve(nil, testNetworkPort, 1)
 		if err != nil {
 			zap.L().Fatal("failed to serve tracker")
 		}
@@ -79,20 +81,24 @@ func TestMain(m *testing.M) {
 	tracker.Shutdown()
 }
 
-func dialMockTracker(t *testing.T, address string) *net.UDPConn {
+func dialMockTracker(address string) (*net.UDPConn, error) {
 	resolvedAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", address, testNetworkPort))
 	if err != nil {
-		t.Error("failed to resolve UDP address")
+		return nil, errors.Wrap(err, "failed to resolve UDP address")
 	}
 	conn, err := net.DialUDP("udp", nil, resolvedAddr)
 	if err != nil {
-		t.Error("failed to dial UDP address")
+		return nil, errors.Wrap(err, "failed to dial UDP address")
 	}
-	return conn
+	return conn, nil
 }
 
 func TestUnregisteredConnection(t *testing.T) {
-	conn := dialMockTracker(t, testNetAddress4)
+	conn, err := dialMockTracker(testNetAddress4)
+	if err != nil {
+		t.Fatal("failed to dial mock tracker", err)
+	}
+
 	connect(t, conn, udpprotocol.ConnectRequest{
 		ProtocolID:    udpprotocol.ProtocolMagic,
 		Action:        udpprotocol.ActionConnect,
@@ -121,7 +127,11 @@ func TestUnregisteredConnection(t *testing.T) {
 }
 
 func TestBadAction(t *testing.T) {
-	conn := dialMockTracker(t, testNetAddress4)
+	conn, err := dialMockTracker(testNetAddress4)
+	if err != nil {
+		t.Fatal("failed to dial mock tracker", err)
+	}
+
 	connectResp := connect(t, conn, udpprotocol.ConnectRequest{
 		ProtocolID:    udpprotocol.ProtocolMagic,
 		Action:        udpprotocol.ActionConnect,
