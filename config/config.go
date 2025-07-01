@@ -8,10 +8,14 @@ import (
 )
 
 type Configuration struct {
-	LogLevel       LogLevel
-	CachePath      string
-	ExpvarInterval time.Duration
-	Debug          struct {
+	LogLevel  LogLevel
+	CachePath string
+	Stats     struct {
+		General  bool
+		IP       bool
+		Interval time.Duration
+	}
+	Debug struct {
 		Pprof int
 	}
 	Announce struct {

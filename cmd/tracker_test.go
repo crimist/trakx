@@ -15,7 +15,15 @@ func TestMain(m *testing.M) {
 		Debug: struct{ Pprof int }{
 			Pprof: 0,
 		},
-		ExpvarInterval: 0,
+		Stats: struct {
+			General  bool
+			IP       bool
+			Interval time.Duration
+		}{
+			General:  false,
+			IP:       false,
+			Interval: 0,
+		},
 		UDP: struct {
 			Enabled bool
 			IP      string

@@ -28,6 +28,7 @@ func Run(conf *config.Configuration) {
 
 	var trackers []tracker.Tracker
 	var serveConfigs []serveConfig
+	var connectionsDB *connections.Connections
 	var err error
 
 	zap.L().Debug("Starting Trakx")
@@ -40,8 +41,20 @@ func Run(conf *config.Configuration) {
 		zap.L().Warn("Configuration warning [conf.Announce]: Peer expiry time < announce interval. Peers will expire from the database between announces")
 	}
 
-	// TODO: conf for collector enable/disable + cache the prev IP collector map size :D
-	collector := stats.NewCollectors(false, false, 0)
+	if conf.Stats.General {
+		if conf.Stats.Interval <= 0 {
+			zap.L().Fatal("Invalid configuration: Stats.Interval must be greater than 0 if Stats.General is enabled")
+		}
+
+		zap.L().Info("Collecting statistics", zap.Bool("general", conf.Stats.General), zap.Bool("ip", conf.Stats.IP), zap.Duration("interval", conf.Stats.Interval))
+
+		if conf.HTTP.Mode == config.TrackerModeDisabled {
+			zap.L().Warn("Statistics collection enabled but no HTTP server is enabled to publish them")
+		}
+	}
+
+	// TODO: cache the prev IP collector map size :D
+	collector := stats.NewCollectors(conf.Stats.General, conf.Stats.IP, 0)
 
 	db, err := inmemory.NewInMemory(inmemory.Config{
 		InitalSize:         0, // TODO: cache this on exit and load on startup
@@ -61,7 +74,7 @@ func Run(conf *config.Configuration) {
 	if conf.UDP.Enabled {
 		zap.L().Info("UDP tracker enabled", zap.String("ip", conf.UDP.IP), zap.Int("port", conf.UDP.Port))
 
-		connectionsDB := connections.NewConnections(0, conf.UDP.ConnDB.Expiry, conf.UDP.ConnDB.Trim)
+		connectionsDB = connections.NewConnections(0, conf.UDP.ConnDB.Expiry, conf.UDP.ConnDB.Trim)
 
 		trackers = append(trackers, udp.NewTracker(db, connectionsDB, collector, tracker.TrackerConfig{
 			Validate:         conf.UDP.ConnDB.Validate,
@@ -136,6 +149,19 @@ func Run(conf *config.Configuration) {
 
 	go signalHandler(db, trackers)
 
+	if conf.Stats.General {
+		go stats.PublishPeriodic(stats.PeriodicConfig{
+			Collector: collector,
+			Interval:  conf.Stats.Interval,
+			GetHashes: db.Torrents,
+			GetConns: func() int {
+				if connectionsDB != nil {
+					return connectionsDB.Entries()
+				}
+				return 0
+			}})
+	}
+
 	if conf.Debug.Pprof != 0 {
 		go servePprof(conf.Debug.Pprof)
 	}
@@ -148,15 +174,5 @@ func Run(conf *config.Configuration) {
 		}(i, t)
 	}
 
-	if conf.ExpvarInterval > 0 {
-		// TODO: publish expvars
-		// stats.Publish(peerdb, func() int64 {
-		// 	return int64(udptracker.Connections())
-		// })
-
-		select {}
-	} else {
-		zap.L().Debug("Finished Run() no expvar - blocking forever")
-		select {}
-	}
+	select {}
 }

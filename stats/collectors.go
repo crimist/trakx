@@ -1,40 +1,40 @@
 package stats
 
 import (
+	"expvar"
 	"net/netip"
 	"sync"
-	"sync/atomic"
 )
 
-type atomicCollector struct {
-	hits           atomic.Int64
-	connects       atomic.Int64
-	announces      atomic.Int64
-	scrapes        atomic.Int64
-	seeds          atomic.Int64
-	leeches        atomic.Int64
-	errorResponses atomic.Int64
-	ipStats        IPCollector
+type expvarCollector struct {
+	hits      *expvar.Int
+	connects  *expvar.Int
+	announces *expvar.Int
+	scrapes   *expvar.Int
+	seeds     *expvar.Int
+	leeches   *expvar.Int
+	errors    *expvar.Int
+	ipStats   IPCollector
 }
 
-func (s *atomicCollector) Hit()               { s.hits.Add(1) }
-func (s *atomicCollector) Connect()           { s.connects.Add(1) }
-func (s *atomicCollector) Announce()          { s.announces.Add(1) }
-func (s *atomicCollector) Scrape()            { s.scrapes.Add(1) }
-func (s *atomicCollector) AddSeeds(n int64)   { s.seeds.Add(n) }
-func (s *atomicCollector) AddLeeches(n int64) { s.leeches.Add(n) }
-func (s *atomicCollector) ErrorResponse()     { s.errorResponses.Add(1) }
-func (s *atomicCollector) IPs() IPCollector   { return s.ipStats }
-func (s *atomicCollector) GetSnapshot() Snapshot {
+func (s *expvarCollector) Hit()               { s.hits.Add(1) }
+func (s *expvarCollector) Connect()           { s.connects.Add(1) }
+func (s *expvarCollector) Announce()          { s.announces.Add(1) }
+func (s *expvarCollector) Scrape()            { s.scrapes.Add(1) }
+func (s *expvarCollector) AddSeeds(n int64)   { s.seeds.Add(n) }
+func (s *expvarCollector) AddLeeches(n int64) { s.leeches.Add(n) }
+func (s *expvarCollector) ErrorResponse()     { s.errors.Add(1) }
+func (s *expvarCollector) IPs() IPCollector   { return s.ipStats }
+func (s *expvarCollector) GetSnapshot() Snapshot {
 	return Snapshot{
-		Hits:           s.hits.Load(),
-		Connects:       s.connects.Load(),
-		Announces:      s.announces.Load(),
-		Scrapes:        s.scrapes.Load(),
-		Seeds:          s.seeds.Load(),
-		Leeches:        s.leeches.Load(),
-		IPs:            s.ipStats.Total(),
-		ErrorResponses: s.errorResponses.Load(),
+		Hits:      s.hits.Value(),
+		Connects:  s.connects.Value(),
+		Announces: s.announces.Value(),
+		Scrapes:   s.scrapes.Value(),
+		Seeds:     s.seeds.Value(),
+		Leeches:   s.leeches.Value(),
+		IPs:       s.ipStats.Total(),
+		Errors:    s.errors.Value(),
 	}
 }
 

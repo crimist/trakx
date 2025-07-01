@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"expvar"
 	"net/netip"
 )
 
@@ -21,7 +22,7 @@ type Snapshot struct {
 	IPs int
 
 	// Number of error responses from tracker
-	ErrorResponses int64
+	Errors int64
 }
 
 // IPCollector defines the interface for collecting IP statistics.
@@ -59,7 +60,14 @@ func NewCollectors(enabled, ipStatsEnabled bool, ipMapPrealloc int) Collector {
 		ipCollector = &noopIPCollector{}
 	}
 
-	return &atomicCollector{
-		ipStats: ipCollector,
+	return &expvarCollector{
+		hits:      expvar.NewInt("trakx.requests.hits"),
+		connects:  expvar.NewInt("trakx.requests.connects"),
+		announces: expvar.NewInt("trakx.requests.announces"),
+		scrapes:   expvar.NewInt("trakx.requests.scrapes"),
+		errors:    expvar.NewInt("trakx.requests.errors"),
+		seeds:     expvar.NewInt("trakx.database.seeds"),
+		leeches:   expvar.NewInt("trakx.database.leeches"),
+		ipStats:   ipCollector,
 	}
 }
