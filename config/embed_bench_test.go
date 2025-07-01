@@ -18,20 +18,6 @@ func BenchmarkFSReadFile(b *testing.B) {
 	}
 }
 
-func BenchmarkEmbeddedCache(b *testing.B) {
-	cache, err := GenerateEmbeddedCache()
-	if err != nil {
-		b.Errorf("failed to create cache: %v", err)
-	}
-
-	b.ResetTimer()
-
-	for n := 0; n < b.N; n++ {
-		data := cache[randomFilename()]
-		_ = data
-	}
-}
-
 func BenchmarkSwitchRaw(b *testing.B) {
 	indexData, err := embeddedFS.ReadFile("embedded/index.html")
 	if err != nil {

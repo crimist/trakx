@@ -47,8 +47,8 @@ http:
 udp:
   enabled: true
   
-  # ip address to bind to, null for all interfaces
-  ip: null
+  # ip address to bind to, leave blank for all interfaces
+  ip: 
   port: 1337
   
   # number of worker goroutines to run

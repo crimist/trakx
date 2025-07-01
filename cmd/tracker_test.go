@@ -57,7 +57,8 @@ func TestMain(m *testing.M) {
 				Read  time.Duration
 				Write time.Duration
 			}
-			Threads int
+			Threads   int
+			ServePath string
 		}{
 			Mode: "enabled",
 			Port: 1337,
@@ -68,7 +69,8 @@ func TestMain(m *testing.M) {
 				Read:  2 * time.Second,
 				Write: 2 * time.Second,
 			},
-			Threads: 1,
+			Threads:   1,
+			ServePath: "",
 		},
 		Numwant: struct {
 			Default uint

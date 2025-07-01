@@ -39,6 +39,8 @@ func NewInMemory(config Config) (*InMemory, error) {
 		}, nil),
 	}
 
+	// TODO: add persistance write on timer
+
 	if config.Persistance != nil {
 		if err := config.Persistance.read(db, config.PersistanceAddress); err != nil {
 			zap.L().Warn("Failed to load database from persistance", zap.Any("persistance", config.Persistance), zap.String("address", config.PersistanceAddress), zap.Error(err))

@@ -1,17 +1,17 @@
 ## Notes
 
-* We're moving connection backups into the main package using Marshal / Unmarshal
+* We're moving connection backups into the tracker runner using Marshal / Unmarshal
 
 ## Current
 
-* Refactor tracker main()
+* Refactor stats, create helpers for inc a dec which also do null check or smt
 
 ## Future
 
 * Refactor controller / command line interface - KISS!
+* Refactor config layout
 * Deal w/ every TODO
 * Implement new features
-* Refactor stats, create helpers for inc a dec which also do null check or smt
 
 ## Features
 
