@@ -1,7 +1,6 @@
 package http
 
 import (
-	"net"
 	"strings"
 	"testing"
 
@@ -17,14 +16,5 @@ func BenchmarkWriteData(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		writeSuccess(conn, data)
-	}
-}
-
-func BenchmarkWriteErr(b *testing.B) {
-	c, _ := net.Dial("udp", ":1")
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		writeFailure(c, "benchmark_string_test")
 	}
 }

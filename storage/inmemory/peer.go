@@ -47,31 +47,23 @@ func (db *InMemory) PeerAdd(hash storage.Hash, id storage.PeerID, ip netip.Addr,
 	torrent.mutex.Unlock()
 
 	// update metrics
-	if dbStats && db.stats != nil {
-		if peerExists {
-			if !peer.Complete && complete {
-				db.stats.Leeches.Add(-1)
-				db.stats.Seeds.Add(1)
-			} else if peer.Complete && !complete {
-				db.stats.Seeds.Add(-1)
-				db.stats.Leeches.Add(1)
-			}
-			if peer.IP != ip {
-				db.stats.IPStats.Lock()
-				db.stats.IPStats.Remove(peer.IP)
-				db.stats.IPStats.Inc(ip)
-				db.stats.IPStats.Unlock()
-			}
-		} else {
-			db.stats.IPStats.Lock()
-			db.stats.IPStats.Inc(ip)
-			db.stats.IPStats.Unlock()
+	if peerExists {
+		if !peer.Complete && complete {
+			db.collector.AddLeeches(-1)
+			db.collector.AddSeeds(1)
+		} else if peer.Complete && !complete {
+			db.collector.AddSeeds(-1)
+			db.collector.AddLeeches(1)
+		}
 
-			if complete {
-				db.stats.Seeds.Add(1)
-			} else {
-				db.stats.Leeches.Add(1)
-			}
+		db.collector.IPs().Replace(peer.IP, ip)
+	} else {
+		db.collector.IPs().Inc(ip)
+
+		if complete {
+			db.collector.AddSeeds(1)
+		} else {
+			db.collector.AddLeeches(1)
 		}
 	}
 
@@ -106,17 +98,12 @@ func (db *InMemory) PeerRemove(hash storage.Hash, id storage.PeerID) {
 	}
 	torrent.mutex.Unlock()
 
-	if dbStats && db.stats != nil {
-		if peer.Complete {
-			db.stats.Seeds.Add(-1)
-		} else {
-			db.stats.Leeches.Add(-1)
-		}
-
-		db.stats.IPStats.Lock()
-		db.stats.IPStats.Remove(peer.IP)
-		db.stats.IPStats.Unlock()
+	if peer.Complete {
+		db.collector.AddSeeds(-1)
+	} else {
+		db.collector.AddLeeches(-1)
 	}
+	db.collector.IPs().Remove(peer.IP)
 
 	db.peerPool.Put(peer)
 }

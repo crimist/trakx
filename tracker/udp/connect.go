@@ -9,13 +9,11 @@ import (
 )
 
 func (tracker *Tracker) connect(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
-	if tracker.stats != nil {
-		tracker.stats.Connects.Add(1)
-	}
+	tracker.collector.Connect()
 
 	connectRequest, err := udpprotocol.NewConnectRequest(data)
 	if err != nil {
-		tracker.fatal(udpAddr, []byte("failed to parse connect request"), transactionID)
+		tracker.error(udpAddr, []byte("failed to parse connect request"), transactionID)
 		zap.L().Debug("client sent invalid connect request", zap.Binary("packet", data), zap.Error(err), zap.Any("remote", addrPort))
 		return
 	}
@@ -30,7 +28,7 @@ func (tracker *Tracker) connect(udpAddr *net.UDPAddr, addrPort netip.AddrPort, t
 
 	marshalledResp, err := resp.Marshal()
 	if err != nil {
-		tracker.fatal(udpAddr, []byte("failed to marshall connect response"), connectRequest.TransactionID)
+		tracker.error(udpAddr, []byte("failed to marshall connect response"), connectRequest.TransactionID)
 		zap.L().Error("failed to marshall connect response", zap.Error(err), zap.Any("connect", connectRequest), zap.Any("remote", udpAddr))
 		return
 	}

@@ -14,8 +14,8 @@ package stats
 
 // var initTime = time.Now()
 
-// // Publish starts publishing and updating expvar values, requests metrics are over duration of Config.ExpvarInterval
-// func Publish(peerdb storage.Database, udpconns func() int64) {
+// // PublishExpvars starts publishing and updating expvar values
+// func PublishExpvars(peerdb storage.Database, udpconns func() int64) {
 // 	zap.L().Info("publishing stats as expvars", zap.Duration("interval", config.Config.ExpvarInterval))
 
 // 	// requests

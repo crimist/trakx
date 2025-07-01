@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
 )
 
@@ -25,7 +26,7 @@ func TestPeerAdd(t *testing.T) {
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
-		Stats:              nil,
+		Collector:          stats.NewCollectors(false, false, 0),
 	})
 	if err != nil {
 		t.Fatal("Failed to create database")
@@ -64,7 +65,7 @@ func TestPeerRemove(t *testing.T) {
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
-		Stats:              nil,
+		Collector:          stats.NewCollectors(false, false, 0),
 	})
 	if err != nil {
 		t.Fatal("Failed to create database")
@@ -93,7 +94,7 @@ func BenchmarkPeerAddSingle(b *testing.B) {
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
-		Stats:              nil,
+		Collector:          stats.NewCollectors(false, false, 0),
 	})
 	if err != nil {
 		b.Fatal("Failed to create database")
@@ -121,7 +122,7 @@ func BenchmarkPeerAddSingleParallell(b *testing.B) {
 				PersistanceAddress: "",
 				EvictionFrequency:  1 * time.Minute,
 				ExpirationTime:     1 * time.Minute,
-				Stats:              nil,
+				Collector:          stats.NewCollectors(false, false, 0),
 			})
 			if err != nil {
 				b.Fatal("Failed to create database")
@@ -156,7 +157,7 @@ func BenchmarkPeerAddMulti(b *testing.B) {
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
-		Stats:              nil,
+		Collector:          stats.NewCollectors(false, false, 0),
 	})
 	if err != nil {
 		b.Fatal("Failed to create database")
@@ -186,7 +187,7 @@ func BenchmarkPeerAddMultiParallell(b *testing.B) {
 				PersistanceAddress: "",
 				EvictionFrequency:  1 * time.Minute,
 				ExpirationTime:     1 * time.Minute,
-				Stats:              nil,
+				Collector:          stats.NewCollectors(false, false, 0),
 			})
 			if err != nil {
 				b.Fatal("Failed to create database")

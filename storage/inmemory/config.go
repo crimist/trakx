@@ -12,5 +12,5 @@ type Config struct {
 	PersistanceAddress string              // persistance address, ignored if persistance is nil
 	EvictionFrequency  time.Duration       // eviction frequency, 0 for no eviction
 	ExpirationTime     time.Duration       // expiration time, ignored if eviction frequency is 0
-	Stats              *stats.Statistics   // statistics, nil for no statistics
+	Collector          stats.Collector     // statistics collector
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/crimist/trakx/pools"
+	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/storage/inmemory"
 	"github.com/crimist/trakx/tracker"
@@ -34,6 +35,7 @@ var (
 		IntervalVariance: 0,
 	}
 	testNetworkPort = 10000
+	noopCollector   = stats.NewCollectors(false, false, 0)
 )
 
 func findOpenPort() int {
@@ -65,12 +67,14 @@ func TestMain(m *testing.M) {
 
 	pools.Initialize(int(testTrackerConfig.MaximumNumwant))
 
-	peerDB, err := inmemory.NewInMemory(inmemory.Config{})
+	peerDB, err := inmemory.NewInMemory(inmemory.Config{
+		Collector: noopCollector,
+	})
 	if err != nil {
 		zap.L().Fatal("UDP tracker received shutdown")
 	}
 	connections := connections.NewConnections(1, 1*time.Minute, 1*time.Minute)
-	tracker := NewTracker(peerDB, connections, nil, testTrackerConfig)
+	tracker := NewTracker(peerDB, connections, noopCollector, testTrackerConfig)
 	go func() {
 		err = tracker.Serve(nil, testNetworkPort, 1)
 		if err != nil {

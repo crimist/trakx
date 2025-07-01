@@ -22,7 +22,9 @@ func writeStatus(c net.Conn, status string) {
 	c.Write(utils.StringToBytesUnsafe("HTTP/1.1 " + status + "\r\n\r\n"))
 }
 
-func writeFailure(conn net.Conn, msg string) {
+func (tracker *Tracker) error(conn net.Conn, msg string) {
+	tracker.collector.ErrorResponse()
+
 	dictionary := pools.Dictionaries.Get()
 
 	dictionary.String("failure reason", msg)

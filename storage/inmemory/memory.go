@@ -25,15 +25,15 @@ type Torrent struct {
 }
 
 type InMemory struct {
-	mutex    sync.RWMutex
-	torrents map[storage.Hash]*Torrent
-	stats    *stats.Statistics
-	peerPool *pools.Pool[*storage.Peer]
+	mutex     sync.RWMutex
+	torrents  map[storage.Hash]*Torrent
+	collector stats.Collector
+	peerPool  *pools.Pool[*storage.Peer]
 }
 
 func NewInMemory(config Config) (*InMemory, error) {
 	db := &InMemory{
-		stats: config.Stats,
+		collector: config.Collector,
 		peerPool: pools.NewPool[*storage.Peer](func() any {
 			return new(storage.Peer)
 		}, nil),
@@ -52,8 +52,22 @@ func NewInMemory(config Config) (*InMemory, error) {
 		db.torrents = make(map[storage.Hash]*Torrent, config.InitalSize)
 	}
 
-	// TODO: refactor the stats package
-	db.syncExpvars()
+	var seeds, leeches int64
+
+	for _, peermap := range db.torrents {
+		for _, peer := range peermap.Peers {
+			db.collector.IPs().Inc(peer.IP)
+
+			if peer.Complete {
+				seeds++
+			} else {
+				leeches++
+			}
+		}
+	}
+
+	db.collector.AddSeeds(seeds)
+	db.collector.AddLeeches(leeches)
 
 	if config.EvictionFrequency > 0 {
 		go utils.RunOn(config.EvictionFrequency, func() {
@@ -101,21 +115,12 @@ func (db *InMemory) evictExpired(expirationTime int64) {
 
 				if peer.Complete {
 					torrent.Seeds--
+					db.collector.AddSeeds(-1)
 				} else {
 					torrent.Leeches--
+					db.collector.AddLeeches(-1)
 				}
-
-				if dbStats && db.stats != nil {
-					if peer.Complete {
-						db.stats.Seeds.Add(-1)
-					} else {
-						db.stats.Leeches.Add(-1)
-					}
-
-					db.stats.IPStats.Lock()
-					db.stats.IPStats.Remove(peer.IP)
-					db.stats.IPStats.Unlock()
-				}
+				db.collector.IPs().Remove(peer.IP)
 
 				db.peerPool.Put(peer)
 				trimmedPeers++

@@ -40,16 +40,16 @@ type Tracker struct {
 	connections *connections.Connections
 	peerDB      storage.Database
 	shutdown    chan struct{}
-	stats       *stats.Statistics
+	collector   stats.Collector
 }
 
-func NewTracker(peerDB storage.Database, connections *connections.Connections, stats *stats.Statistics, config tracker.TrackerConfig) *Tracker {
+func NewTracker(peerDB storage.Database, connections *connections.Connections, collector stats.Collector, config tracker.TrackerConfig) *Tracker {
 	return &Tracker{
 		config:      config,
 		peerDB:      peerDB,
 		connections: connections,
 		shutdown:    make(chan struct{}),
-		stats:       stats,
+		collector:   collector,
 	}
 }
 
@@ -112,16 +112,14 @@ func (tracker *Tracker) Shutdown() {
 }
 
 func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr) {
-	if tracker.stats != nil {
-		tracker.stats.Hits.Add(1)
-	}
+	tracker.collector.Hit()
 
 	action := udpprotocol.Action(data[11])
 	transactionID := int32(binary.BigEndian.Uint32(data[12:16]))
 
 	addr, ok := netip.AddrFromSlice(udpAddr.IP)
 	if !ok {
-		tracker.fatal(udpAddr, []byte("failed to parse ip"), transactionID)
+		tracker.error(udpAddr, []byte("failed to parse ip"), transactionID)
 		zap.L().DPanic("failed to parse remote ip slice as netip", zap.ByteString("ip", udpAddr.IP))
 		return
 	}
@@ -129,7 +127,7 @@ func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr) {
 	addrPort := netip.AddrPortFrom(addr, uint16(udpAddr.Port))
 
 	if !action.Valid() {
-		tracker.fatal(udpAddr, fatalInvalidAction, transactionID)
+		tracker.error(udpAddr, fatalInvalidAction, transactionID)
 		zap.L().Debug("client set invalid action", zap.Binary("packet", data), zap.Uint8("action", data[11]), zap.Any("remote", addrPort))
 		return
 	}
@@ -146,7 +144,7 @@ func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr) {
 	connectionID := int64(binary.BigEndian.Uint64(data[0:8]))
 	if tracker.config.Validate {
 		if validConnectionID := tracker.connections.Validate(addrPort, connectionID); !validConnectionID {
-			tracker.fatal(udpAddr, fatalUnregisteredConnection, transactionID)
+			tracker.error(udpAddr, fatalUnregisteredConnection, transactionID)
 			zap.L().Debug("client sent unregistered connection id", zap.Binary("packet", data), zap.Int64("connectionID", connectionID), zap.Any("remote", addrPort))
 			return
 		}

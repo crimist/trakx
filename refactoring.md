@@ -4,12 +4,12 @@
 
 ## Current
 
-* Refactor stats, create helpers for inc a dec which also do null check or smt
+* Refactor config layout
 
 ## Future
 
+* Fix the 'pools' package bs
 * Refactor controller / command line interface - KISS!
-* Refactor config layout
 * Deal w/ every TODO
 * Implement new features
 

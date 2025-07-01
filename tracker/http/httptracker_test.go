@@ -66,7 +66,9 @@ func TestMain(m *testing.M) {
 
 	pools.Initialize(int(testTrackerConfig.MaximumNumwant))
 
-	peerDB, err := inmemory.NewInMemory(inmemory.Config{})
+	peerDB, err := inmemory.NewInMemory(inmemory.Config{
+		Collector: stats.NewCollectors(false, false, 0),
+	})
 	if err != nil {
 		zap.L().Fatal("TCP tracker received shutdown")
 	}
@@ -76,8 +78,8 @@ func TestMain(m *testing.M) {
 		zap.L().Fatal("failed to get absolute path", zap.Error(err))
 	}
 
-	stats := stats.NewStats(0)
-	tracker := NewTracker(peerDB, servePath, stats, testTrackerConfig)
+	collector := stats.NewCollectors(false, false, 0)
+	tracker := NewTracker(peerDB, servePath, collector, testTrackerConfig)
 	go func() {
 		err = tracker.Serve(nil, testNetworkPort, 1)
 		if err != nil {

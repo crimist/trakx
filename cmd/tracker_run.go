@@ -40,7 +40,8 @@ func Run(conf *config.Configuration) {
 		zap.L().Warn("Configuration warning [conf.Announce]: Peer expiry time < announce interval. Peers will expire from the database between announces")
 	}
 
-	statistics := stats.NewStats(0)
+	// TODO: conf for collector enable/disable + cache the prev IP collector map size :D
+	collector := stats.NewCollectors(false, false, 0)
 
 	db, err := inmemory.NewInMemory(inmemory.Config{
 		InitalSize:         0, // TODO: cache this on exit and load on startup
@@ -48,7 +49,7 @@ func Run(conf *config.Configuration) {
 		PersistanceAddress: conf.DB.Backup.Path,
 		EvictionFrequency:  conf.DB.Trim,
 		ExpirationTime:     conf.DB.Expiry,
-		Stats:              statistics,
+		Collector:          collector,
 	})
 
 	if err != nil {
@@ -62,7 +63,7 @@ func Run(conf *config.Configuration) {
 
 		connectionsDB := connections.NewConnections(0, conf.UDP.ConnDB.Expiry, conf.UDP.ConnDB.Trim)
 
-		trackers = append(trackers, udp.NewTracker(db, connectionsDB, statistics, tracker.TrackerConfig{
+		trackers = append(trackers, udp.NewTracker(db, connectionsDB, collector, tracker.TrackerConfig{
 			Validate:         conf.UDP.ConnDB.Validate,
 			DefaultNumwant:   conf.Numwant.Default,
 			MaximumNumwant:   conf.Numwant.Limit,
@@ -90,7 +91,7 @@ func Run(conf *config.Configuration) {
 
 		// TODO: HTTP serve path in config, also validate it here (ie. dir exists and can access)
 		// docs = leave serve path blank to disable serving files
-		trackers = append(trackers, http.NewTracker(db, "/TODO/", statistics, tracker.TrackerConfig{
+		trackers = append(trackers, http.NewTracker(db, "/TODO/", collector, tracker.TrackerConfig{
 			DefaultNumwant:   conf.Numwant.Default,
 			MaximumNumwant:   conf.Numwant.Limit,
 			Interval:         uint(conf.Announce.Base),

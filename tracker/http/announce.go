@@ -22,19 +22,19 @@ type announceParameters struct {
 }
 
 func (tracker *Tracker) announce(conn net.Conn, parameters *announceParameters, addr netip.Addr) {
-	tracker.stats.Announces.Add(1)
+	tracker.collector.Announce()
 
 	var hash storage.Hash
 	var peerid storage.PeerID
 
 	if len(parameters.hash) != 20 {
-		writeFailure(conn, "Invalid infohash")
+		tracker.error(conn, "Invalid infohash")
 		return
 	}
 	copy(hash[:], parameters.hash)
 
 	if len(parameters.peerid) != 20 {
-		writeFailure(conn, "Invalid peerid")
+		tracker.error(conn, "Invalid peerid")
 		return
 	}
 	copy(peerid[:], parameters.peerid)
@@ -44,7 +44,7 @@ func (tracker *Tracker) announce(conn net.Conn, parameters *announceParameters, 
 	} else {
 		portInt, err := strconv.Atoi(parameters.port)
 		if err != nil || (portInt > 65535 || portInt < 1) {
-			writeFailure(conn, "Invalid port")
+			tracker.error(conn, "Invalid port")
 			return
 		}
 
@@ -60,7 +60,7 @@ func (tracker *Tracker) announce(conn net.Conn, parameters *announceParameters, 
 	if parameters.numwant != "" {
 		numwantInt, err := strconv.Atoi(parameters.numwant)
 		if err != nil || numwantInt < 0 {
-			writeFailure(conn, "Invalid numwant")
+			tracker.error(conn, "Invalid numwant")
 			return
 		}
 

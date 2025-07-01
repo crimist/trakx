@@ -29,17 +29,17 @@ type Tracker struct {
 	config        tracker.TrackerConfig
 	peerdb        storage.Database
 	shutdown      chan struct{}
-	stats         *stats.Statistics
+	collector     stats.Collector
 	expvarHandler http.Handler
 	servePath     string
 }
 
-func NewTracker(peerDB storage.Database, servePath string, stats *stats.Statistics, config tracker.TrackerConfig) *Tracker {
+func NewTracker(peerDB storage.Database, servePath string, collector stats.Collector, config tracker.TrackerConfig) *Tracker {
 	return &Tracker{
 		config:        config,
 		peerdb:        peerDB,
 		shutdown:      make(chan struct{}),
-		stats:         stats,
+		collector:     collector,
 		expvarHandler: expvar.Handler(),
 		servePath:     servePath,
 	}
@@ -71,7 +71,6 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 					}
 
 					zap.L().Error("http connection accept failed", zap.Error(err))
-					tracker.stats.ServerErrors.Add(1)
 					continue
 				}
 
@@ -85,7 +84,7 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 					continue
 				}
 
-				tracker.stats.Hits.Add(1)
+				tracker.collector.Hit()
 				data = data[:size]
 				tracker.process(conn, data)
 			}
@@ -120,7 +119,6 @@ func (tracker *Tracker) process(conn net.Conn, data []byte) {
 	} else if err != nil {
 		zap.L().Error("error parsing request", zap.Error(err), zap.ByteString("request data", data))
 		writeStatus(conn, "500")
-		tracker.stats.ServerErrors.Add(1)
 		return
 	}
 
@@ -168,8 +166,7 @@ func (tracker *Tracker) process(conn net.Conn, data []byte) {
 		forwarded, forwardedIP := parseForwarded(data)
 		if forwarded {
 			if forwardedIP == nil {
-				writeFailure(conn, "Failed to parse X-Forwarded-For")
-				tracker.stats.ClientErrors.Add(1)
+				tracker.error(conn, "Failed to parse X-Forwarded-For")
 				break
 			}
 			ipString = utils.BytesToStringUnsafe(forwardedIP)
@@ -181,8 +178,7 @@ func (tracker *Tracker) process(conn net.Conn, data []byte) {
 				ipString, _, err = net.SplitHostPort(conn.RemoteAddr().String())
 				if err != nil {
 					zap.L().Error("Failed to SplitHostPort", zap.Error(err))
-					writeFailure(conn, "Failed to parse remote address")
-					tracker.stats.ClientErrors.Add(1)
+					tracker.error(conn, "Failed to parse remote address")
 					break
 				}
 			}
@@ -192,8 +188,7 @@ func (tracker *Tracker) process(conn net.Conn, data []byte) {
 		ip, err := netip.ParseAddr(ipString)
 		if err != nil {
 			zap.L().Error("Failed to ParseAddr, is X-Forwarded-For enabled?", zap.String("ip", ipString), zap.Error(err))
-			writeFailure(conn, "Failed to parse IP address")
-			tracker.stats.ClientErrors.Add(1)
+			tracker.error(conn, "Failed to parse IP address")
 			break
 		}
 
@@ -209,8 +204,7 @@ func (tracker *Tracker) process(conn net.Conn, data []byte) {
 			}
 		}
 		if count == 0 {
-			writeFailure(conn, "scrape requires infohashes")
-			tracker.stats.ClientErrors.Add(1)
+			tracker.error(conn, "scrape requires infohashes")
 			break
 		}
 		tracker.scrape(conn, reqData.Parameters)
@@ -232,7 +226,6 @@ func (tracker *Tracker) process(conn net.Conn, data []byte) {
 
 		if !strings.HasPrefix(filePath, tracker.servePath) {
 			writeStatus(conn, "403")
-			tracker.stats.ClientErrors.Add(1)
 			break
 		}
 

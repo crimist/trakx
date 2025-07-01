@@ -16,25 +16,23 @@ var (
 )
 
 func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
-	if tracker.stats != nil {
-		tracker.stats.Announces.Add(1)
-	}
+	tracker.collector.Announce()
 
 	if len(data) < minimumAnnounceSize {
-		tracker.fatal(udpAddr, []byte("announce too short"), transactionID)
+		tracker.error(udpAddr, []byte("announce too short"), transactionID)
 		zap.L().Debug("client sent announce below minimum size", zap.Binary("packet", data), zap.Int("size", len(data)), zap.Any("remote", addrPort))
 		return
 	}
 
 	announceRequest, err := udpprotocol.NewAnnounceRequest(data)
 	if err != nil {
-		tracker.fatal(udpAddr, []byte("failed to parse announce"), transactionID)
+		tracker.error(udpAddr, []byte("failed to parse announce"), transactionID)
 		zap.L().Debug("failed to parse clients announce packet", zap.Binary("packet", data), zap.Error(err), zap.Any("remote", addrPort))
 		return
 	}
 
 	if announceRequest.Port == 0 {
-		tracker.fatal(udpAddr, fatalInvalidPort, announceRequest.TransactionID)
+		tracker.error(udpAddr, fatalInvalidPort, announceRequest.TransactionID)
 		zap.L().Debug("client sent announce with invalid port", zap.Any("announce", announceRequest), zap.Uint16("port", announceRequest.Port), zap.Any("remote", udpAddr))
 		return
 	}
@@ -64,7 +62,7 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 		}
 		respBytes, err := marshalledResp.Marshal()
 		if err != nil {
-			tracker.fatal(udpAddr, []byte("failed to marshall announce response"), announceRequest.TransactionID)
+			tracker.error(udpAddr, []byte("failed to marshall announce response"), announceRequest.TransactionID)
 			zap.L().Error("failed to marshall announce response", zap.Error(err), zap.Any("announce", announceRequest), zap.Any("remote", udpAddr))
 			return
 		}
@@ -113,7 +111,7 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 	}
 
 	if err != nil {
-		tracker.fatal(udpAddr, []byte("failed to marshall announce response"), announceRequest.TransactionID)
+		tracker.error(udpAddr, []byte("failed to marshall announce response"), announceRequest.TransactionID)
 		zap.L().Error("failed to marshall announce response", zap.Error(err), zap.Any("announce", announceRequest), zap.Any("remote", udpAddr))
 		return
 	}

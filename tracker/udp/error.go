@@ -7,11 +7,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func (tracker *Tracker) fatal(remote *net.UDPAddr, message []byte, TransactionID int32) {
-	if tracker.stats != nil {
-		// TODO: this isn't right
-		tracker.stats.ServerErrors.Add(1)
-	}
+func (tracker *Tracker) error(remote *net.UDPAddr, message []byte, TransactionID int32) {
+	tracker.collector.ErrorResponse()
 
 	protoError := udpprotocol.ErrorResponse{
 		Action:        udpprotocol.ActionError,

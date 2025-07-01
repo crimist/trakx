@@ -11,19 +11,17 @@ import (
 const maximumScrapeHashes = 74
 
 func (tracker *Tracker) scrape(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
-	if tracker.stats != nil {
-		tracker.stats.Scrapes.Add(1)
-	}
+	tracker.collector.Scrape()
 
 	scrape, err := udpprotocol.NewScrapeRequest(data)
 	if err != nil {
-		tracker.fatal(udpAddr, []byte("failed to parse scrape"), transactionID)
+		tracker.error(udpAddr, []byte("failed to parse scrape"), transactionID)
 		zap.L().Info("failed to parse clients scrape packet", zap.Binary("packet", data), zap.Error(err), zap.Any("remote", addrPort))
 		return
 	}
 
 	if len(scrape.InfoHashes) > maximumScrapeHashes {
-		tracker.fatal(udpAddr, []byte("exceeded 74 hashes"), scrape.TransactionID)
+		tracker.error(udpAddr, []byte("exceeded 74 hashes"), scrape.TransactionID)
 		zap.L().Debug("client sent over sized scrape request (> 74 hashes)", zap.Int("hashes", len(scrape.InfoHashes)), zap.Any("scrape", scrape), zap.Any("remote", udpAddr))
 		return
 	}
@@ -35,7 +33,7 @@ func (tracker *Tracker) scrape(udpAddr *net.UDPAddr, addrPort netip.AddrPort, tr
 
 	for _, hash := range scrape.InfoHashes {
 		if len(hash) != 20 {
-			tracker.fatal(udpAddr, append([]byte("missized hash "), hash[0:7]...), scrape.TransactionID)
+			tracker.error(udpAddr, append([]byte("missized hash "), hash[0:7]...), scrape.TransactionID)
 			zap.L().Debug("client sent scrape with missized hash", zap.Any("hash", hash), zap.Any("scrape", scrape), zap.Any("remote", udpAddr))
 			return
 		}
@@ -51,7 +49,7 @@ func (tracker *Tracker) scrape(udpAddr *net.UDPAddr, addrPort netip.AddrPort, tr
 
 	marshalledResp, err := resp.Marshal()
 	if err != nil {
-		tracker.fatal(udpAddr, []byte("failed to marshall scrape response"), scrape.TransactionID)
+		tracker.error(udpAddr, []byte("failed to marshall scrape response"), scrape.TransactionID)
 		zap.L().Error("failed to marshall scrape response", zap.Error(err), zap.Any("scrape", scrape), zap.Any("remote", udpAddr))
 		return
 	}

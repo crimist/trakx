@@ -8,7 +8,7 @@ import (
 )
 
 func (tracker *Tracker) scrape(conn net.Conn, infohashes parameters) {
-	tracker.stats.Scrapes.Add(1)
+	tracker.collector.Scrape()
 
 	dictionary := pools.Dictionaries.Get()
 	dictionary.StartDictionary("files")
@@ -18,8 +18,7 @@ func (tracker *Tracker) scrape(conn net.Conn, infohashes parameters) {
 			continue
 		}
 		if len(infohash) != 20 {
-			writeFailure(conn, "invalid infohash")
-			tracker.stats.ClientErrors.Add(1)
+			tracker.error(conn, "invalid infohash")
 			return
 		}
 
