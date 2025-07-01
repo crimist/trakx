@@ -1,4 +1,4 @@
-package tracker
+package cmd
 
 import (
 	"expvar"
@@ -96,9 +96,9 @@ func Run(conf *config.Configuration) {
 		})
 	}
 
-	// TODO: HTTP tracker
-	// TODO: migrate these to use port == -1 to disable
-	// and then to enable the info mode maybe a seperate boolean option
+	// TODO: make http tracker enable based on port with -1 for disabled
+	// info mode will run if stats are enabled and/or fileserver mode and tracker mode is disabled
+	// ah but then how to set port -.- xd
 	if conf.HTTP.Mode == config.TrackerModeEnabled {
 		zap.L().Info("HTTP tracker enabled", zap.String("ip", conf.HTTP.IP), zap.Int("port", conf.HTTP.Port))
 
@@ -125,9 +125,11 @@ func Run(conf *config.Configuration) {
 		})
 	} else if conf.HTTP.Mode == config.TrackerModeInfo {
 		mux := gohttp.NewServeMux()
-		mux.HandleFunc("/stats", func(w gohttp.ResponseWriter, r *gohttp.Request) {
-			expvar.Handler().ServeHTTP(w, r)
-		})
+		if conf.Stats.General {
+			mux.HandleFunc("/stats", func(w gohttp.ResponseWriter, r *gohttp.Request) {
+				expvar.Handler().ServeHTTP(w, r)
+			})
+		}
 		mux.Handle("/", gohttp.FileServer(gohttp.Dir("TODO")))
 
 		server := gohttp.Server{

@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	tracker "github.com/crimist/trakx/cmd"
+	"github.com/crimist/trakx/cmd"
 	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/tracker/udp/udpprotocol"
 	"github.com/pkg/errors"
@@ -36,7 +36,7 @@ func NewController(conf *config.Configuration) *Controller {
 
 // Execute executes trakx in the current process
 func (controller *Controller) Execute() {
-	tracker.Run(controller.config)
+	cmd.Run(controller.config)
 }
 
 // Start starts trakx as a service
@@ -73,7 +73,7 @@ func (controller *Controller) Stop() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get process from process id file")
 	}
-	if err := process.Signal(tracker.SigStop); err != nil {
+	if err := process.Signal(cmd.SigStop); err != nil {
 		return errors.Wrap(err, "failed to send stop signal to process")
 	}
 
