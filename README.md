@@ -28,7 +28,7 @@ Try Trakx for yourself! These instances are hosted on Oracles always free tier.
 
 ## 🚀 Install
 
-Go 1.20+ required.
+Go 1.21+ required.
 
 ```sh
 git clone https://github.com/crimist/trakx && cd trakx
