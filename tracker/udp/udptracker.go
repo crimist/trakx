@@ -35,21 +35,23 @@ var (
 )
 
 type Tracker struct {
-	config      tracker.TrackerConfig
-	socket      *net.UDPConn
-	connections *connections.Connections
-	peerDB      storage.Database
-	shutdown    chan struct{}
-	collector   stats.Collector
+	peerDB              storage.Database
+	config              tracker.TrackerConfig
+	collector           stats.Collector
+	shutdown            chan struct{}
+	socket              *net.UDPConn
+	connections         *connections.Connections
+	validateConnections bool
 }
 
-func NewTracker(peerDB storage.Database, connections *connections.Connections, collector stats.Collector, config tracker.TrackerConfig) *Tracker {
+func NewTracker(peerDB storage.Database, config tracker.TrackerConfig, collector stats.Collector, connections *connections.Connections, validateConnections bool) *Tracker {
 	return &Tracker{
-		config:      config,
-		peerDB:      peerDB,
-		connections: connections,
-		shutdown:    make(chan struct{}),
-		collector:   collector,
+		peerDB:              peerDB,
+		config:              config,
+		collector:           collector,
+		shutdown:            make(chan struct{}),
+		connections:         connections,
+		validateConnections: validateConnections,
 	}
 }
 
@@ -64,7 +66,7 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to open UDP listen socket")
 	}
-	zap.L().Debug("Serving UDP tracker on", zap.String("address", tracker.socket.LocalAddr().String()))
+	zap.L().Info("Serving UDP tracker on", zap.String("address", tracker.socket.LocalAddr().String()))
 
 	// TODO: figure out what optimal number of goroutines is (benchmark)
 	// Going to need to write a tool that can simulate a large number of clients
@@ -142,7 +144,7 @@ func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr) {
 	}
 
 	connectionID := int64(binary.BigEndian.Uint64(data[0:8]))
-	if tracker.config.Validate {
+	if tracker.validateConnections {
 		if validConnectionID := tracker.connections.Validate(addrPort, connectionID); !validConnectionID {
 			tracker.error(udpAddr, fatalUnregisteredConnection, transactionID)
 			zap.L().Debug("client sent unregistered connection id", zap.Binary("packet", data), zap.Int64("connectionID", connectionID), zap.Any("remote", addrPort))

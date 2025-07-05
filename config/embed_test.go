@@ -10,7 +10,7 @@ import (
 
 func TestWriteEmbeddedConfig(t *testing.T) {
 	const testHomeDir = "test_home"
-	const testConfigPath = testHomeDir + "/.config/trakx.yaml"
+	const testConfigPath = testHomeDir + "/.config/trakx/trakx.yaml"
 	const testCachePath = testHomeDir + "/.cache/trakx/"
 
 	homeEnv := "HOME"

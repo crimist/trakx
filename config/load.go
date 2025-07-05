@@ -7,23 +7,13 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/kkyr/fig"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-)
-
-const (
-	TrackerModeEnabled  = "enabled"  // http tracker enabled
-	TrackerModeInfo     = "info"     // http information server, no tracker
-	TrackerModeDisabled = "disabled" // http disabled
-
-	// defaultFolderPermission holds the default permission mask for folders
-	defaultFolderPermission = 0700
-	// defaultFilePermission holds the default permission mask for files
-	defaultFilePermission = 0644
 )
 
 var (
@@ -45,6 +35,7 @@ func Load() (*Configuration, error) {
 	configPath := defaultConfigPath
 	if *configPathFlag != "" {
 		configPath = *configPathFlag
+		zap.L().Debug("Using default config path", zap.String("path", configPath))
 	}
 
 	var conf Configuration
@@ -62,7 +53,7 @@ func Load() (*Configuration, error) {
 		return nil, errors.Wrap(err, "Invalid log level")
 	}
 
-	zap.L().Debug("Configuration loaded", zap.String("config_path", configPath))
+	zap.L().Debug("Configuration loaded", zap.String("path", configPath))
 
 	if conf.Cache == "" {
 		cacheDir, err := os.UserCacheDir()
@@ -71,15 +62,25 @@ func Load() (*Configuration, error) {
 		}
 		defaultCacheDir := filepath.Join(cacheDir, "trakx")
 		conf.Cache = defaultCacheDir
+		zap.L().Debug("Set default cache", zap.String("cache", conf.Cache))
 	}
 
 	if conf.DB.Expiry == 0 {
 		conf.DB.Expiry = conf.Announce.Base + conf.Announce.Fuzz + 5*time.Minute
-		zap.L().Debug("DB expiry not set, calculating reasonable deafult", zap.Duration("expiry", conf.DB.Expiry))
+		zap.L().Debug("Calculated DB expiry", zap.Duration("expiry", conf.DB.Expiry))
 	}
 
 	if conf.DB.Backup.Path == "" {
 		conf.DB.Backup.Path = filepath.Join(conf.Cache, "db")
+		zap.L().Debug("Set default DB backup path", zap.String("path", conf.DB.Backup.Path))
+	}
+
+	// TODO: needs benchmarking to find ideal number of routines
+	if conf.HTTP.Routines == 0 {
+		conf.HTTP.Routines = runtime.NumCPU() * 2
+	}
+	if conf.UDP.Routines == 0 {
+		conf.UDP.Routines = runtime.NumCPU() * 2
 	}
 
 	if err = conf.validate(); err != nil {

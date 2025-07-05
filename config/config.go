@@ -9,17 +9,15 @@ import (
 	"go.uber.org/zap"
 )
 
-type LogLevel string
-
 const (
-	DebugLevel = "debug"
-	InfoLevel  = "info"
-	WarnLevel  = "warn"
-	ErrorLevel = "error"
+	// defaultFolderPermission holds the default permission mask for folders
+	defaultFolderPermission = 0700
+	// defaultFilePermission holds the default permission mask for files
+	defaultFilePermission = 0644
 )
 
 type Configuration struct {
-	LogLevel LogLevel
+	LogLevel string
 	Cache    string
 	Stats    struct {
 		General  bool
@@ -93,7 +91,7 @@ func (conf *Configuration) validate() error {
 
 	if conf.Stats.General {
 		if conf.Stats.Interval <= 0 {
-			zap.L().Fatal("Invalid configuration: Stats.Interval must be greater than 0 if Stats.General is enabled")
+			return errors.New("invalid configuration: Stats.Interval must be greater than 0 if Stats.General is enabled ")
 		}
 
 		if conf.HTTP.Port == 0 {
@@ -101,8 +99,22 @@ func (conf *Configuration) validate() error {
 		}
 	}
 
+	if conf.HTTP.Serve != "" {
+		stat, err = os.Stat(conf.HTTP.Serve)
+
+		if os.IsNotExist(err) {
+			return errors.New("http serve path does not exist")
+		} else if err != nil {
+			return errors.Wrapf(err, "failed to stat http serve path '%s'", conf.HTTP.Serve)
+		} else if !stat.IsDir() {
+			return errors.New("http serve path is not a directory")
+		}
+	}
+
 	return nil
 }
+
+// TODO: consider removing trakx prefixes here
 
 // LogPath returns the log path as defined by the configuration and current time
 func (conf *Configuration) LogPath() string {

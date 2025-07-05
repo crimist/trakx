@@ -10,11 +10,17 @@
 package main
 
 import (
+	"flag"
+
+	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/tracker"
 	_ "github.com/heroku/x/hmetrics/onload"
+	"go.uber.org/zap"
 )
 
 func main() {
+	flag.Parse()
+
 	conf, err := config.Load()
 	if err != nil {
 		zap.L().Fatal("failed to load configuration", zap.Error(err))

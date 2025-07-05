@@ -19,10 +19,10 @@ func installDefaultConfig(path string) error {
 
 	_, err := os.Stat(path)
 
-	if os.IsExist(err) {
+	if err == nil {
 		zap.L().Debug("configuration file already exists, skipping installation", zap.String("path", path))
 		return nil
-	} else if err != nil && !os.IsNotExist(err) {
+	} else if !os.IsNotExist(err) {
 		return errors.Wrap(err, "failed to stat config file "+path)
 	}
 
@@ -38,6 +38,19 @@ func installDefaultConfig(path string) error {
 	if err = os.WriteFile(path, configurationContents, defaultFilePermission); err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to write configuration file '%s'", path))
 	}
+
+	zap.L().Debug("installed default configuration", zap.String("path", path))
+
+	return nil
+}
+
+func DumpDefaultConfig() error {
+	configurationContents, err := embeddedFS.ReadFile("embedded/trakx.yaml")
+	if err != nil {
+		return errors.Wrap(err, "failed to read config from embedded FS")
+	}
+
+	fmt.Print(string(configurationContents))
 
 	return nil
 }

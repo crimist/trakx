@@ -26,13 +26,10 @@ const (
 
 var (
 	testTrackerConfig = tracker.TrackerConfig{
-		Validate:         true,
 		DefaultNumwant:   2,
 		MaximumNumwant:   3,
 		Interval:         10,
 		IntervalVariance: 0,
-		ReadTimeout:      100 * time.Second,
-		WriteTimeout:     100 * time.Second,
 	}
 	testNetworkPort = 10000
 )
@@ -79,7 +76,7 @@ func TestMain(m *testing.M) {
 	}
 
 	collector := stats.NewCollectors(false, false, 0)
-	tracker := NewTracker(peerDB, servePath, collector, testTrackerConfig)
+	tracker := NewTracker(peerDB, testTrackerConfig, collector, servePath, 100*time.Millisecond, 100*time.Millisecond)
 	go func() {
 		err = tracker.Serve(nil, testNetworkPort, 1)
 		if err != nil {

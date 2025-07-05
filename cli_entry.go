@@ -1,8 +1,6 @@
 //go:build !heroku
 // +build !heroku
 
-// Trakx controller entrypoint
-
 package main
 
 import (
@@ -22,6 +20,7 @@ func printHelp() {
 	help += fmt.Sprintf("  %-12s restarts trakx daemon\n", "restart")
 	help += fmt.Sprintf("  %-12s executes trakx, doesn't return\n", "execute")
 	help += fmt.Sprintf("  %-12s wipes trakx pid file\n", "reset")
+	help += fmt.Sprintf("  %-12s prints default config\n", "dump")
 
 	help += "\nFlags:\n"
 	fmt.Fprint(os.Stderr, help)
@@ -96,6 +95,10 @@ func main() {
 			logFatal(err)
 		}
 		fmt.Println("wiped!")
+	case "dump":
+		if err = config.DumpDefaultConfig(); err != nil {
+			logFatal(err)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "invalid command: '%s'\n\n", os.Args[1])
 		printHelp()

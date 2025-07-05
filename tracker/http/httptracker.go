@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"expvar"
 	"net"
-	"net/http"
 	"net/netip"
 	"os"
 	"path"
@@ -26,22 +25,24 @@ const (
 )
 
 type Tracker struct {
-	config        tracker.TrackerConfig
-	peerdb        storage.Database
-	shutdown      chan struct{}
-	collector     stats.Collector
-	expvarHandler http.Handler
-	servePath     string
+	peerdb       storage.Database
+	config       tracker.TrackerConfig
+	collector    stats.Collector
+	shutdown     chan struct{}
+	servePath    string
+	readTimeout  time.Duration
+	writeTimeout time.Duration
 }
 
-func NewTracker(peerDB storage.Database, servePath string, collector stats.Collector, config tracker.TrackerConfig) *Tracker {
+func NewTracker(peerDB storage.Database, config tracker.TrackerConfig, collector stats.Collector, servePath string, readTimeout, writeTimeout time.Duration) *Tracker {
 	return &Tracker{
-		config:        config,
-		peerdb:        peerDB,
-		shutdown:      make(chan struct{}),
-		collector:     collector,
-		expvarHandler: expvar.Handler(),
-		servePath:     servePath,
+		config:       config,
+		peerdb:       peerDB,
+		shutdown:     make(chan struct{}),
+		collector:    collector,
+		servePath:    servePath,
+		readTimeout:  readTimeout,
+		writeTimeout: writeTimeout,
 	}
 }
 
@@ -75,8 +76,8 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 				}
 
 				now := time.Now()
-				conn.SetReadDeadline(now.Add(tracker.config.ReadTimeout))
-				conn.SetWriteDeadline(now.Add(tracker.config.WriteTimeout))
+				conn.SetReadDeadline(now.Add(tracker.readTimeout))
+				conn.SetWriteDeadline(now.Add(tracker.writeTimeout))
 
 				size, err := conn.Read(data)
 				if err != nil {
@@ -212,7 +213,7 @@ func (tracker *Tracker) process(conn net.Conn, data []byte) {
 		writeStatus(conn, "200")
 	case "/stats":
 		conn.Write(expvarHeader)
-		tracker.expvarHandler.ServeHTTP(ExpvarResponseWriter{
+		expvar.Handler().ServeHTTP(ExpvarResponseWriter{
 			conn: conn,
 		}, nil)
 	default:

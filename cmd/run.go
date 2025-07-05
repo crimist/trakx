@@ -7,6 +7,7 @@ import (
 	gohttp "net/http"
 
 	"github.com/crimist/trakx/config"
+	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/tracker"
 	"github.com/crimist/trakx/tracker/http"
@@ -33,6 +34,8 @@ func Run(conf *config.Configuration) {
 
 	zap.L().Debug("Starting Trakx")
 
+	pools.Initialize(int(conf.Numwant.Limit))
+
 	// TODO: cache the prev IP collector map size :D
 	collector := stats.NewCollectors(conf.Stats.General, conf.Stats.IP, 0)
 
@@ -52,17 +55,16 @@ func Run(conf *config.Configuration) {
 	}
 
 	if conf.UDP.Port != 0 {
-		zap.L().Info("UDP tracker enabled", zap.String("ip", conf.UDP.IP), zap.Int("port", conf.UDP.Port))
+		zap.L().Debug("UDP tracker enabled", zap.String("ip", conf.UDP.IP), zap.Int("port", conf.UDP.Port))
 
 		connectionsDB = connections.NewConnections(0, conf.UDP.Connections.Expiry, conf.UDP.Connections.GC)
 
-		trackers = append(trackers, udp.NewTracker(db, connectionsDB, collector, tracker.TrackerConfig{
-			Validate:         conf.UDP.Connections.Validate,
+		trackers = append(trackers, udp.NewTracker(db, tracker.TrackerConfig{
 			DefaultNumwant:   conf.Numwant.Default,
 			MaximumNumwant:   conf.Numwant.Limit,
 			Interval:         uint(conf.Announce.Base),
 			IntervalVariance: uint(conf.Announce.Fuzz),
-		}))
+		}, collector, connectionsDB, conf.UDP.Connections.Validate))
 
 		ip := net.ParseIP(conf.UDP.IP)
 		if conf.UDP.IP != "" && ip == nil {
@@ -77,17 +79,14 @@ func Run(conf *config.Configuration) {
 	}
 
 	if conf.HTTP.Tracker {
-		zap.L().Info("HTTP tracker enabled", zap.String("ip", conf.HTTP.IP), zap.Int("port", conf.HTTP.Port))
+		zap.L().Debug("HTTP tracker enabled", zap.String("ip", conf.HTTP.IP), zap.Int("port", conf.HTTP.Port))
 
-		// TODO: HTTP serve path in config, also validate it here (ie. dir exists and can access)
-		trackers = append(trackers, http.NewTracker(db, conf.HTTP.Serve, collector, tracker.TrackerConfig{
+		trackers = append(trackers, http.NewTracker(db, tracker.TrackerConfig{
 			DefaultNumwant:   conf.Numwant.Default,
 			MaximumNumwant:   conf.Numwant.Limit,
 			Interval:         uint(conf.Announce.Base),
 			IntervalVariance: uint(conf.Announce.Fuzz),
-			ReadTimeout:      conf.HTTP.Timeout.Read,
-			WriteTimeout:     conf.HTTP.Timeout.Write,
-		}))
+		}, collector, conf.HTTP.Serve, conf.HTTP.Timeout.Read, conf.HTTP.Timeout.Write))
 
 		ip := net.ParseIP(conf.HTTP.IP)
 		if conf.HTTP.IP != "" && ip == nil {
@@ -106,7 +105,7 @@ func Run(conf *config.Configuration) {
 				expvar.Handler().ServeHTTP(w, r)
 			})
 		}
-		mux.Handle("/", gohttp.FileServer(gohttp.Dir("TODO")))
+		mux.Handle("/", gohttp.FileServer(gohttp.Dir(conf.HTTP.Serve)))
 
 		server := gohttp.Server{
 			Addr:         fmt.Sprintf(":%d", conf.HTTP.Port),

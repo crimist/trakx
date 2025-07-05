@@ -4,26 +4,14 @@
 
 ## to do
 
-* Add `config dump` command to print out default config file
-
 * Refactor the 'pools' package, see TODOs inside
  
 * Refactor controller / command line interface - KISS!
+  * Look at caddy for inspiration
 
 * Deal w/ every TODO
 
 ## Ideas
-
-### Controller
-
-* Look at caddy for inspiration
-
-### Config
-
-* Calculate logical defaults by default, this will requirement benchmarks
-  * Maybe ~1-1.5x nproc worker threads by default?
-
-### General
 
 * Determine how much memory to pre allocate for maps based on the last N runs maximum size
   * Create a routine that wakes up every minuite to check peak usage, write changes to a file that just has last N runs

@@ -1,9 +1,9 @@
 # Trakx YAML configuration.
 # Values can be overridden using environment variables.
-# Example: `TRAKX_LOGLEVEL=debug trakx execute`
+# For example: `TRAKX_LOGLEVEL=debug trakx execute`
 
 # Log level. "debug", "info", "warn", or "error".
-loglevel: "info"
+loglevel: info
 
 # Cache is the directory in which trakx will write it's PID, logs, and database
 # persistence files. Leave blank for default of XDG_CACHE_HOME/trakx

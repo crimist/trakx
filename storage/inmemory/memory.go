@@ -5,6 +5,7 @@
 package inmemory
 
 import (
+	"os"
 	"sync"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/utils"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -39,16 +41,43 @@ func NewInMemory(config Config) (*InMemory, error) {
 		}, nil),
 	}
 
-	// TODO: add persistance write on timer
-
 	if config.Persistance != nil {
-		if err := config.Persistance.read(db, config.PersistanceAddress); err != nil {
-			zap.L().Warn("Failed to load database from persistance", zap.Any("persistance", config.Persistance), zap.String("address", config.PersistanceAddress), zap.Error(err))
-			db.torrents = make(map[storage.Hash]*Torrent, config.InitalSize)
-		} else {
-			zap.L().Info("Loaded database from persistance", zap.Any("persistance", config.Persistance), zap.String("address", config.PersistanceAddress), zap.Int("torrents", db.Torrents()))
+		if config.PersistanceAddress == "" {
+			return nil, errors.New("persistance enabled but no persistence address set")
 		}
-	} else {
+
+		stat, err := os.Stat(config.PersistanceAddress)
+
+		if os.IsNotExist(err) {
+			zap.L().Debug("Persistance address does not exist", zap.String("path", config.PersistanceAddress))
+		} else {
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to stat persistance address")
+			}
+
+			if stat.IsDir() {
+				return nil, errors.New("database persistance address is a directory")
+			}
+
+			if err := config.Persistance.read(db, config.PersistanceAddress); err != nil {
+				zap.L().Warn("Failed to load database from persistance", zap.Any("persistance", config.Persistance), zap.String("address", config.PersistanceAddress), zap.Error(err))
+			} else {
+				zap.L().Info("Loaded database from persistance", zap.Any("persistance", config.Persistance), zap.String("address", config.PersistanceAddress), zap.Int("torrents", db.Torrents()))
+			}
+		}
+
+		if config.PersistanceInterval > 0 {
+			zap.L().Debug("Database persisting on interval", zap.Duration("interval", config.PersistanceInterval))
+			utils.RunOn(config.PersistanceInterval, func() {
+				err := config.Persistance.write(db, config.PersistanceAddress)
+				if err != nil {
+					zap.L().Error("failed to write database persistence on interval", zap.Error(err))
+				}
+			})
+		}
+	}
+
+	if db.torrents == nil {
 		db.torrents = make(map[storage.Hash]*Torrent, config.InitalSize)
 	}
 

@@ -2,7 +2,6 @@ package tracker
 
 import (
 	"net"
-	"time"
 )
 
 type Tracker interface {
@@ -11,9 +10,6 @@ type Tracker interface {
 }
 
 type TrackerConfig struct {
-	// TODO: remove this and put it in connections.NewConnections
-	// Validate UDP connections
-	Validate bool
 	// Defualt number of peers to send to client
 	DefaultNumwant uint
 	// Maximum number of peers to send to client
@@ -23,9 +19,4 @@ type TrackerConfig struct {
 	// Interval variance which smooths load spikes
 	// `Interval + random(-IntervalVariance, IntervalVariance)`
 	IntervalVariance uint
-	// TODO: move these to http.NewTracker
-	// TCP read timeout
-	ReadTimeout time.Duration
-	// TCP write timeout
-	WriteTimeout time.Duration
 }

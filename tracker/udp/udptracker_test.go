@@ -28,7 +28,6 @@ const (
 
 var (
 	testTrackerConfig = tracker.TrackerConfig{
-		Validate:         true,
 		DefaultNumwant:   2,
 		MaximumNumwant:   3,
 		Interval:         1,
@@ -74,7 +73,7 @@ func TestMain(m *testing.M) {
 		zap.L().Fatal("UDP tracker received shutdown")
 	}
 	connections := connections.NewConnections(1, 1*time.Minute, 1*time.Minute)
-	tracker := NewTracker(peerDB, connections, noopCollector, testTrackerConfig)
+	tracker := NewTracker(peerDB, testTrackerConfig, noopCollector, connections, true)
 	go func() {
 		err = tracker.Serve(nil, testNetworkPort, 1)
 		if err != nil {
