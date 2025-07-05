@@ -4,8 +4,6 @@
 
 ## to do
 
-* Update expvar files for netdata to match new program output
-
 * Refactor config
   * Redo the layout in trakx.yaml, then the actual go side
   * Move all config validity checks into Configuration.Validate() (some are in main.Run())
