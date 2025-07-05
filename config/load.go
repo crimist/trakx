@@ -7,7 +7,7 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
-	"strings"
+	"time"
 
 	"github.com/kkyr/fig"
 	"github.com/pkg/errors"
@@ -57,21 +57,9 @@ func Load() (*Configuration, error) {
 		return nil, errors.Wrap(err, "failed to load configuration")
 	}
 
-	switch strings.ToLower(string(conf.LogLevel)) {
-	case "debug":
-		loggerAtom.SetLevel(zap.DebugLevel)
-		zap.L().Debug("Debug loglevel set, debug panics enabled")
-	case "info":
-		loggerAtom.SetLevel(zap.InfoLevel)
-	case "warn":
-		loggerAtom.SetLevel(zap.WarnLevel)
-	case "error":
-		loggerAtom.SetLevel(zap.ErrorLevel)
-	case "fatal":
-		loggerAtom.SetLevel(zap.FatalLevel)
-	default:
-		zap.L().Warn("Invalid log level was specified, defaulting to warn")
-		loggerAtom.SetLevel(zap.WarnLevel)
+	err = loggerAtom.UnmarshalText([]byte(conf.LogLevel))
+	if err != nil {
+		return nil, errors.Wrap(err, "Invalid log level")
 	}
 
 	zap.L().Debug("Configuration loaded", zap.String("config_path", configPath))
@@ -85,8 +73,14 @@ func Load() (*Configuration, error) {
 		conf.Cache = defaultCacheDir
 	}
 
-	// remove after config refactor
-	conf.HTTP.Mode = strings.ToLower(conf.HTTP.Mode)
+	if conf.DB.Expiry == 0 {
+		conf.DB.Expiry = conf.Announce.Base + conf.Announce.Fuzz + 5*time.Minute
+		zap.L().Debug("DB expiry not set, calculating reasonable deafult", zap.Duration("expiry", conf.DB.Expiry))
+	}
+
+	if conf.DB.Backup.Path == "" {
+		conf.DB.Backup.Path = filepath.Join(conf.Cache, "db")
+	}
 
 	if err = conf.validate(); err != nil {
 		return nil, errors.Wrap(err, "configuration validation failed")

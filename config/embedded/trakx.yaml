@@ -1,118 +1,105 @@
-# Trakx YAML config
-#   Values can be overridden with env vars
-#     Example: `TRAKX_LOGLEVEL=debug trakx execute`
+# Trakx YAML configuration.
+# Values can be overridden using environment variables.
+# Example: `TRAKX_LOGLEVEL=debug trakx execute`
 
-# "debug", "info", "warn", "error", or "fatal"
-# "debug" will enable debug only panics
+# Log level. "debug", "info", "warn", or "error".
 loglevel: "info"
 
-# cache is the directory in which trakx will write it's pid, logs, and database persistence files
-# leave blank for default of XDG_CACHE_HOME/trakx
+# Cache is the directory in which trakx will write it's PID, logs, and database
+# persistence files. Leave blank for default of XDG_CACHE_HOME/trakx
 cache:
 
-# Trakx can track statistic about itself such as the number of announces, seeds, unique ips, etc.
-# they are published via the expvar standard at '/stats'
+# Trakx can track statistic such as the number of announces, seeds, unique ips, etc.
+# They are published via go's expvar standard at '/stats'.
 stats:
-  # enable general stats collection, low memory and performance impact
+  # Enable general stats collection. Low memory and performance impact.
   general: true
 
-  # enable unique ip stats, high memory and performance impact
+  # Enable unique IP addresses calculation. High memory and performance impact.
   ip: false
 
-  # how often to update expvar published values based on statistics collected
+  # How often to update expvar values.
   interval: 1s
 
 debug:
-  # port to serve pprof over, leave blank to disable
+  # Port to serve pprof on. Leave blank to disable pprof.
+  # Do not enable in prod - pprof can be used to dump memory.
   pprof:
 
-# --- REFACTOR BELOW ---
-# TODO: find better names for these, ie conndb.trim should be conncache.expiry
-
-# announce interval = base + [0, fuzz]
+# Announce interval = `base + [0, fuzz]`. Fuzz is useful to spread out traffic
+# after tracker is started.
 announce:
   base: 30m
-  # fuzz >= 0
   fuzz: 5m
 
-# http tracker vars
 http:
-  # "enabled"   enables the http tracker
-  # "info"      serves the http server files, no http tracker
-  # "disabled"  disables anything http related
-  mode: "enabled"
-  
-  # ip address to bind to, null for all interfaces
-  ip: null
+  # Enables the http tracker. If you wish to serve files and/or expvar
+  # stats without running the http tracker you may set this to false and
+  # set `port` and `serve`.
+  tracker: true
+
+  # Port to bind. Leave blank to fully disable HTTP server.
   port: 1337
   
-  # tcp timeouts in seconds, starting from accept()
-  timeout:
-    read: 3s
-    write: 10s
-
-  # number of worker goroutines to run
-  threads: 512
-
-# udp tracker vars
-udp:
-  enabled: true
-  
-  # ip address to bind to, leave blank for all interfaces
+  # IP address to bind. Leave blank for all interfaces.
   ip: 
+  
+  # Number of worker goroutines. Leave blank for sensible default based on cores.
+  routines:
+
+  # TCP timeouts starting from connection establishment.
+  timeout:
+    read: 5s
+    write: 8s
+
+  # Optional path to serve files from. Note that the web server component of
+  # the tracker is not fully HTTP compliant and only serves basic static pages.
+  # If you wish to serve a complex website with the tracker enabled a reverse proxy
+  # is recommended. Pass `/announce`, `/scrape`, `/heartbeat`, and optionally `/stats`
+  # to Trakx.
+  serve: 
+
+udp:
+  # Port to bind. Leave blank to disable UDP tracker.
   port: 1337
   
-  # number of worker goroutines to run
-  threads: 512
+  # IP address to bind. Leave blank for all interfaces.
+  ip: 
+  
+  # Number of worker goroutines. Leave blank for sensible default based on cores.
+  routines:
 
-  # TODO: this should be renamed to ConnectionCache
-  # udp connection database
-  conndb:
-    # validate connection IDs
-    # if disabled tracker can be abused for UDP amplification DoS
+  connections:
+    # Validate connection IDs. WARNING: tracker can be abused for UDP amplifcation
+    # attacks if disabled. Only disable on trusted networks.
     validate: true
 
-    # initalized size of connection database map
-    # set to reduce memory usage by preallocating memory
-    size: 0
+    # How often to garbage collect the connection cache for expired connections.
+    gc: 10m
 
-    # interval for trimming expired connection IDs
-    trim: 10m
-
-    # maximum connection ID age before marked expired
+    # Maximum connection age before garbage collection.
     expiry: 30m
 
-# numwant vars
 numwant:
-  # default number of peers in response if none specified
-  default: 75
+  # Default number of peers in response if numwant is unspeficied.
+  default: 50
   
-  # max number of peers in response, numwants above this will be capped
+  # Maximum number of peers in response. Numwant above this will be capped.
   limit: 200
 
-# database vars
 db:
-  # database types:
-  #   gomap - In memory database using golang maps
-  type: "gomap"
+  # How often to garbage collect the database for expired peers.
+  gc: 10m
   
+  # Maximum peer age before garbage collection. Is is recommended that
+  # expiry >= announce_base + announce_fuzz to ensure peers dont expire prior to
+  # re-announcement. Leave blank for sensible default of
+  # `announce_base + announce_fuzz + 5m`.
+  expiry:
+
   backup:
-    # database backup interval, 0 to disable
-    frequency: 0s
-
-    # backup types:
-    #   gomap:
-    #     none  - don't backup db
-    #     file  - write db to file
-    #     pg    - write db to postgres
-    type: "none"
+    # Database backup interval. Leave blank to disable backups on interval.
+    interval: 300s
   
-    # backup path
-    path: ""
-
-  # interval for removing expired peers
-  trim: 10m
-  
-  # max peer age before marked expired
-  # should: expiry >= announce_base + announce_fuzz
-  expiry: 40m
+    # Backup file path. Leave blank for default of `$cache/db`
+    path:

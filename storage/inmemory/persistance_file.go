@@ -9,29 +9,29 @@ import (
 	"go.uber.org/zap"
 )
 
-const filePermission = 0640 // rw-r-----
+const defaultFilePermission = 0640 // rw-r-----
 
 type FilePersistance struct{}
 
-func (fp *FilePersistance) write(db *InMemory, filepath string) error {
-	zap.L().Info("Persisting database to file", zap.String("path", filepath))
+func (fp *FilePersistance) write(db *InMemory, path string) error {
+	zap.L().Info("Persisting database to file", zap.String("path", path))
 	start := time.Now()
 
 	encoded, err := encodeBinary(db)
 	if err != nil {
 		return errors.Wrap(err, "failed to binary encode database")
 	}
-	os.WriteFile(filepath, encoded, filePermission)
+	os.WriteFile(path, encoded, defaultFilePermission)
 
 	zap.L().Info("Persisted database to file", zap.Duration("elapsed", time.Since(start)))
 	return nil
 }
 
-func (fp *FilePersistance) read(db *InMemory, filepath string) error {
-	zap.L().Info("Loading database from file", zap.String("path", filepath))
+func (fp *FilePersistance) read(db *InMemory, path string) error {
+	zap.L().Info("Loading database from file", zap.String("path", path))
 	start := time.Now()
 
-	data, err := os.ReadFile(filepath)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return errors.Wrap(err, "failed to read file from disk")
 	}

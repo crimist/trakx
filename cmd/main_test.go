@@ -12,64 +12,54 @@ import (
 func TestMain(m *testing.M) {
 	conf := &config.Configuration{
 		LogLevel: "debug",
-		Debug: struct{ Pprof int }{
-			Pprof: 0,
-		},
+		Debug:    struct{ Pprof int }{},
 		Stats: struct {
 			General  bool
 			IP       bool
 			Interval time.Duration
-		}{
-			General:  false,
-			IP:       false,
-			Interval: 0,
-		},
+		}{},
 		UDP: struct {
-			Enabled bool
-			IP      string
-			Port    int
-			Threads int
-			ConnDB  struct {
+			Port        int
+			IP          string
+			Routines    int
+			Connections struct {
 				Validate bool
-				Size     uint64
-				Trim     time.Duration
+				GC       time.Duration
 				Expiry   time.Duration
 			}
 		}{
-			ConnDB: struct {
+			Connections: struct {
 				Validate bool
-				Size     uint64
-				Trim     time.Duration
+				GC       time.Duration
 				Expiry   time.Duration
 			}{
 				Validate: true,
-				Trim:     1 * time.Hour,
+				GC:       1 * time.Hour,
 				Expiry:   1 * time.Hour,
 			},
-			Enabled: true,
-			Port:    1337,
-			Threads: 1,
+			Port:     1337,
+			Routines: 1,
 		},
 		Announce: struct {
 			Base time.Duration
 			Fuzz time.Duration
 		}{
-			Base: 0,
 			Fuzz: 1 * time.Second,
 		},
 		HTTP: struct {
-			Mode    string
-			IP      string
-			Port    int
-			Timeout struct {
+			Tracker  bool
+			Port     int
+			IP       string
+			Routines int
+			Timeout  struct {
 				Read  time.Duration
 				Write time.Duration
 			}
-			Threads   int
-			ServePath string
+			Serve string
 		}{
-			Mode: "enabled",
-			Port: 1337,
+			Tracker:  true,
+			Port:     1337,
+			Routines: 1,
 			Timeout: struct {
 				Read  time.Duration
 				Write time.Duration
@@ -77,8 +67,6 @@ func TestMain(m *testing.M) {
 				Read:  2 * time.Second,
 				Write: 2 * time.Second,
 			},
-			Threads:   1,
-			ServePath: "",
 		},
 		Numwant: struct {
 			Default uint
@@ -88,26 +76,15 @@ func TestMain(m *testing.M) {
 			Limit:   100,
 		},
 		DB: struct {
-			Type   string
-			Backup struct {
-				Frequency time.Duration
-				Type      string
-				Path      string
-			}
-			Trim   time.Duration
+			GC     time.Duration
 			Expiry time.Duration
+			Backup struct {
+				Interval time.Duration
+				Path     string
+			}
 		}{
-			Type:   "gomap",
-			Trim:   1 * time.Hour,
+			GC:     1 * time.Hour,
 			Expiry: 1 * time.Hour,
-			Backup: struct {
-				Frequency time.Duration
-				Type      string
-				Path      string
-			}{
-				Type:      "none",
-				Frequency: 0,
-			},
 		},
 	}
 

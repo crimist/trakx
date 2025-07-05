@@ -4,10 +4,6 @@
 
 ## to do
 
-* Refactor config
-  * Redo the layout in trakx.yaml, then the actual go side
-  * Move all config validity checks into Configuration.Validate() (some are in main.Run())
-
 * Add `config dump` command to print out default config file
 
 * Refactor the 'pools' package, see TODOs inside
