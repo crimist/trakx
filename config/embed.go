@@ -2,6 +2,7 @@ package config
 
 import (
 	"embed"
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -13,24 +14,29 @@ import (
 //go:embed embedded/*
 var embeddedFS embed.FS
 
-func writeEmbeddedConfig(path string) error {
+func installDefaultConfig(path string) error {
 	syscall.Umask(0)
 
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		configData, err := embeddedFS.ReadFile("embedded/trakx.yaml")
-		if err != nil {
-			return errors.Wrap(err, "failed to read embedded FS")
-		}
+	_, err := os.Stat(path)
 
-		if err = os.MkdirAll(filepath.Dir(path), folderPerm); err != nil {
-			zap.L().Warn("failed to create config directory", zap.Error(err))
-		}
-
-		if err = os.WriteFile(path, configData, filePerm); err != nil {
-			return errors.Wrap(err, "failed to write configuration file to "+path)
-		}
-	} else if err != nil {
+	if os.IsExist(err) {
+		zap.L().Debug("configuration file already exists, skipping installation", zap.String("path", path))
+		return nil
+	} else if err != nil && !os.IsNotExist(err) {
 		return errors.Wrap(err, "failed to stat config file "+path)
+	}
+
+	configurationContents, err := embeddedFS.ReadFile("embedded/trakx.yaml")
+	if err != nil {
+		return errors.Wrap(err, "failed to read config from embedded FS")
+	}
+
+	if err = os.MkdirAll(filepath.Dir(path), defaultFolderPermission); err != nil {
+		zap.L().Warn("failed to create configuration directory", zap.Error(err), zap.String("directory", filepath.Dir(path)))
+	}
+
+	if err = os.WriteFile(path, configurationContents, defaultFilePermission); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to write configuration file '%s'", path))
 	}
 
 	return nil

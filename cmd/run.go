@@ -33,14 +33,6 @@ func Run(conf *config.Configuration) {
 
 	zap.L().Debug("Starting Trakx")
 
-	warnings := conf.Validate()
-	if warnings&config.WarningUDPValidation != 0 {
-		zap.L().Warn("Configuration warning [UDP.ConnDB.Validate]: UDP connection validation is disabled. Do not expose this service to untrusted networks; it could be abused in UDP based amplification attacks.")
-	}
-	if warnings&config.WarningPeerExpiry != 0 {
-		zap.L().Warn("Configuration warning [conf.Announce]: Peer expiry time < announce interval. Peers will expire from the database between announces")
-	}
-
 	if conf.Stats.General {
 		if conf.Stats.Interval <= 0 {
 			zap.L().Fatal("Invalid configuration: Stats.Interval must be greater than 0 if Stats.General is enabled")

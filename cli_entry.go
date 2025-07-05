@@ -6,30 +6,30 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
 	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/controller"
-	"go.uber.org/zap"
 )
 
 func printHelp() {
 	help := "Commands:\n"
-	help += fmt.Sprintf("   %-12s returns the status of trakx\n", "status")
-	help += fmt.Sprintf("   %-12s starts trakx daemon\n", "start")
-	help += fmt.Sprintf("   %-12s stops trakx daemon\n", "stop")
-	help += fmt.Sprintf("   %-12s restarts trakx daemon\n", "restart")
-	help += fmt.Sprintf("   %-12s executes trakx, doesn't return\n", "execute")
-	help += fmt.Sprintf("   %-12s wipes trakx pid file, use if you encounter errors with start/stop/restart commands\n", "reset")
+	help += fmt.Sprintf("  %-12s returns the status of trakx\n", "status")
+	help += fmt.Sprintf("  %-12s starts trakx daemon\n", "start")
+	help += fmt.Sprintf("  %-12s stops trakx daemon\n", "stop")
+	help += fmt.Sprintf("  %-12s restarts trakx daemon\n", "restart")
+	help += fmt.Sprintf("  %-12s executes trakx, doesn't return\n", "execute")
+	help += fmt.Sprintf("  %-12s wipes trakx pid file\n", "reset")
 
-	help += "Usage:\n"
-	help += fmt.Sprintf("   %s <command>\n", os.Args[0])
+	help += "\nFlags:\n"
+	fmt.Fprint(os.Stderr, help)
+	flag.PrintDefaults()
 
-	help += "Example:\n"
-	help += fmt.Sprintf("   %s status\n", os.Args[0])
-
-	fmt.Print(help)
+	help = "\nExample:\n"
+	help += fmt.Sprintf("  %s -config trakx.yaml status\n", os.Args[0])
+	fmt.Fprint(os.Stderr, help)
 }
 
 func logFatal(err error) {
@@ -38,19 +38,21 @@ func logFatal(err error) {
 }
 
 func main() {
-	if len(os.Args) < 2 {
+	flag.Parse()
+
+	if flag.NArg() == 0 {
 		printHelp()
 		return
 	}
 
 	conf, err := config.Load()
 	if err != nil {
-		zap.L().Fatal("failed to load configuration", zap.Error(err))
+		logFatal(err)
 	}
 
 	controller := controller.NewController(conf)
 
-	switch os.Args[1] {
+	switch flag.Arg(0) {
 	case "status":
 		pidFileExists, processAlive, heartbeat := controller.Status()
 

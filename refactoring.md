@@ -2,25 +2,27 @@
 
 * We're moving connection backups into the tracker runner using Marshal / Unmarshal
 
-## Current
+## to do
+
+* Update expvar files for netdata to match new program output
 
 * Refactor config
   * Redo the layout in trakx.yaml, then the actual go side
   * Move all config validity checks into Configuration.Validate() (some are in main.Run())
 
-## Future
+* Add `config dump` command to print out default config file
 
 * Refactor the 'pools' package, see TODOs inside
+ 
 * Refactor controller / command line interface - KISS!
+
 * Deal w/ every TODO
 
-## Changes
+## Ideas
 
 ### Controller
 
 * Look at caddy for inspiration
-* Add arguments for providing config & pidfile
-* Make default paths for config and pid resepect XDG standard
 
 ### Config
 

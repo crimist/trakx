@@ -14,21 +14,21 @@ const filePermission = 0640 // rw-r-----
 type FilePersistance struct{}
 
 func (fp *FilePersistance) write(db *InMemory, filepath string) error {
-	zap.L().Info("persisting database to file")
+	zap.L().Info("Persisting database to file", zap.String("path", filepath))
 	start := time.Now()
 
 	encoded, err := encodeBinary(db)
 	if err != nil {
-		return errors.Wrap(err, "failed to binary encode databse")
+		return errors.Wrap(err, "failed to binary encode database")
 	}
 	os.WriteFile(filepath, encoded, filePermission)
 
-	zap.L().Info("persisted database to file", zap.Duration("elapsed", time.Since(start)))
+	zap.L().Info("Persisted database to file", zap.Duration("elapsed", time.Since(start)))
 	return nil
 }
 
 func (fp *FilePersistance) read(db *InMemory, filepath string) error {
-	zap.L().Info("loading databse from file")
+	zap.L().Info("Loading database from file", zap.String("path", filepath))
 	start := time.Now()
 
 	data, err := os.ReadFile(filepath)
@@ -42,6 +42,6 @@ func (fp *FilePersistance) read(db *InMemory, filepath string) error {
 		return errors.Wrap(err, "failed to binary decode database")
 	}
 
-	zap.L().Info("loaded database from file", zap.Int("peers", peers), zap.Int("hashes", torrents), zap.Duration("elapsed", time.Since(start)))
+	zap.L().Info("Loaded database from file", zap.Int("peers", peers), zap.Int("hashes", torrents), zap.Duration("elapsed", time.Since(start)))
 	return nil
 }

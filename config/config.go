@@ -1,16 +1,18 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
 type Configuration struct {
-	LogLevel  LogLevel
-	CachePath string
-	Stats     struct {
+	LogLevel LogLevel
+	Cache    string
+	Stats    struct {
 		General  bool
 		IP       bool
 		Interval time.Duration
@@ -61,56 +63,38 @@ type Configuration struct {
 	}
 }
 
-type Warnings int
+// validate checks that configuration values are sane and returns warnings for potential misconfigurations or security issues
+func (conf *Configuration) validate() error {
+	// check cache directory exists and is a directory
+	stat, err := os.Stat(conf.Cache)
+	if os.IsNotExist(err) {
+		zap.L().Debug("cache directory does not exist, creating it", zap.String("cache", conf.Cache))
+		if err = os.MkdirAll(conf.Cache, defaultFolderPermission); err != nil {
+			return errors.Wrapf(err, "failed to create cache directory '%s'", conf.Cache)
+		}
+	} else if err != nil {
+		return errors.Wrapf(err, "failed to stat cache '%s'", conf.Cache)
+	} else if !stat.IsDir() {
+		return errors.Errorf("cache '%s' is not a directory", conf.Cache)
+	}
 
-const (
-	WarningNone Warnings = 1 << iota
-	WarningUDPValidation
-	WarningPeerExpiry
-)
-
-// Validate ensures that configuration values are sane and returns warnings for potential misconfigurations or security issues
-func (conf *Configuration) Validate() Warnings {
-	warnings := WarningNone
-
+	// potential misconfigurations warnings
 	if !conf.UDP.ConnDB.Validate {
-		warnings |= WarningUDPValidation
+		zap.L().Warn("Configuration warning: UDP connection validation is disabled. Do not expose this service to untrusted networks; it could be abused in UDP based amplification attacks.")
 	}
 	if conf.DB.Expiry < conf.Announce.Base+conf.Announce.Fuzz {
-		warnings |= WarningPeerExpiry
+		zap.L().Warn("Configuration warning: Peer expiry time < announce base + fuzz. Peers will expire from the database between announces.")
 	}
 
-	return warnings
+	return nil
 }
 
 // LogPath returns the log path as defined by the configuration and current time
 func (conf *Configuration) LogPath() string {
-	return filepath.Join(conf.CachePath, "trakx_"+time.Now().Format("06-01-02-15-04-05")+".log")
+	return filepath.Join(conf.Cache, "trakx_"+time.Now().Format("06-01-02-15-04-05")+".log")
 }
 
 // PIDPath retuirns the pid file path
 func (conf *Configuration) PIDPath() string {
-	return filepath.Join(conf.CachePath, "trakx.pid")
-}
-
-// setLogLevel sets the desired loglevel in the in memory configuration and logger
-func (conf *Configuration) setLogLevel(level LogLevel) {
-	conf.LogLevel = level
-
-	switch level {
-	case "debug":
-		loggerAtom.SetLevel(zap.DebugLevel)
-		zap.L().Debug("Debug loglevel set, debug panics enabled")
-	case "info":
-		loggerAtom.SetLevel(zap.InfoLevel)
-	case "warn":
-		loggerAtom.SetLevel(zap.WarnLevel)
-	case "error":
-		loggerAtom.SetLevel(zap.ErrorLevel)
-	case "fatal":
-		loggerAtom.SetLevel(zap.FatalLevel)
-	default:
-		zap.L().Warn("Invalid log level was specified, defaulting to warn")
-		loggerAtom.SetLevel(zap.WarnLevel)
-	}
+	return filepath.Join(conf.Cache, "trakx.pid")
 }
