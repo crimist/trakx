@@ -101,5 +101,5 @@ db:
     # Database backup interval. Leave blank to disable backups on interval.
     interval: 300s
   
-    # Backup file path. Leave blank for default of `$cache/db`
+    # Combined backup snapshot file path. Leave blank for default of `$cache/db`
     path:

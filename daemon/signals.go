@@ -32,8 +32,11 @@ func signalHandler(trackers []tracker.Tracker, persist func() error) {
 				tracker.Shutdown()
 			}
 
-			// TODO: write db
-			// TODO: write udp conn db
+			if persist != nil {
+				if err := persist(); err != nil {
+					zap.L().Error("Failed to persist databases", zap.Error(err))
+				}
+			}
 
 			os.Exit(exitSuccess)
 
@@ -45,8 +48,6 @@ func signalHandler(trackers []tracker.Tracker, persist func() error) {
 					zap.L().Error("Failed to persist databases", zap.Error(err))
 				}
 			}
-
-			// TODO: write udp conn db
 
 			zap.L().Info("Persisted databases")
 

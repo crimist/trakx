@@ -29,7 +29,9 @@ func NewConnections(initialSize int, maxAge time.Duration, gcFrequency time.Dura
 		associations: make(associations, initialSize),
 	}
 
-	go utils.RunOn(gcFrequency, connections.garbageCollector)
+	if gcFrequency > 0 {
+		go utils.RunOn(gcFrequency, connections.garbageCollector)
+	}
 
 	return &connections
 }

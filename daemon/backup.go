@@ -13,6 +13,7 @@ import (
 	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage/database"
+	"github.com/crimist/trakx/tracker/udp/connections"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -71,8 +72,18 @@ func ImportBackup(conf *config.Configuration, reader io.Reader) (err error) {
 	}
 
 	tee := io.TeeReader(reader, tmpFile)
-	if err = validationDB.Restore(tee); err != nil {
-		return errors.Wrap(err, "backup validation failed")
+	connSnapshot, dbReader, err := splitCombinedSnapshot(tee)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse combined snapshot")
+	}
+	if err = validationDB.Restore(dbReader); err != nil {
+		return errors.Wrap(err, "database validation failed")
+	}
+	if len(connSnapshot) > 0 {
+		connValidation := connections.NewConnections(0, time.Minute, 0)
+		if err := connValidation.Unmarshal(connSnapshot); err != nil {
+			return errors.Wrap(err, "connection validation failed")
+		}
 	}
 	if err = tmpFile.Sync(); err != nil {
 		return errors.Wrap(err, "failed to sync backup file")
@@ -90,8 +101,8 @@ func ImportBackup(conf *config.Configuration, reader io.Reader) (err error) {
 	return nil
 }
 
-func persistDatabase(db *database.Database, backupPath string) error {
-	if err := streamSnapshotToSocket(db); err == nil {
+func persistSnapshot(db *database.Database, connDB *connections.Connections, backupPath string) error {
+	if err := streamSnapshotToSocket(db, connDB); err == nil {
 		zap.L().Debug("Persisted backup via socket stream")
 		return nil
 	}
@@ -100,7 +111,7 @@ func persistDatabase(db *database.Database, backupPath string) error {
 	}
 
 	zap.L().Debug("Persisting backup via file", zap.String("path", backupPath))
-	return database.WriteSnapshotFile(db, backupPath)
+	return writeCombinedSnapshotFile(db, connDB, backupPath)
 }
 
 func streamSnapshotFromDaemon(processID int, writer io.Writer) error {
@@ -149,7 +160,7 @@ func streamSnapshotFromDaemon(processID int, writer io.Writer) error {
 	return nil
 }
 
-func streamSnapshotToSocket(db *database.Database) error {
+func streamSnapshotToSocket(db *database.Database, connDB *connections.Connections) error {
 	socketPath := backupSocketPath(os.Getpid())
 	zap.L().Debug("Dialing backup socket", zap.String("path", socketPath))
 	dialer := net.Dialer{Timeout: backupDialTimeout}
@@ -166,7 +177,7 @@ func streamSnapshotToSocket(db *database.Database) error {
 	}
 
 	zap.L().Debug("Writing snapshot to socket")
-	return db.Snapshot(conn)
+	return writeCombinedSnapshot(conn, db, connDB)
 }
 
 func exportBackupFile(conf *config.Configuration, writer io.Writer) error {
@@ -192,6 +203,43 @@ func exportBackupFile(conf *config.Configuration, writer io.Writer) error {
 
 	if _, err := io.Copy(writer, file); err != nil {
 		return errors.Wrap(err, "failed to stream backup file")
+	}
+
+	return nil
+}
+
+func writeCombinedSnapshotFile(db *database.Database, connDB *connections.Connections, backupPath string) (err error) {
+	if backupPath == "" {
+		return errors.New("backup path is empty")
+	}
+
+	tmpDir := filepath.Dir(backupPath)
+	tmpFile, err := os.CreateTemp(tmpDir, "trakx-db-*")
+	if err != nil {
+		return errors.Wrap(err, "failed to create temp backup file")
+	}
+	tmpPath := tmpFile.Name()
+	defer func() {
+		if err != nil {
+			tmpFile.Close()
+			os.Remove(tmpPath)
+		}
+	}()
+
+	if err = writeCombinedSnapshot(tmpFile, db, connDB); err != nil {
+		return errors.Wrap(err, "failed to write combined snapshot")
+	}
+	if err = tmpFile.Sync(); err != nil {
+		return errors.Wrap(err, "failed to sync backup file")
+	}
+	if err = tmpFile.Close(); err != nil {
+		return errors.Wrap(err, "failed to close backup file")
+	}
+	if err = os.Rename(tmpPath, backupPath); err != nil {
+		return errors.Wrap(err, "failed to replace backup file")
+	}
+	if err = os.Chmod(backupPath, backupFilePermissions); err != nil {
+		return errors.Wrap(err, "failed to set backup file permissions")
 	}
 
 	return nil

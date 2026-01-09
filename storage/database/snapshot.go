@@ -2,7 +2,6 @@ package database
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -18,7 +17,10 @@ const (
 	snapshotHeaderSize  = snapshotMagicSize + snapshotVersionSize
 )
 
-var errSnapshotVersion = errors.New("unsupported snapshot version")
+var (
+	errSnapshotMagic   = errors.New("invalid snapshot magic")
+	errSnapshotVersion = errors.New("unsupported snapshot version")
+)
 
 // Snapshot writes a full database snapshot to the provided writer.
 func (db *Database) Snapshot(writer io.Writer) error {
@@ -34,7 +36,6 @@ func (db *Database) Snapshot(writer io.Writer) error {
 }
 
 // Restore loads a database snapshot from the provided reader.
-// It also supports the legacy headerless binary format.
 func (db *Database) Restore(reader io.Reader) error {
 	bufReader := bufio.NewReader(reader)
 	header := make([]byte, snapshotMagicSize)
@@ -43,8 +44,7 @@ func (db *Database) Restore(reader io.Reader) error {
 	}
 
 	if string(header) != snapshotMagic {
-		legacyReader := io.MultiReader(bytes.NewReader(header), bufReader)
-		return db.restoreBinary(legacyReader)
+		return errSnapshotMagic
 	}
 
 	var version uint16

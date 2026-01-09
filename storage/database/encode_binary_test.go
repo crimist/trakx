@@ -14,7 +14,6 @@ import (
 func TestBinaryCoder(t *testing.T) {
 	db, err := NewDatabase(Config{
 		InitalSize:         1,
-		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
 		Collector:          stats.NewCollectors(false, false, 0),
@@ -36,7 +35,6 @@ func TestBinaryCoder(t *testing.T) {
 	oldtorrents := db.torrents
 	db, err = NewDatabase(Config{
 		InitalSize:         1,
-		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
 		Collector:          stats.NewCollectors(false, false, 0),
@@ -72,7 +70,6 @@ func BenchmarkEncodeBinary(b *testing.B) {
 
 			db, err := NewDatabase(Config{
 				InitalSize:         1,
-				PersistanceAddress: "",
 				EvictionFrequency:  1 * time.Hour,
 				ExpirationTime:     1 * time.Hour,
 				Collector:          stats.NewCollectors(false, false, 0),
@@ -108,7 +105,6 @@ func BenchmarkDecodeBinary(b *testing.B) {
 
 			db, err := NewDatabase(Config{
 				InitalSize:         1,
-				PersistanceAddress: "",
 				EvictionFrequency:  1 * time.Hour,
 				ExpirationTime:     1 * time.Hour,
 				Collector:          stats.NewCollectors(false, false, 0),

@@ -6,7 +6,6 @@ package database
 
 import (
 	"io"
-	"os"
 	"sync"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/utils"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -52,36 +50,6 @@ func NewDatabase(config Config) (*Database, error) {
 			if err := closer.Close(); err != nil {
 				zap.L().Warn("Failed to close import reader", zap.Error(err))
 			}
-		}
-	} else if config.PersistanceAddress != "" {
-		stat, err := os.Stat(config.PersistanceAddress)
-
-		if os.IsNotExist(err) {
-			zap.L().Debug("Database backup file does not exist", zap.String("path", config.PersistanceAddress))
-		} else {
-			if err != nil {
-				return nil, errors.Wrap(err, "failed to stat database backup file")
-			}
-
-			if stat.IsDir() {
-				return nil, errors.New("database backup path is a directory")
-			}
-
-			if err := ReadSnapshotFile(db, config.PersistanceAddress); err != nil {
-				zap.L().Warn("Failed to load database from backup file", zap.String("path", config.PersistanceAddress), zap.Error(err))
-			} else {
-				zap.L().Info("Loaded database from backup file", zap.String("path", config.PersistanceAddress), zap.Int("torrents", db.Torrents()))
-			}
-		}
-
-		if config.PersistanceInterval > 0 {
-			zap.L().Debug("Database backup on interval", zap.Duration("interval", config.PersistanceInterval))
-			go utils.RunOn(config.PersistanceInterval, func() {
-				err := WriteSnapshotFile(db, config.PersistanceAddress)
-				if err != nil {
-					zap.L().Error("failed to write database backup on interval", zap.Error(err))
-				}
-			})
 		}
 	}
 

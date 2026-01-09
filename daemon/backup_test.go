@@ -15,12 +15,12 @@ import (
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/storage/database"
+	"github.com/crimist/trakx/tracker/udp/connections"
 )
 
 func TestStreamSnapshotToSocket(t *testing.T) {
 	db, err := database.NewDatabase(database.Config{
 		InitalSize:         1,
-		PersistanceAddress: "",
 		Collector:          stats.NewCollectors(false, false, 0),
 	})
 	if err != nil {
@@ -32,6 +32,10 @@ func TestStreamSnapshotToSocket(t *testing.T) {
 	copy(hash[:], bytes.Repeat([]byte{1}, len(hash)))
 	copy(peerID[:], bytes.Repeat([]byte{2}, len(peerID)))
 	db.PeerAdd(hash, peerID, netip.MustParseAddr("127.0.0.1"), 1234, true)
+
+	connDB := connections.NewConnections(1, time.Minute, 0)
+	udpAddr := netip.MustParseAddrPort("1.1.1.1:1234")
+	connID := connDB.Create(udpAddr)
 
 	socketPath := backupSocketPath(os.Getpid())
 	if err := removeSocketPath(socketPath); err != nil {
@@ -67,7 +71,7 @@ func TestStreamSnapshotToSocket(t *testing.T) {
 		dataCh <- data
 	}()
 
-	if err := streamSnapshotToSocket(db); err != nil {
+	if err := streamSnapshotToSocket(db, connDB); err != nil {
 		t.Fatalf("streamSnapshotToSocket failed: %v", err)
 	}
 
@@ -75,19 +79,29 @@ func TestStreamSnapshotToSocket(t *testing.T) {
 	case err := <-errCh:
 		t.Fatalf("listener error: %v", err)
 	case data := <-dataCh:
+		connSnapshot, dbReader, err := splitCombinedSnapshot(bytes.NewReader(data))
+		if err != nil {
+			t.Fatalf("splitCombinedSnapshot failed: %v", err)
+		}
 		restored, err := database.NewDatabase(database.Config{
 			InitalSize:         1,
-			PersistanceAddress: "",
 			Collector:          stats.NewCollectors(false, false, 0),
 		})
 		if err != nil {
 			t.Fatal("Failed to create database")
 		}
-		if err := restored.Restore(bytes.NewReader(data)); err != nil {
+		if err := restored.Restore(dbReader); err != nil {
 			t.Fatalf("Restore failed: %v", err)
 		}
 		if restored.Torrents() != 1 {
 			t.Fatalf("torrents = %d, want 1", restored.Torrents())
+		}
+		restoredConnections := connections.NewConnections(1, time.Minute, 0)
+		if err := restoredConnections.Unmarshal(connSnapshot); err != nil {
+			t.Fatalf("Failed to restore connections: %v", err)
+		}
+		if !restoredConnections.Validate(udpAddr, connID) {
+			t.Fatalf("restored connections missing expected entry")
 		}
 	case <-time.After(backupAcceptTimeout + time.Second):
 		t.Fatal("timed out waiting for snapshot")
@@ -128,10 +142,10 @@ func TestImportBackupRejectsInvalidData(t *testing.T) {
 	conf.DB.Backup.Path = backupPath
 
 	invalid := bytes.NewBuffer(nil)
-	if _, err := invalid.WriteString("TRAKXDB"); err != nil {
+	if _, err := invalid.WriteString(combinedSnapshotMagic); err != nil {
 		t.Fatal(err)
 	}
-	if err := binary.Write(invalid, binary.LittleEndian, uint16(2)); err != nil {
+	if err := binary.Write(invalid, binary.LittleEndian, uint16(combinedSnapshotVersion+1)); err != nil {
 		t.Fatal(err)
 	}
 

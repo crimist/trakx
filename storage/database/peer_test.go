@@ -22,7 +22,6 @@ var (
 func TestPeerAdd(t *testing.T) {
 	db, err := NewDatabase(Config{
 		InitalSize:         1,
-		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
 		Collector:          stats.NewCollectors(false, false, 0),
@@ -60,7 +59,6 @@ func TestPeerAdd(t *testing.T) {
 func TestPeerRemove(t *testing.T) {
 	db, err := NewDatabase(Config{
 		InitalSize:         1,
-		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
 		Collector:          stats.NewCollectors(false, false, 0),
@@ -88,7 +86,6 @@ func BenchmarkPeerAddSingle(b *testing.B) {
 
 	db, err := NewDatabase(Config{
 		InitalSize:         1,
-		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
 		Collector:          stats.NewCollectors(false, false, 0),
@@ -115,7 +112,6 @@ func BenchmarkPeerAddSingleParallell(b *testing.B) {
 		b.Run(fmt.Sprintf("%d", routines), func(b *testing.B) {
 			db, err := NewDatabase(Config{
 				InitalSize:         1,
-				PersistanceAddress: "",
 				EvictionFrequency:  1 * time.Minute,
 				ExpirationTime:     1 * time.Minute,
 				Collector:          stats.NewCollectors(false, false, 0),
@@ -149,7 +145,6 @@ func BenchmarkPeerAddMulti(b *testing.B) {
 
 	db, err := NewDatabase(Config{
 		InitalSize:         1,
-		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
 		Collector:          stats.NewCollectors(false, false, 0),
@@ -178,7 +173,6 @@ func BenchmarkPeerAddMultiParallell(b *testing.B) {
 		b.Run(fmt.Sprintf("%d", routines), func(b *testing.B) {
 			db, err := NewDatabase(Config{
 				InitalSize:         1,
-				PersistanceAddress: "",
 				EvictionFrequency:  1 * time.Minute,
 				ExpirationTime:     1 * time.Minute,
 				Collector:          stats.NewCollectors(false, false, 0),
