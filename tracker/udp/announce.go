@@ -5,86 +5,116 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/pools"
-	"github.com/crimist/trakx/tracker/stats"
-	"github.com/crimist/trakx/tracker/udp/protocol"
+	"github.com/crimist/trakx/storage"
+	"github.com/crimist/trakx/tracker/udp/udpprotocol"
+	"go.uber.org/zap"
 )
 
-func (u *UDPTracker) announce(announce *protocol.Announce, remote *net.UDPAddr, addrPort netip.AddrPort) {
-	stats.Announces.Add(1)
+var (
+	fatalInvalidPort = []byte("invalid announce port")
+)
 
-	if announce.Port == 0 {
-		msg := u.newClientError("bad port", announce.TransactionID, cerrFields{"addrPort": addrPort, "port": announce.Port})
-		u.sock.WriteToUDP(msg, remote)
+func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
+	tracker.collector.Announce()
+
+	if len(data) < minimumAnnounceSize {
+		tracker.error(udpAddr, []byte("announce too short"), transactionID)
+		zap.L().Debug("client sent announce below minimum size", zap.Binary("packet", data), zap.Int("size", len(data)), zap.Any("remote", addrPort))
 		return
 	}
 
-	if announce.NumWant < 1 {
-		announce.NumWant = int32(config.Config.Numwant.Default)
-	} else if announce.NumWant > int32(config.Config.Numwant.Limit) {
-		announce.NumWant = int32(config.Config.Numwant.Limit)
+	announceRequest, err := udpprotocol.NewAnnounceRequest(data)
+	if err != nil {
+		tracker.error(udpAddr, []byte("failed to parse announce"), transactionID)
+		zap.L().Debug("failed to parse clients announce packet", zap.Binary("packet", data), zap.Error(err), zap.Any("remote", addrPort))
+		return
 	}
 
-	if announce.Event == protocol.EventStopped {
-		u.peerdb.Drop(announce.InfoHash, announce.PeerID)
+	if announceRequest.Port == 0 {
+		tracker.error(udpAddr, fatalInvalidPort, announceRequest.TransactionID)
+		zap.L().Debug("client sent announce with invalid port", zap.Any("announce", announceRequest), zap.Uint16("port", announceRequest.Port), zap.Any("remote", udpAddr))
+		return
+	}
 
-		resp := protocol.AnnounceResp{
-			Action:        protocol.ActionAnnounce,
-			TransactionID: announce.TransactionID,
-			Interval:      -1,
-			Leechers:      -1,
-			Seeders:       -1,
+	if announceRequest.NumWant < 1 {
+		announceRequest.NumWant = int32(tracker.config.DefaultNumwant)
+	} else if announceRequest.NumWant > int32(tracker.config.MaximumNumwant) {
+		announceRequest.NumWant = int32(tracker.config.MaximumNumwant)
+	}
+
+	interval := tracker.config.Interval
+	if tracker.config.IntervalVariance > 0 {
+		interval += uint(rand.Int63n(int64(tracker.config.IntervalVariance)))
+	}
+
+	if announceRequest.Event == udpprotocol.EventStopped {
+		tracker.peerDB.PeerRemove(announceRequest.InfoHash, announceRequest.PeerID)
+		seeds, leeches := tracker.peerDB.TorrentStats(announceRequest.InfoHash)
+
+		marshalledResp := udpprotocol.AnnounceResponse{
+			Action:        udpprotocol.ActionAnnounce,
+			TransactionID: announceRequest.TransactionID,
+			Interval:      int32(interval),
+			Leeches:       int32(leeches),
+			Seeds:         int32(seeds),
 			Peers:         []byte{},
 		}
-		respBytes, err := resp.Marshall()
+		respBytes, err := marshalledResp.Marshal()
 		if err != nil {
-			msg := u.newServerError("AnnounceResp.Marshall()", err, announce.TransactionID)
-			u.sock.WriteToUDP(msg, remote)
+			tracker.error(udpAddr, []byte("failed to marshall announce response"), announceRequest.TransactionID)
+			zap.L().Error("failed to marshall announce response", zap.Error(err), zap.Any("announce", announceRequest), zap.Any("remote", udpAddr))
 			return
 		}
 
-		u.sock.WriteToUDP(respBytes, remote)
+		tracker.socket.WriteToUDP(respBytes, udpAddr)
 		return
 	}
 
 	peerComplete := false
-	if announce.Event == protocol.EventCompleted || announce.Left == 0 {
+	if announceRequest.Event == udpprotocol.EventCompleted || announceRequest.Left == 0 {
 		peerComplete = true
 	}
 
-	u.peerdb.Save(addrPort.Addr(), announce.Port, peerComplete, announce.InfoHash, announce.PeerID)
+	tracker.peerDB.PeerAdd(announceRequest.InfoHash, announceRequest.PeerID, addrPort.Addr(), announceRequest.Port, peerComplete)
+	seeds, leeches := tracker.peerDB.TorrentStats(announceRequest.InfoHash)
 
-	complete, incomplete := u.peerdb.HashStats(announce.InfoHash)
-	peers4, peers6 := u.peerdb.PeerListBytes(announce.InfoHash, uint(announce.NumWant))
-	interval := int32(config.Config.Announce.Base.Seconds())
-	if int32(config.Config.Announce.Fuzz.Seconds()) > 0 {
-		interval += rand.Int31n(int32(config.Config.Announce.Fuzz.Seconds()))
-	}
-
-	resp := protocol.AnnounceResp{
-		Action:        protocol.ActionAnnounce,
-		TransactionID: announce.TransactionID,
-		Interval:      interval,
-		Leechers:      int32(incomplete),
-		Seeders:       int32(complete),
-	}
-
+	var ipversion storage.IPVersion
 	if addrPort.Addr().Is4() {
-		resp.Peers = peers4
+		ipversion = storage.IPv4
 	} else {
-		resp.Peers = peers6
+		ipversion = storage.IPv6
 	}
 
-	respBytes, err := resp.Marshall()
-	pools.Peerlists4.Put(peers4)
-	pools.Peerlists6.Put(peers6)
+	peers4, peers6 := tracker.peerDB.TorrentPeersCompact(announceRequest.InfoHash, uint(announceRequest.NumWant), ipversion)
+
+	response := udpprotocol.AnnounceResponse{
+		Action:        udpprotocol.ActionAnnounce,
+		TransactionID: announceRequest.TransactionID,
+		Interval:      int32(interval),
+		Leeches:       int32(leeches),
+		Seeds:         int32(seeds),
+	}
+
+	if ipversion == storage.IPv4 {
+		response.Peers = peers4
+	} else {
+		response.Peers = peers6
+	}
+
+	respBytes, err := response.Marshal()
+	if peers4 != nil {
+		pools.Peerlists4.Put(peers4)
+	}
+	if peers6 != nil {
+		pools.Peerlists6.Put(peers6)
+	}
 
 	if err != nil {
-		msg := u.newServerError("AnnounceResp.Marshall()", err, announce.TransactionID)
-		u.sock.WriteToUDP(msg, remote)
+		tracker.error(udpAddr, []byte("failed to marshall announce response"), announceRequest.TransactionID)
+		zap.L().Error("failed to marshall announce response", zap.Error(err), zap.Any("announce", announceRequest), zap.Any("remote", udpAddr))
 		return
 	}
 
-	u.sock.WriteToUDP(respBytes, remote)
+	tracker.socket.WriteToUDP(respBytes, udpAddr)
 }

@@ -1,15 +1,11 @@
-// +heroku goVersion go1.19
-
 module github.com/crimist/trakx
 
-go 1.19
+go 1.21
 
 require (
 	github.com/cbeuw/connutil v0.0.0-20200411215123-966bfaa51ee3
 	github.com/go-torrent/bencode v0.0.0-20150403200907-4318e12a955c
-	github.com/heroku/x v0.0.55
 	github.com/kkyr/fig v0.3.0
-	github.com/lib/pq v1.10.7
 	github.com/pkg/errors v0.9.1
 	go.uber.org/zap v1.23.0
 )

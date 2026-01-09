@@ -6,13 +6,11 @@ import (
 	"net/netip"
 	"strconv"
 
-	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/pools"
-	"github.com/crimist/trakx/tracker/stats"
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/storage"
 )
 
-type announceParams struct {
+type announceParameters struct {
 	compact  bool
 	nopeerid bool
 	noneleft bool
@@ -23,91 +21,73 @@ type announceParams struct {
 	numwant  string
 }
 
-func (t *HTTPTracker) announce(conn net.Conn, vals *announceParams, ip netip.Addr) {
-	stats.Announces.Add(1)
+func (tracker *Tracker) announce(conn net.Conn, parameters *announceParameters, addr netip.Addr) {
+	tracker.collector.Announce()
 
-	// get vars
 	var hash storage.Hash
 	var peerid storage.PeerID
 
-	// hash
-	if len(vals.hash) != 20 {
-		t.clientError(conn, "Invalid infohash")
+	if len(parameters.hash) != 20 {
+		tracker.error(conn, "Invalid infohash")
 		return
 	}
-	copy(hash[:], vals.hash)
+	copy(hash[:], parameters.hash)
 
-	// peerid
-	if len(vals.peerid) != 20 {
-		t.clientError(conn, "Invalid peerid")
+	if len(parameters.peerid) != 20 {
+		tracker.error(conn, "Invalid peerid")
 		return
 	}
-	copy(peerid[:], vals.peerid)
+	copy(peerid[:], parameters.peerid)
 
-	// get if stop before continuing
-	if vals.event == "stopped" {
-		t.peerdb.Drop(hash, peerid)
-		conn.Write(httpSuccessBytes)
-		return
-	}
-
-	// port
-	portInt, err := strconv.Atoi(vals.port)
-	if err != nil || (portInt > 65535 || portInt < 1) {
-		t.clientError(conn, "Invalid port")
-		return
-	}
-
-	// numwant
-	numwant := config.Config.Numwant.Default
-
-	if vals.numwant != "" {
-		numwantInt, err := strconv.Atoi(vals.numwant)
-		if err != nil || numwantInt < 0 {
-			t.clientError(conn, "Invalid numwant")
+	if parameters.event == "stopped" {
+		tracker.peerdb.PeerRemove(hash, peerid)
+	} else {
+		portInt, err := strconv.Atoi(parameters.port)
+		if err != nil || (portInt > 65535 || portInt < 1) {
+			tracker.error(conn, "Invalid port")
 			return
 		}
-		numwantUint := uint(numwantInt)
 
-		// if numwant is within our limit than listen to the client
-		if numwantUint <= config.Config.Numwant.Limit {
-			numwant = numwantUint
-		} else {
-			numwant = config.Config.Numwant.Limit
+		peerComplete := false
+		if parameters.event == "completed" || parameters.noneleft {
+			peerComplete = true
 		}
+
+		tracker.peerdb.PeerAdd(hash, peerid, addr, uint16(portInt), peerComplete)
 	}
 
-	peerComplete := false
-	if vals.event == "completed" || vals.noneleft {
-		peerComplete = true
+	numwant := tracker.config.DefaultNumwant
+	if parameters.numwant != "" {
+		numwantInt, err := strconv.Atoi(parameters.numwant)
+		if err != nil || numwantInt < 0 {
+			tracker.error(conn, "Invalid numwant")
+			return
+		}
+
+		numwant = min(uint(numwantInt), tracker.config.MaximumNumwant)
 	}
 
-	t.peerdb.Save(ip, uint16(portInt), peerComplete, hash, peerid)
-	complete, incomplete := t.peerdb.HashStats(hash)
+	seeds, leeches := tracker.peerdb.TorrentStats(hash)
 
-	interval := int64(config.Config.Announce.Base.Seconds())
-	if int32(config.Config.Announce.Fuzz.Seconds()) > 0 {
-		interval += rand.Int63n(int64(config.Config.Announce.Fuzz.Seconds()))
+	interval := tracker.config.Interval
+	if tracker.config.IntervalVariance > 0 {
+		interval += uint(rand.Int63n(int64(tracker.config.IntervalVariance)))
 	}
 
 	dictionary := pools.Dictionaries.Get()
-	dictionary.Int64("interval", interval)
-	dictionary.Int64("complete", int64(complete))
-	dictionary.Int64("incomplete", int64(incomplete))
-	if vals.compact {
-		peers4, peers6 := t.peerdb.PeerListBytes(hash, numwant)
+	dictionary.Int64("interval", int64(interval))
+	dictionary.Int64("complete", int64(seeds))
+	dictionary.Int64("incomplete", int64(leeches))
+	if parameters.compact {
+		peers4, peers6 := tracker.peerdb.TorrentPeersCompact(hash, uint(numwant), storage.IPv4|storage.IPv6)
 		dictionary.StringBytes("peers", peers4)
 		dictionary.StringBytes("peers6", peers6)
 
 		pools.Peerlists4.Put(peers4)
 		pools.Peerlists6.Put(peers6)
 	} else {
-		dictionary.BytesliceSlice("peers", t.peerdb.PeerList(hash, numwant, vals.nopeerid))
+		dictionary.BytesliceSlice("peers", tracker.peerdb.TorrentPeers(hash, numwant, !parameters.nopeerid))
 	}
-
-	// double write no append is more efficient when > ~250 peers in response
-	// conn.Write(httpSuccessBytes)
-	// conn.Write(d.GetBytes())
 
 	conn.Write(append(httpSuccessBytes, dictionary.GetBytes()...))
 	pools.Dictionaries.Put(dictionary)

@@ -1,32 +1,37 @@
 package udp
 
 import (
-	"math/rand"
 	"net"
 	"net/netip"
 
-	"github.com/crimist/trakx/tracker/stats"
-	"github.com/crimist/trakx/tracker/udp/protocol"
+	"github.com/crimist/trakx/tracker/udp/udpprotocol"
+	"go.uber.org/zap"
 )
 
-func (u *UDPTracker) connect(connect *protocol.Connect, remote *net.UDPAddr, addr netip.AddrPort) {
-	stats.Connects.Add(1)
+func (tracker *Tracker) connect(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
+	tracker.collector.Connect()
 
-	id := rand.Int63()
-	u.conndb.add(id, addr)
-
-	resp := protocol.ConnectResp{
-		Action:        protocol.ActionConnect,
-		TransactionID: connect.TransactionID,
-		ConnectionID:  id,
-	}
-
-	respBytes, err := resp.Marshall()
+	connectRequest, err := udpprotocol.NewConnectRequest(data)
 	if err != nil {
-		msg := u.newServerError("ConnectResp.Marshall()", err, connect.TransactionID)
-		u.sock.WriteToUDP(msg, remote)
+		tracker.error(udpAddr, []byte("failed to parse connect request"), transactionID)
+		zap.L().Debug("client sent invalid connect request", zap.Binary("packet", data), zap.Error(err), zap.Any("remote", addrPort))
 		return
 	}
 
-	u.sock.WriteToUDP(respBytes, remote)
+	connectionID := tracker.connections.Create(addrPort)
+
+	resp := udpprotocol.ConnectResponse{
+		Action:        udpprotocol.ActionConnect,
+		TransactionID: connectRequest.TransactionID,
+		ConnectionID:  connectionID,
+	}
+
+	marshalledResp, err := resp.Marshal()
+	if err != nil {
+		tracker.error(udpAddr, []byte("failed to marshall connect response"), connectRequest.TransactionID)
+		zap.L().Error("failed to marshall connect response", zap.Error(err), zap.Any("connect", connectRequest), zap.Any("remote", udpAddr))
+		return
+	}
+
+	tracker.socket.WriteToUDP(marshalledResp, udpAddr)
 }

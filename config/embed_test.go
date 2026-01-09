@@ -8,95 +8,43 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	testHomePath   = "test_home"
-	testConfigPath = testHomePath + "/.config/trakx/"
-	testCachePath  = testHomePath + "/.cache/trakx/"
-)
+func TestWriteEmbeddedConfig(t *testing.T) {
+	const testHomeDir = "test_home"
+	const testConfigPath = testHomeDir + "/.config/trakx/trakx.yaml"
+	const testCachePath = testHomeDir + "/.cache/trakx/"
 
-func TestPathsAndGenerate(t *testing.T) {
-	env := "HOME"
+	homeEnv := "HOME"
 	switch runtime.GOOS {
 	case "windows":
-		env = "USERPROFILE"
+		homeEnv = "USERPROFILE"
 	case "plan9":
-		env = "home"
+		homeEnv = "home"
 	}
 
-	trueHomePath := os.Getenv(env)
-	if err := os.Setenv(env, testHomePath); err != nil {
+	originalHomePath := os.Getenv(homeEnv)
+	if err := os.Setenv(homeEnv, testHomeDir); err != nil {
 		t.Fatal(errors.Wrap(err, "Failed to set home env var"))
 	}
 
 	defer func() {
-		if err := os.Setenv(env, trueHomePath); err != nil {
-			t.Log(errors.Wrap(err, "failed to restore home env var"))
+		if err := os.Setenv(homeEnv, originalHomePath); err != nil {
+			t.Log(errors.Wrap(err, "failed to restore original home environment variable"))
 		}
 
-		if err := os.RemoveAll("./" + testHomePath + "/"); err != nil {
-			t.Log(errors.Wrap(err, "failed to remove test directory"))
+		if err := os.RemoveAll(testHomeDir + "/"); err != nil {
+			t.Log(errors.Wrap(err, "failed to remove test home directory"))
 		}
 	}()
 
-	initDirectories()
-	generateConfig()
-
-	if configPath != testConfigPath {
-		t.Error("Invalid config directory set")
-	}
-	if CachePath != testCachePath {
-		t.Error("Invalid cache directory set")
+	_, err := Load(LoadOptions{})
+	if err != nil {
+		t.Fatal("failed to load config")
 	}
 
 	if _, err := os.Stat(testConfigPath); os.IsNotExist(err) {
-		t.Error("failed to create config directory")
+		t.Error("load failed to write configuration to default path")
 	}
 	if _, err := os.Stat(testCachePath); os.IsNotExist(err) {
-		t.Error("failed to create cache directory")
-	}
-
-	if _, err := os.Stat(testConfigPath + "trakx.yaml"); err != nil {
-		if os.IsNotExist(err) {
-			t.Error("failed to create configuration file")
-		}
-	}
-}
-
-// Assumes that index.html and dmca.html exist
-func TestGenerateEmbeddedCache(t *testing.T) {
-	cache, err := GenerateEmbeddedCache()
-
-	if err != nil {
-		t.Fatal(errors.Wrap(err, "failed to generate embedded cahce"))
-	}
-
-	indexBytes, err := os.ReadFile("embedded/index.html")
-	if err != nil {
-		t.Error(errors.Wrap(err, "failed to read index.html"))
-	}
-	index := stripNewlineTabs(string(indexBytes))
-
-	if cache["/index.html"] != index {
-		t.Error("index.html file and cache differ")
-	}
-
-	var cases = []struct {
-		filename string
-	}{
-		{"index.html"},
-		{"dmca.html"},
-	}
-
-	for _, c := range cases {
-		t.Run(c.filename, func(t *testing.T) {
-			bytes, err := os.ReadFile("embedded/" + c.filename)
-			if err != nil {
-				t.Error(errors.Wrap(err, "failed to read index.html"))
-			}
-
-			if cache["/"+c.filename] != stripNewlineTabs(string(bytes)) {
-				t.Errorf("%v file and cache differ", c.filename)
-			}
-		})
+		t.Error("load failed to create cache directory")
 	}
 }

@@ -4,12 +4,11 @@ import (
 	"net"
 
 	"github.com/crimist/trakx/pools"
-	"github.com/crimist/trakx/tracker/stats"
-	"github.com/crimist/trakx/tracker/storage"
+	"github.com/crimist/trakx/storage"
 )
 
-func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
-	stats.Scrapes.Add(1)
+func (tracker *Tracker) scrape(conn net.Conn, infohashes parameters) {
+	tracker.collector.Scrape()
 
 	dictionary := pools.Dictionaries.Get()
 	dictionary.StartDictionary("files")
@@ -19,26 +18,23 @@ func (t *HTTPTracker) scrape(conn net.Conn, infohashes params) {
 			continue
 		}
 		if len(infohash) != 20 {
-			t.clientError(conn, "invalid infohash")
+			tracker.error(conn, "invalid infohash")
 			return
 		}
 
 		var hash storage.Hash
 		copy(hash[:], infohash)
-		complete, incomplete := t.peerdb.HashStats(hash)
+		seeds, leeches := tracker.peerdb.TorrentStats(hash)
 
 		dictionary.StartDictionaryBytes(infohash)
 		{
-			dictionary.Int64("complete", int64(complete))
-			dictionary.Int64("incomplete", int64(incomplete))
+			dictionary.Int64("complete", int64(seeds))
+			dictionary.Int64("incomplete", int64(leeches))
 		}
 		dictionary.EndDictionary()
 	}
 
 	dictionary.EndDictionary()
-
-	// conn.Write(httpSuccessBytes)
-	// conn.Write(d.GetBytes())
 
 	conn.Write(append(httpSuccessBytes, dictionary.GetBytes()...))
 	pools.Dictionaries.Put(dictionary)

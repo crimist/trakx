@@ -2,22 +2,29 @@ package config
 
 import (
 	"os"
-	"strconv"
-	"strings"
-	"sync"
+	"path/filepath"
 	"time"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+)
+
+const (
+	// defaultFolderPermission holds the default permission mask for folders
+	defaultFolderPermission = 0700
+	// defaultFilePermission holds the default permission mask for files
+	defaultFilePermission = 0644
 )
 
 type Configuration struct {
-	loaded bool // config is loaded and valid
-
-	LogLevel       LogLevel
-	ExpvarInterval time.Duration
-	Debug          struct {
+	LogLevel string
+	Cache    string
+	Stats    struct {
+		General  bool
+		IP       bool
+		Interval time.Duration
+	}
+	Debug struct {
 		Pprof int
 	}
 	Announce struct {
@@ -25,24 +32,23 @@ type Configuration struct {
 		Fuzz time.Duration
 	}
 	HTTP struct {
-		Mode    string
-		IP      string
-		Port    int
-		Timeout struct {
+		Tracker  bool
+		Port     int
+		IP       string
+		Routines int
+		Timeout  struct {
 			Read  time.Duration
 			Write time.Duration
 		}
-		Threads int
+		Serve string
 	}
 	UDP struct {
-		Enabled bool
-		IP      string
-		Port    int
-		Threads int
-		ConnDB  struct {
+		Port        int
+		IP          string
+		Routines    int
+		Connections struct {
 			Validate bool
-			Size     uint64
-			Trim     time.Duration
+			GC       time.Duration
 			Expiry   time.Duration
 		}
 	}
@@ -51,96 +57,71 @@ type Configuration struct {
 		Limit   uint
 	}
 	DB struct {
-		Type   string
-		Backup struct {
-			Frequency time.Duration
-			Type      string
-			Path      string
-		}
-		Trim   time.Duration
+		GC     time.Duration
 		Expiry time.Duration
-	}
-	Path struct {
-		Log string
-		Pid string
-	}
-}
-
-// Loaded returns true if the config was successfully parsed and loaded.
-func (config *Configuration) Loaded() bool { return config.loaded }
-
-// SetLogLevel sets the desired loglevel in the in memory configuration and logger
-func (conf *Configuration) SetLogLevel(level LogLevel) {
-	conf.LogLevel = level
-
-	switch level {
-	case "debug":
-		loggerAtom.SetLevel(zap.DebugLevel)
-		Logger.Debug("Debug loglevel set, debug panics enabled")
-	case "info":
-		loggerAtom.SetLevel(zap.InfoLevel)
-	case "warn":
-		loggerAtom.SetLevel(zap.WarnLevel)
-	case "error":
-		loggerAtom.SetLevel(zap.ErrorLevel)
-	case "fatal":
-		loggerAtom.SetLevel(zap.FatalLevel)
-	default:
-		Logger.Warn("Invalid log level was specified, defaulting to warn")
-		loggerAtom.SetLevel(zap.WarnLevel)
+		Backup struct {
+			Interval time.Duration
+			Path     string
+		}
 	}
 }
 
-var oneTimeSetup sync.Once
-
-// Parse updates logger and limits based on the configuration settings.
-func (config *Configuration) Parse() error {
-	// one time logger atom setup
-	oneTimeSetup.Do(func() {
-		loggerAtom = zap.NewAtomicLevelAt(zap.DebugLevel)
-	})
-
-	cfg := zap.NewDevelopmentConfig()
-
-	// set strings to lowercase
-	config.LogLevel = LogLevel(strings.ToLower(string(config.LogLevel)))
-	config.HTTP.Mode = strings.ToLower(config.HTTP.Mode)
-
-	// dev env check
-	if config.LogLevel.Debug() {
-		cfg.Development = true
-	} else {
-		cfg.Development = false
+// validate checks that configuration values are sane and returns warnings for potential misconfigurations or security issues
+func (conf *Configuration) validate() error {
+	// check cache directory exists and is a directory
+	stat, err := os.Stat(conf.Cache)
+	if os.IsNotExist(err) {
+		zap.L().Debug("cache directory does not exist, creating it", zap.String("cache", conf.Cache))
+		if err = os.MkdirAll(conf.Cache, defaultFolderPermission); err != nil {
+			return errors.Wrapf(err, "failed to create cache directory '%s'", conf.Cache)
+		}
+	} else if err != nil {
+		return errors.Wrapf(err, "failed to stat cache '%s'", conf.Cache)
+	} else if !stat.IsDir() {
+		return errors.Errorf("cache '%s' is not a directory", conf.Cache)
 	}
 
-	// setup logger
-	Logger = zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(cfg.EncoderConfig), zapcore.Lock(os.Stdout), loggerAtom))
-	config.SetLogLevel(config.LogLevel)
-
-	// resolve env vars for database backup path
-	if strings.HasPrefix(config.DB.Backup.Path, "ENV:") {
-		config.DB.Backup.Path = os.Getenv(strings.TrimPrefix(config.DB.Backup.Path, "ENV:"))
+	if !conf.UDP.Connections.Validate {
+		zap.L().Warn("Configuration warning: UDP connection validation is disabled. Do not expose this service to untrusted networks; it could be abused in UDP based amplification attacks.")
 	}
 
-	// resolve paths
-	home, err := os.UserHomeDir()
-	if err != nil {
-		Logger.Fatal("failed to get home directory", zap.Error(err))
+	if conf.DB.Expiry < conf.Announce.Base+conf.Announce.Fuzz {
+		zap.L().Warn("Configuration warning: Peer expiry time < announce base + fuzz. Peers will expire from the database between announces.")
 	}
-	config.Path.Pid = strings.ReplaceAll(config.Path.Pid, "~", home)
-	config.Path.Log = strings.ReplaceAll(config.Path.Log, "~", home)
 
-	// If $PORT var set override port for appengines (like heroku)
-	if appenginePort := os.Getenv("PORT"); appenginePort != "" {
-		appPort, err := strconv.Atoi(appenginePort)
-		if err != nil {
-			return errors.Wrap(err, "failed to parse $PORT env variable (not an int)")
+	if conf.Stats.General {
+		if conf.Stats.Interval <= 0 {
+			return errors.New("invalid configuration: Stats.Interval must be greater than 0 if Stats.General is enabled ")
 		}
 
-		Logger.Info("PORT env variable detected. Overriding config...", zap.Int("$PORT", appPort))
-		config.HTTP.Port = appPort
+		if conf.HTTP.Port == 0 {
+			zap.L().Warn("Configuration warning: Statistics collection enabled but no HTTP server is running to publish them")
+		}
 	}
 
-	config.loaded = true
+	if conf.HTTP.Serve != "" {
+		stat, err = os.Stat(conf.HTTP.Serve)
+
+		if os.IsNotExist(err) {
+			return errors.New("http serve path does not exist")
+		} else if err != nil {
+			return errors.Wrapf(err, "failed to stat http serve path '%s'", conf.HTTP.Serve)
+		} else if !stat.IsDir() {
+			return errors.New("http serve path is not a directory")
+		}
+	}
+
 	return nil
+}
+
+// TODO: consider removing trakx prefixes here
+
+// LogPath returns the log path as defined by the configuration and current time
+func (conf *Configuration) LogPath() string {
+	return filepath.Join(conf.Cache, "trakx_"+time.Now().Format("06-01-02-15-04-05")+".log")
+}
+
+// PIDPath retuirns the pid file path
+func (conf *Configuration) PIDPath() string {
+	return filepath.Join(conf.Cache, "trakx.pid")
 }

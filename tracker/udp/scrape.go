@@ -2,47 +2,57 @@ package udp
 
 import (
 	"net"
+	"net/netip"
 
-	"github.com/crimist/trakx/tracker/stats"
-	"github.com/crimist/trakx/tracker/udp/protocol"
+	"github.com/crimist/trakx/tracker/udp/udpprotocol"
+	"go.uber.org/zap"
 )
 
-func (u *UDPTracker) scrape(scrape *protocol.Scrape, remote *net.UDPAddr) {
-	stats.Scrapes.Add(1)
+const maximumScrapeHashes = 74
 
-	if len(scrape.InfoHashes) > 74 {
-		msg := u.newClientError("74 hashes max", scrape.TransactionID)
-		u.sock.WriteToUDP(msg, remote)
+func (tracker *Tracker) scrape(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
+	tracker.collector.Scrape()
+
+	scrape, err := udpprotocol.NewScrapeRequest(data)
+	if err != nil {
+		tracker.error(udpAddr, []byte("failed to parse scrape"), transactionID)
+		zap.L().Info("failed to parse clients scrape packet", zap.Binary("packet", data), zap.Error(err), zap.Any("remote", addrPort))
 		return
 	}
 
-	resp := protocol.ScrapeResp{
-		Action:        protocol.ActionScrape,
+	if len(scrape.InfoHashes) > maximumScrapeHashes {
+		tracker.error(udpAddr, []byte("exceeded 74 hashes"), scrape.TransactionID)
+		zap.L().Debug("client sent over sized scrape request (> 74 hashes)", zap.Int("hashes", len(scrape.InfoHashes)), zap.Any("scrape", scrape), zap.Any("remote", udpAddr))
+		return
+	}
+
+	resp := udpprotocol.ScrapeResponse{
+		Action:        udpprotocol.ActionScrape,
 		TransactionID: scrape.TransactionID,
 	}
 
 	for _, hash := range scrape.InfoHashes {
 		if len(hash) != 20 {
-			msg := u.newClientError("bad hash", scrape.TransactionID)
-			u.sock.WriteToUDP(msg, remote)
+			tracker.error(udpAddr, append([]byte("missized hash "), hash[0:7]...), scrape.TransactionID)
+			zap.L().Debug("client sent scrape with missized hash", zap.Any("hash", hash), zap.Any("scrape", scrape), zap.Any("remote", udpAddr))
 			return
 		}
 
-		complete, incomplete := u.peerdb.HashStats(hash)
-		info := protocol.ScrapeInfo{
-			Complete:   int32(complete),
-			Incomplete: int32(incomplete),
+		seeds, leeches := tracker.peerDB.TorrentStats(hash)
+		info := udpprotocol.ScrapeResponseInfo{
+			Complete:   int32(seeds),
+			Incomplete: int32(leeches),
 			Downloaded: -1,
 		}
 		resp.Info = append(resp.Info, info)
 	}
 
-	respBytes, err := resp.Marshall()
+	marshalledResp, err := resp.Marshal()
 	if err != nil {
-		msg := u.newServerError("ScrapeResp.Marshall()", err, scrape.TransactionID)
-		u.sock.WriteToUDP(msg, remote)
+		tracker.error(udpAddr, []byte("failed to marshall scrape response"), scrape.TransactionID)
+		zap.L().Error("failed to marshall scrape response", zap.Error(err), zap.Any("scrape", scrape), zap.Any("remote", udpAddr))
 		return
 	}
 
-	u.sock.WriteToUDP(respBytes, remote)
+	tracker.socket.WriteToUDP(marshalledResp, udpAddr)
 }

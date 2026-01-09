@@ -3,13 +3,13 @@ package http
 import (
 	"bytes"
 	"encoding/base64"
-	"unsafe"
 
+	"github.com/crimist/trakx/utils"
 	"github.com/pkg/errors"
 )
 
 const (
-	maxparams = 45 // support scrapes with up to 40 `info_hash` params
+	maxParameters = 45 // support scrapes with up to 40 `info_hash` params
 )
 
 var (
@@ -17,137 +17,136 @@ var (
 )
 
 type (
-	params [maxparams][]byte
-	parsed struct {
-		Path      string
-		Params    params
-		URLend    int
-		Method    string
-		pathstart int
-		pathend   int
+	parameters  [maxParameters][]byte
+	requestData struct {
+		Path       string
+		Parameters parameters
+		UrlEnd     int
+		Method     string
+		pathStart  int
+		pathEnd    int
 	}
 )
 
-// Custom HTTP parser
-// only supports GET request and up to `maxparams` params but uses no heap memory
-func parse(data []byte, size int) (parsed, error) {
-	// uTorrent sometimes encodes scrape req in b64
-	// Example: R0VUIC9zY3JhcGU/aW5mb19oYXNoPS = GET /scrape?info_hash=
+// Custom HTTP parser only supports GET request and up to `maxparams` params but uses no heap memory
+func parse(data []byte) (requestData, error) {
+	// workaround: uTorrent sometimes encodes scrape requests in base64, `R0VU` = `GET `
 	if bytes.HasPrefix(data, []byte("R0VU")) {
-		decoded, err := base64.StdEncoding.Decode(data, data[:size])
+		decoded, err := base64.StdEncoding.Decode(data, data)
 		if err != nil {
-			return parsed{}, errors.Wrap(err, "failed to decode base64 encoded request")
+			return requestData{}, errors.Wrap(err, "failed to decode base64 encoded request")
 		}
-		data = data[:decoded] // this only modifies the local copy since `len int` vs `data uintptr`
+		data = data[:decoded]
 	}
 
-	p := parsed{
-		URLend:    bytes.Index(data, []byte(" HTTP/")),
-		pathstart: bytes.Index(data, []byte("GET /")) + 4, // includes leading slash
-		pathend:   bytes.Index(data, []byte("?")),
+	p := requestData{
+		UrlEnd:    bytes.Index(data, []byte(" HTTP/")),
+		pathStart: bytes.Index(data, []byte("GET /")) + 4, // includes leading slash
+		pathEnd:   bytes.Index(data, []byte("?")),
 	}
 
-	methodend := bytes.Index(data, []byte(" /"))
-	if methodend == -1 {
-		return parsed{}, invalidParse
+	methodEnd := bytes.Index(data, []byte(" /"))
+	if methodEnd == -1 {
+		return requestData{}, errors.Wrap(invalidParse, "method end not found")
 	}
 
-	tmp := data[:methodend]
-	p.Method = *(*string)(unsafe.Pointer(&tmp))
+	p.Method = utils.BytesToStringUnsafe(data[:methodEnd])
 
-	if p.URLend == -1 {
-		return parsed{}, invalidParse
+	if p.UrlEnd == -1 {
+		return requestData{}, errors.Wrap(invalidParse, "url end not found")
 	}
 
 	// less than "GET / HTTP..."
-	if p.URLend < 5 {
-		return parsed{}, invalidParse
+	if p.UrlEnd < 5 {
+		return requestData{}, errors.Wrap(invalidParse, "message too short to be valid")
 	}
 
 	// pathstart should come before URLend
-	if p.pathstart > p.URLend {
-		return parsed{}, invalidParse
+	if p.pathStart > p.UrlEnd {
+		return requestData{}, errors.Wrap(invalidParse, "path start after URL end")
 	}
 
 	// if the ? is part of a query then parse it
-	if p.pathend != -1 && p.pathend < p.URLend {
-		if p.pathend < p.pathstart {
-			return parsed{}, invalidParse
+	if p.pathEnd != -1 && p.pathEnd < p.UrlEnd {
+		if p.pathEnd < p.pathStart {
+			return requestData{}, errors.Wrap(invalidParse, "path end before path start")
 		}
 
-		paramsBytes := data[p.pathend+1 : p.URLend]
+		paramsBytes := data[p.pathEnd+1 : p.UrlEnd]
+		if len(paramsBytes) == 0 {
+			p.Path = utils.BytesToStringUnsafe(data[p.pathStart:p.pathEnd])
+			return p, nil
+		}
 
 		var pos, pIndex int
-		for i := 0; i < len(paramsBytes) && pIndex < maxparams; i++ {
+		for i := 0; i < len(paramsBytes) && pIndex < maxParameters; i++ {
 			if paramsBytes[i] == '&' {
-				p.Params[pIndex] = paramsBytes[pos:i]
+				p.Parameters[pIndex] = paramsBytes[pos:i]
 				pos = i + 1
 				pIndex++
 			} else if i == len(paramsBytes)-1 {
-				p.Params[pIndex] = paramsBytes[pos : i+1]
+				p.Parameters[pIndex] = paramsBytes[pos : i+1]
 			}
 		}
 
-		if pIndex == maxparams {
+		if pIndex == maxParameters {
 			pIndex--
 		}
 
 		for i := 0; i <= pIndex; i++ {
-			p.Params[i] = unescapeFast(p.Params[i])
+			p.Parameters[i] = unescapeFast(p.Parameters[i])
 
 			// nil if escape was invalid
-			if p.Params[i] == nil {
-				return parsed{}, invalidParse
+			if p.Parameters[i] == nil {
+				return requestData{}, errors.Wrap(invalidParse, "invalid url escape sequence")
 			}
 		}
 
-		tmp = data[p.pathstart:p.pathend]
-		p.Path = *(*string)(unsafe.Pointer(&tmp))
+		p.Path = utils.BytesToStringUnsafe(data[p.pathStart:p.pathEnd])
 	} else {
-		tmp = data[p.pathstart:p.URLend]
-		p.Path = *(*string)(unsafe.Pointer(&tmp))
+		p.Path = utils.BytesToStringUnsafe(data[p.pathStart:p.UrlEnd])
 	}
 
 	return p, nil
 }
 
-// from stdlib
-// https://github.com/golang/go/blob/2ebe77a2fda1ee9ff6fd9a3e08933ad1ebaea039/src/encoding/hex/hex.go#L84
-func fromHexChar(c byte) byte {
+func fromHexChar(c byte) (byte, bool) {
 	switch {
 	case '0' <= c && c <= '9':
-		return c - '0'
+		return c - '0', true
 	case 'a' <= c && c <= 'f':
-		return c - 'a' + 10
+		return c - 'a' + 10, true
 	case 'A' <= c && c <= 'F':
-		return c - 'A' + 10
+		return c - 'A' + 10, true
 	}
 
-	return 0
+	return 0, false
 }
 
 // unescapeFast unescapes url encoded []byte
 // returns nil if escape is invalid
-func unescapeFast(bs []byte) []byte {
-	l := len(bs)
+func unescapeFast(msg []byte) []byte {
+	l := len(msg)
 
 	for i := 0; i < l; i++ {
-		// match escape
-		if bs[i] == '%' {
+		if msg[i] == '%' {
 			// make sure there's 2 escape chars
 			if i+2 >= l {
 				return nil
 			}
 
 			// get hex chars
-			a := fromHexChar(bs[i+1])
-			b := fromHexChar(bs[i+2])
+			a, okA := fromHexChar(msg[i+1])
+			b, okB := fromHexChar(msg[i+2])
+			if !okA || !okB {
+				return nil
+			}
 			// change percent to real byte
-			bs[i] = (a << 4) | b
+			msg[i] = (a << 4) | b
 
 			// shift everything left by 2
-			for x := i; x < len(bs)-3; x++ {
-				bs[x+1] = bs[x+3]
+			for x := i; x < len(msg)-3; x++ {
+				msg[x+1] = msg[x+3]
 			}
 
 			// decrease slice length by 2
@@ -155,6 +154,6 @@ func unescapeFast(bs []byte) []byte {
 		}
 	}
 
-	bs = bs[:l]
-	return bs
+	msg = msg[:l]
+	return msg
 }

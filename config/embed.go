@@ -2,79 +2,55 @@ package config
 
 import (
 	"embed"
+	"fmt"
 	"os"
-	"strings"
+	"path/filepath"
+	"syscall"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
 //go:embed embedded/*
-var embeddedFileSystem embed.FS
+var embeddedFS embed.FS
 
-func generateConfig() {
-	if _, err := os.Stat(configPath + "trakx.yaml"); os.IsNotExist(err) {
-		configData, err := embeddedFileSystem.ReadFile("embedded/trakx.yaml")
-		if err != nil {
-			Logger.Error("failed to read embedded config", zap.Error(err))
-			return
-		}
-		err = os.WriteFile(configPath+"trakx.yaml", configData, FilePerm)
-		if err != nil {
-			Logger.Error("failed to write config file", zap.Error(err))
-		}
-	} else if err != nil {
-		Logger.Error("failed to stat config file", zap.Error(err))
+func installDefaultConfig(path string) error {
+	syscall.Umask(0)
+
+	_, err := os.Stat(path)
+
+	if err == nil {
+		zap.L().Debug("configuration file already exists, skipping installation", zap.String("path", path))
+		return nil
+	} else if !os.IsNotExist(err) {
+		return errors.Wrap(err, "failed to stat config file "+path)
 	}
-}
 
-type EmbeddedCache map[string]string
-
-func stripNewlineTabs(data string) string {
-	data = strings.ReplaceAll(data, "\t", "")
-	data = strings.ReplaceAll(data, "\n", "")
-	return data
-}
-
-func GenerateEmbeddedCache() (EmbeddedCache, error) {
-	dir, err := embeddedFileSystem.ReadDir("embedded")
+	configurationContents, err := embeddedFS.ReadFile("embedded/trakx.yaml")
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to read embed directory to populate cache")
+		return errors.Wrap(err, "failed to read config from embedded FS")
 	}
 
-	cache := make(EmbeddedCache, len(dir))
-
-	for _, entry := range dir {
-		if entry.IsDir() {
-			continue
-		}
-
-		filename := entry.Name()
-
-		// don't expose configuration
-		if filename == "trakx.yaml" {
-			continue
-		}
-
-		data, err := embeddedFileSystem.ReadFile("embedded/" + filename)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to open file %v from embedded", "embedded/"+filename)
-		}
-
-		// trim data from html files to save bandwidth
-		dataStr := string(data)
-		if strings.HasSuffix(filename, ".html") {
-			dataStr = stripNewlineTabs(dataStr)
-		}
-
-		Logger.Debug("adding file to embedded cache", zap.String("filename", filename))
-		cache["/"+filename] = dataStr
+	if err = os.MkdirAll(filepath.Dir(path), defaultFolderPermission); err != nil {
+		zap.L().Warn("failed to create configuration directory", zap.Error(err), zap.String("directory", filepath.Dir(path)))
 	}
 
-	// if index exists copy to /
-	if indexData, ok := cache["/index.html"]; ok {
-		cache["/"] = indexData
+	if err = os.WriteFile(path, configurationContents, defaultFilePermission); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to write configuration file '%s'", path))
 	}
 
-	return cache, nil
+	zap.L().Debug("installed default configuration", zap.String("path", path))
+
+	return nil
+}
+
+func DumpDefaultConfig() error {
+	configurationContents, err := embeddedFS.ReadFile("embedded/trakx.yaml")
+	if err != nil {
+		return errors.Wrap(err, "failed to read config from embedded FS")
+	}
+
+	fmt.Print(string(configurationContents))
+
+	return nil
 }

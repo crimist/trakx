@@ -1,34 +1,102 @@
+/*
+Config holds configuration information for trakx.
+*/
 package config
 
 import (
 	"os"
+	"path/filepath"
+	"runtime"
+	"time"
 
 	"github.com/kkyr/fig"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-// Load attempts to load the config from the disk or environment.
-// The config file must be named "trakx.yaml".
-// Load searches for the config file in ".", "~/.config/trakx" in order.
-// Environment variables overwrite file configuration, see ./embedded/trakx.yaml for examples.
-// This function is automatically called when the config package is imported.
-func Load() (*Configuration, error) {
-	conf := new(Configuration)
+var (
+	loggerAtom zap.AtomicLevel = zap.NewAtomicLevelAt(zap.DebugLevel)
+)
 
-	home, err := os.UserHomeDir()
+type LoadOptions struct {
+	Path string
+}
+
+func DefaultPath() (string, error) {
+	configDir, err := os.UserConfigDir()
 	if err != nil {
-		Logger.Error("Failed to get user home dir, attempting to continue config load", zap.Error(err))
+		return "", errors.Wrap(err, "failed to get user config directory")
+	}
+	return filepath.Join(configDir, "trakx", "trakx.yaml"), nil
+}
+
+func Load(opts LoadOptions) (*Configuration, error) {
+	logger := zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()), zapcore.Lock(os.Stderr), loggerAtom))
+	zap.ReplaceGlobals(logger)
+
+	defaultConfigPath, err := DefaultPath()
+	if err != nil {
+		return nil, err
+	}
+	if err := installDefaultConfig(defaultConfigPath); err != nil {
+		return nil, err
 	}
 
-	err = fig.Load(conf,
-		fig.File("trakx.yaml"),
+	configPath := defaultConfigPath
+	if opts.Path != "" {
+		configPath = opts.Path
+		zap.L().Debug("Using config path", zap.String("path", configPath))
+	}
+
+	var conf Configuration
+
+	if err := fig.Load(&conf,
+		fig.Dirs(filepath.Dir(configPath)),
+		fig.File(filepath.Base(configPath)),
 		fig.UseEnv("trakx"),
-		fig.Dirs(".", home+"/.config/trakx"),
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "fig failed to load config")
+	); err != nil {
+		return nil, errors.Wrap(err, "failed to load configuration")
 	}
 
-	return conf, conf.Parse()
+	err = loggerAtom.UnmarshalText([]byte(conf.LogLevel))
+	if err != nil {
+		return nil, errors.Wrap(err, "Invalid log level")
+	}
+
+	zap.L().Debug("Configuration loaded", zap.String("path", configPath))
+
+	if conf.Cache == "" {
+		cacheDir, err := os.UserCacheDir()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get user cache directory")
+		}
+		defaultCacheDir := filepath.Join(cacheDir, "trakx")
+		conf.Cache = defaultCacheDir
+		zap.L().Debug("Set default cache", zap.String("cache", conf.Cache))
+	}
+
+	if conf.DB.Expiry == 0 {
+		conf.DB.Expiry = conf.Announce.Base + conf.Announce.Fuzz + 5*time.Minute
+		zap.L().Debug("Calculated DB expiry", zap.Duration("expiry", conf.DB.Expiry))
+	}
+
+	if conf.DB.Backup.Path == "" {
+		conf.DB.Backup.Path = filepath.Join(conf.Cache, "db")
+		zap.L().Debug("Set default DB backup path", zap.String("path", conf.DB.Backup.Path))
+	}
+
+	// TODO: needs benchmarking to find ideal number of routines
+	if conf.HTTP.Routines == 0 {
+		conf.HTTP.Routines = runtime.NumCPU() * 2
+	}
+	if conf.UDP.Routines == 0 {
+		conf.UDP.Routines = runtime.NumCPU() * 2
+	}
+
+	if err = conf.validate(); err != nil {
+		return nil, errors.Wrap(err, "configuration validation failed")
+	}
+
+	return &conf, nil
 }

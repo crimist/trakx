@@ -11,22 +11,22 @@ import (
 
 func TestParse(t *testing.T) {
 	req := []byte("GET /test?param=1&param2=two&test=test%3Ftest HTTP/1.1 bla bla")
-	p, err := parse(req, len(req))
+	p, err := parse(req)
 
 	if err != nil {
 		t.Fatalf("Error when parsing: %v", err)
 	}
-	if len(p.Params[0]) == 0 {
+	if len(p.Parameters[0]) == 0 {
 		t.Fatal("Params not found")
 	}
-	for _, param := range p.Params {
+	for _, param := range p.Parameters {
 		switch string(param) {
 		case "":
 		case "param=1":
 		case "param2=two":
 		case "test=test?test":
 		default:
-			t.Fatalf("Incorrect params: %v", p.Params)
+			t.Fatalf("Incorrect params: %v", p.Parameters)
 		}
 	}
 	if p.Path != "/test" {
@@ -36,12 +36,24 @@ func TestParse(t *testing.T) {
 		t.Fatalf("Incorrect method")
 	}
 
-	req = []byte("GET /url?key=value HTTP/1.1")
-	p, err = parse(req, len(req))
+	req = []byte("GET /announce? HTTP/1.1")
+	p, err = parse(req)
 	if err != nil {
 		t.Fatalf("Error when parsing: %v", err)
 	}
-	if !bytes.Equal(p.Params[0], []byte("key=value")) {
+	if p.Path != "/announce" {
+		t.Fatal("Incorrect path")
+	}
+	if p.Parameters[0] != nil {
+		t.Fatal("Expected empty params for empty query")
+	}
+
+	req = []byte("GET /url?key=value HTTP/1.1")
+	p, err = parse(req)
+	if err != nil {
+		t.Fatalf("Error when parsing: %v", err)
+	}
+	if !bytes.Equal(p.Parameters[0], []byte("key=value")) {
 		t.Fatal("Bad params")
 	}
 	if p.Path != "/url" {
@@ -53,7 +65,7 @@ func TestParse(t *testing.T) {
 }
 
 func TestParseInvalid(t *testing.T) {
-	_, err := parse([]byte("00000 HTTP/GET /"), 16)
+	_, err := parse([]byte("00000 HTTP/GET /"))
 	if err == nil {
 		t.Error("Invalid parse passed")
 	}
@@ -72,6 +84,7 @@ func TestUnescapeFast(t *testing.T) {
 		{"multiple escapes", []byte("1%002%ba~L"), []byte("1\x002\xba~L")},
 		{"invalid escapes", []byte("1%2"), nil},
 		{"invalid escapes 2", []byte("%"), nil},
+		{"invalid hex escapes", []byte("1%zz2"), nil},
 	}
 
 	for _, c := range cases {
@@ -91,7 +104,7 @@ func BenchmarkParseBasic(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		p, _ := parse(req, len(req))
+		p, _ := parse(req)
 		_ = p
 	}
 }
@@ -112,7 +125,7 @@ func BenchmarkParseParams(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		p, _ := parse(req, len(req))
+		p, _ := parse(req)
 		_ = p
 	}
 }
@@ -123,7 +136,7 @@ func BenchmarkParseParamsBase64(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		p, _ := parse(req, len(req))
+		p, _ := parse(req)
 		_ = p
 	}
 }
@@ -153,4 +166,14 @@ func BenchmarkUnescape(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		unescapeFast(escapedParameterBytes)
 	}
+}
+
+func FuzzParse(f *testing.F) {
+	f.Add([]byte("GET /test?param=1&param2=two&test=test%3Ftest HTTP/1.1 bla bla"))
+	f.Fuzz(func(t *testing.T, data []byte) {
+		_, err := parse(data)
+		if err != nil {
+			t.Skip()
+		}
+	})
 }

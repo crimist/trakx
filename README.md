@@ -5,14 +5,15 @@ Performance focused BitTorrent tracker supporting HTTP, UDP, IPv4 and IPv6.
 - [Trakx](#trakx)
   - [❤️‍🔥 Instances](#️-instances)
   - [🚀 Install](#-install)
+  - [🧰 CLI](#-cli)
   - [🔧 Configuration](#-configuration)
     - [Configuration file](#configuration-file)
+    - [Database backups](#database-backups)
     - [Default configuration \& webserver files](#default-configuration--webserver-files)
     - [Binding to privileged ports](#binding-to-privileged-ports)
     - [Netdata setup](#netdata-setup)
     - [Build Customization](#build-customization)
       - [**Performance**](#performance)
-      - [**App engines**](#app-engines)
   - [📈 Performance](#-performance)
 
 ## ❤️‍🔥 Instances
@@ -28,28 +29,43 @@ Try Trakx for yourself! These instances are hosted on Oracles always free tier.
 
 ## 🚀 Install
 
-Go 1.19+ required.
+Go 1.21+ required.
 
 ```sh
 git clone https://github.com/crimist/trakx && cd trakx
 
 # install to go bin
-go install .
+go install ./cli
 trakx status # generates configuration
 
 # or build
-go build .
+go build -o trakx ./cli
 ./trakx status # generates configuration
 ```
 
 See [configuration](#configuration) and [netdata setup](#netdata-setup).
+
+## 🧰 CLI
+
+Common commands:
+
+```sh
+trakx run           # foreground
+trakx start         # background
+trakx stop          # stop daemon
+trakx restart       # restart daemon
+trakx status        # status check
+trakx logs -f       # follow latest log file
+trakx pid show      # inspect pid file
+trakx config path   # show config path
+```
 
 ## 🔧 Configuration
 
 ### Configuration file
 
 The configuration file can be found at `~/.config/trakx/trakx.yaml`.
-You'll have to run the trakx controller at least once to generate this file.
+You'll have to run trakx at least once (for example `trakx status`) to generate this file.
 
 Config settings can be overwritten with environment variables:
 
@@ -69,9 +85,22 @@ Trakx attempts to load the config file from the following directories in order:
 * `.`
 * `~/.config/trakx/`
 
+### Database backups
+
+Trakx persists the in-memory database to a binary snapshot at `db.backup.path`.
+`backup export` requests a fresh snapshot from the running daemon when available,
+and otherwise streams the on-disk backup file.
+`backup import` validates snapshots before replacing the on-disk backup.
+You can stream the snapshot bytes to external storage using:
+
+```sh
+trakx backup export > trakx.snapshot
+cat trakx.snapshot | trakx backup import
+```
+
 ### Default configuration & webserver files
 
-You can modify the default configuration and files served by the webserver in the `tracker/config/embeded/` folder.
+You can modify the default configuration and files served by the webserver in the `config/embedded/` folder.
 
 **NOTE:** Trakx webserver will only serve files at their full path. `dmca` will 404, `dmca.html` will 200.
 
@@ -100,12 +129,6 @@ Trakx takes advantage of Go's build tags to target different use cases.
 #### **Performance**
 
 The `fast` tag will build Trakx without IP, seed, and leech metrics which will reduce cpu and memory usage.
-
-#### **App engines**
-
-The `heroku` tag will build trakx for app engines. This means the executable will immediately run the tracker rather than provide the daemon controller behavior included in the regular CLI build.
-
-Feel free to customize the tags to suit whichever app engine you prefer in [engine_entry.go](./engine_entry.go).
 
 ## 📈 Performance
 
