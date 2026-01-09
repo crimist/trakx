@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/crimist/trakx/config"
+	"github.com/crimist/trakx/internal/maxcache"
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/tracker"
 	"github.com/crimist/trakx/tracker/http"
@@ -25,6 +26,11 @@ import (
 type RunOptions struct {
 	ImportReader io.Reader
 }
+
+const (
+	maxKeyIPCollector = "stats.ip_collector"
+	maxKeyDBTorrents  = "db.torrents"
+)
 
 // Run initializes and runs the tracker with the requested configuration settings.
 func Run(conf *config.Configuration) {
@@ -50,8 +56,18 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 	baseIntervalSeconds := uint(conf.Announce.Base / time.Second)
 	fuzzIntervalSeconds := uint(conf.Announce.Fuzz / time.Second)
 
-	// TODO: cache the prev IP collector map size :D
-	collector := stats.NewCollectors(conf.Stats.General, conf.Stats.IP, 0)
+	maxStore, err := maxcache.New(conf.Cache)
+	if err != nil {
+		zap.L().Warn("Failed to load maximums cache", zap.Error(err))
+	}
+
+	ipCollectorSize := 0
+	if maxStore != nil {
+		ipCollectorSize = maxStore.ReadMax(maxKeyIPCollector)
+		zap.L().Debug("Loaded maximum ip collector size", zap.Int("entries", ipCollectorSize))
+	}
+
+	collector := stats.NewCollectors(conf.Stats.General, conf.Stats.IP, ipCollectorSize)
 
 	var importReader io.Reader
 	if opts.ImportReader != nil {
@@ -83,8 +99,14 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 		}
 	}
 
+	dbInitialSize := 0
+	if maxStore != nil {
+		dbInitialSize = maxStore.ReadMax(maxKeyDBTorrents)
+		zap.L().Debug("Loaded maximum db size", zap.Int("entries", ipCollectorSize))
+	}
+
 	db, err := database.NewDatabase(database.Config{
-		InitalSize:         0, // TODO: cache this on exit and load on startup
+		InitalSize:         dbInitialSize,
 		PeerlistMaxNumwant: conf.Numwant.Limit,
 		EvictionFrequency:  conf.DB.GC,
 		ExpirationTime:     conf.DB.Expiry,
@@ -175,7 +197,32 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 		}()
 	}
 
+	updateMaximums := func() {
+		if maxStore == nil {
+			return
+		}
+
+		if conf.Stats.General && conf.Stats.IP {
+			ips := collector.IPs().Total()
+			zap.L().Debug("Setting maximum", zap.Int("ips", ips))
+			if err := maxStore.Update(maxKeyIPCollector, ips); err != nil {
+				zap.L().Warn("Failed to update maximums cache", zap.String("key", maxKeyIPCollector), zap.Error(err))
+			}
+		}
+
+		torrents := db.Torrents()
+		zap.L().Debug("Setting maximum", zap.Int("torrents", torrents))
+		if err := maxStore.Update(maxKeyDBTorrents, db.Torrents()); err != nil {
+			zap.L().Warn("Failed to update maximums cache", zap.String("key", maxKeyDBTorrents), zap.Error(err))
+		}
+	}
+
+	if maxStore != nil {
+		go utils.RunOn(maxcache.UpdateFrequency, updateMaximums)
+	}
+
 	go signalHandler(trackers, func() error {
+		updateMaximums()
 		return persistSnapshot(db, connectionsDB, conf.DB.Backup.Path)
 	})
 
