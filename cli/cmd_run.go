@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/crimist/trakx/cmd"
+	"github.com/crimist/trakx/daemon"
 )
 
 func newRunCommand() *Command {
@@ -36,7 +36,7 @@ func newRunCommand() *Command {
 				}
 			}
 
-			cmd.RunWithOptions(conf, cmd.RunOptions{
+			daemon.RunWithOptions(conf, daemon.RunOptions{
 				ImportReader: importReader,
 			})
 			return nil

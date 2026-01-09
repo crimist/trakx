@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/crimist/trakx/cmd"
+	"github.com/crimist/trakx/daemon"
 	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/tracker/udp/udpprotocol"
 	"github.com/pkg/errors"
@@ -34,7 +34,7 @@ func newDaemonController(conf *config.Configuration) *daemonController {
 }
 
 func (controller *daemonController) Execute() {
-	cmd.Run(controller.config)
+	daemon.Run(controller.config)
 }
 
 func (controller *daemonController) Start(opts GlobalOptions, importPath string) error {
@@ -76,7 +76,7 @@ func (controller *daemonController) Stop(out io.Writer) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get process from process id file")
 	}
-	if err := process.Signal(cmd.SigStop); err != nil {
+	if err := process.Signal(daemon.SigStop); err != nil {
 		return errors.Wrap(err, "failed to send stop signal to process")
 	}
 

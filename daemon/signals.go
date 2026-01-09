@@ -1,11 +1,10 @@
-package cmd
+package daemon
 
 import (
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/tracker"
 
 	"go.uber.org/zap"
@@ -16,7 +15,7 @@ var SigStop = os.Interrupt
 
 const exitSuccess = 0
 
-func signalHandler(db storage.Database, trackers []tracker.Tracker, persist func() error) {
+func signalHandler(trackers []tracker.Tracker, persist func() error) {
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
 

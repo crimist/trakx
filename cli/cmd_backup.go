@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/crimist/trakx/cmd"
+	"github.com/crimist/trakx/daemon"
 )
 
 func newBackupRootCommand() *Command {
@@ -46,7 +46,7 @@ func exportSubcommand() *Command {
 				out = file
 			}
 
-			if err := cmd.ExportBackup(conf, out); err != nil {
+			if err := daemon.ExportBackup(conf, out); err != nil {
 				return err
 			}
 			if *outPath != "" {
@@ -85,7 +85,7 @@ func importSubcommand() *Command {
 				in = file
 			}
 
-			if err := cmd.ImportBackup(conf, in); err != nil {
+			if err := daemon.ImportBackup(conf, in); err != nil {
 				return err
 			}
 			if *inPath != "" {

@@ -1,4 +1,4 @@
-package cmd
+package daemon
 
 import (
 	"expvar"
@@ -139,7 +139,7 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 		}()
 	}
 
-	go signalHandler(db, trackers, func() error {
+	go signalHandler(trackers, func() error {
 		return persistDatabase(db, conf.DB.Backup.Path)
 	})
 
