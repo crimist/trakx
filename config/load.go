@@ -32,7 +32,11 @@ func DefaultPath() (string, error) {
 }
 
 func Load(opts LoadOptions) (*Configuration, error) {
-	logger := zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()), zapcore.Lock(os.Stderr), loggerAtom))
+	encoderConfig := zap.NewDevelopmentEncoderConfig()
+	logger := zap.New(
+		zapcore.NewCore(zapcore.NewConsoleEncoder(encoderConfig), zapcore.Lock(os.Stderr), loggerAtom),
+		zap.AddCaller(),
+	)
 	zap.ReplaceGlobals(logger)
 
 	defaultConfigPath, err := DefaultPath()
