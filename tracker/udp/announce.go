@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/netip"
 
-	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/tracker/udp/udpprotocol"
 	"go.uber.org/zap"
@@ -86,7 +85,7 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 		ipversion = storage.IPv6
 	}
 
-	peers4, peers6 := tracker.peerDB.TorrentPeersCompact(announceRequest.InfoHash, uint(announceRequest.NumWant), ipversion)
+	peers := tracker.peerDB.TorrentPeersCompact(announceRequest.InfoHash, uint(announceRequest.NumWant), ipversion)
 
 	response := udpprotocol.AnnounceResponse{
 		Action:        udpprotocol.ActionAnnounce,
@@ -97,18 +96,13 @@ func (tracker *Tracker) announce(udpAddr *net.UDPAddr, addrPort netip.AddrPort, 
 	}
 
 	if ipversion == storage.IPv4 {
-		response.Peers = peers4
+		response.Peers = peers.V4
 	} else {
-		response.Peers = peers6
+		response.Peers = peers.V6
 	}
 
 	respBytes, err := response.Marshal()
-	if peers4 != nil {
-		pools.Peerlists4.Put(peers4)
-	}
-	if peers6 != nil {
-		pools.Peerlists6.Put(peers6)
-	}
+	peers.Release()
 
 	if err != nil {
 		tracker.error(udpAddr, []byte("failed to marshall announce response"), announceRequest.TransactionID)

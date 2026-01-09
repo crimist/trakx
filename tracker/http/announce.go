@@ -6,7 +6,7 @@ import (
 	"net/netip"
 	"strconv"
 
-	"github.com/crimist/trakx/pools"
+	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/storage"
 )
 
@@ -74,21 +74,19 @@ func (tracker *Tracker) announce(conn net.Conn, parameters *announceParameters, 
 		interval += uint(rand.Int63n(int64(tracker.config.IntervalVariance)))
 	}
 
-	dictionary := pools.Dictionaries.Get()
+	dictionary := bencoding.AcquireDictionary()
 	dictionary.Int64("interval", int64(interval))
 	dictionary.Int64("complete", int64(seeds))
 	dictionary.Int64("incomplete", int64(leeches))
 	if parameters.compact {
-		peers4, peers6 := tracker.peerdb.TorrentPeersCompact(hash, uint(numwant), storage.IPv4|storage.IPv6)
-		dictionary.StringBytes("peers", peers4)
-		dictionary.StringBytes("peers6", peers6)
-
-		pools.Peerlists4.Put(peers4)
-		pools.Peerlists6.Put(peers6)
+		peers := tracker.peerdb.TorrentPeersCompact(hash, uint(numwant), storage.IPv4|storage.IPv6)
+		dictionary.StringBytes("peers", peers.V4)
+		dictionary.StringBytes("peers6", peers.V6)
+		peers.Release()
 	} else {
 		dictionary.BytesliceSlice("peers", tracker.peerdb.TorrentPeers(hash, numwant, !parameters.nopeerid))
 	}
 
 	conn.Write(append(httpSuccessBytes, dictionary.GetBytes()...))
-	pools.Dictionaries.Put(dictionary)
+	bencoding.ReleaseDictionary(dictionary)
 }

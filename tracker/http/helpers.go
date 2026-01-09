@@ -3,7 +3,7 @@ package http
 import (
 	"net"
 
-	"github.com/crimist/trakx/pools"
+	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/utils"
 )
 
@@ -25,10 +25,10 @@ func writeStatus(c net.Conn, status string) {
 func (tracker *Tracker) error(conn net.Conn, msg string) {
 	tracker.collector.ErrorResponse()
 
-	dictionary := pools.Dictionaries.Get()
+	dictionary := bencoding.AcquireDictionary()
 
 	dictionary.String("failure reason", msg)
 	conn.Write(append(httpSuccessBytes, dictionary.GetBytes()...))
 
-	pools.Dictionaries.Put(dictionary)
+	bencoding.ReleaseDictionary(dictionary)
 }

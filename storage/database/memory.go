@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/crimist/trakx/pools"
+	"github.com/crimist/trakx/internal/pool"
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/utils"
@@ -29,15 +29,17 @@ type Database struct {
 	mutex     sync.RWMutex
 	torrents  map[storage.Hash]*Torrent
 	collector stats.Collector
-	peerPool  *pools.Pool[*storage.Peer]
+	peerPool  *pool.Pool[*storage.Peer]
+	peerLists *peerListPool
 }
 
 func NewDatabase(config Config) (*Database, error) {
 	db := &Database{
 		collector: config.Collector,
-		peerPool: pools.NewPool[*storage.Peer](func() any {
+		peerPool: pool.New(func() *storage.Peer {
 			return new(storage.Peer)
 		}, nil),
+		peerLists: newPeerListPool(config.PeerlistMaxNumwant),
 	}
 
 	if config.ImportReader != nil {

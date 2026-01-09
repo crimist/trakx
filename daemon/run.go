@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/crimist/trakx/config"
-	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/tracker"
 	"github.com/crimist/trakx/tracker/http"
@@ -47,8 +46,6 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 	var err error
 
 	zap.L().Debug("Starting Trakx")
-
-	pools.Initialize(int(conf.Numwant.Limit))
 
 	baseIntervalSeconds := uint(conf.Announce.Base / time.Second)
 	fuzzIntervalSeconds := uint(conf.Announce.Fuzz / time.Second)
@@ -87,11 +84,12 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 	}
 
 	db, err := database.NewDatabase(database.Config{
-		InitalSize:          0, // TODO: cache this on exit and load on startup
-		EvictionFrequency:   conf.DB.GC,
-		ExpirationTime:      conf.DB.Expiry,
-		Collector:           collector,
-		ImportReader:        importReader,
+		InitalSize:         0, // TODO: cache this on exit and load on startup
+		PeerlistMaxNumwant: conf.Numwant.Limit,
+		EvictionFrequency:  conf.DB.GC,
+		ExpirationTime:     conf.DB.Expiry,
+		Collector:          collector,
+		ImportReader:       importReader,
 	})
 
 	if err != nil {
@@ -200,7 +198,14 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 					return connectionsDB.Entries()
 				}
 				return 0
-			}})
+			},
+			GetPeerlist4PoolCreated: func() int64 {
+				return db.Peerlist4PoolCreated()
+			},
+			GetPeerlist6PoolCreated: func() int64 {
+				return db.Peerlist6PoolCreated()
+			},
+		})
 	}
 
 	if conf.Debug.Pprof != 0 {

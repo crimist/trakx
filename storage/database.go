@@ -14,7 +14,7 @@ type Database interface {
 
 	TorrentStats(hash Hash) (seeds uint16, leeches uint16)
 	TorrentPeers(hash Hash, numWant uint, includePeerID bool) [][]byte
-	TorrentPeersCompact(hash Hash, numWant uint, wantedIPs IPVersion) (peers4 []byte, peers6 []byte)
+	TorrentPeersCompact(hash Hash, numWant uint, wantedIPs IPVersion) PeerLists
 
 	// Torrents returns the total number of torrents registered in the database
 	Torrents() (numtorrents int)

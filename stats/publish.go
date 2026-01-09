@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/crimist/trakx/pools"
+	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/utils"
 	"go.uber.org/zap"
 )
@@ -13,10 +13,12 @@ import (
 var initTime = time.Now()
 
 type PeriodicConfig struct {
-	Collector Collector
-	Interval  time.Duration
-	GetHashes func() int
-	GetConns  func() int
+	Collector               Collector
+	Interval                time.Duration
+	GetHashes               func() int
+	GetConns                func() int
+	GetPeerlist4PoolCreated func() int64
+	GetPeerlist6PoolCreated func() int64
 }
 
 // PublishPeriodic starts a goroutine to publish expensive-to-calculate stats at a given interval.
@@ -49,9 +51,17 @@ func PublishPeriodic(cfg PeriodicConfig) {
 			connections.Set(int64(cfg.GetConns()))
 		}
 
-		dictionaryPool.Set(int64(pools.Dictionaries.Created()))
-		peerlist4Pool.Set(int64(pools.Peerlists4.Created()))
-		peerlist6Pool.Set(int64(pools.Peerlists6.Created()))
+		dictionaryPool.Set(bencoding.DictionaryPoolCreated())
+		if cfg.GetPeerlist4PoolCreated != nil {
+			peerlist4Pool.Set(cfg.GetPeerlist4PoolCreated())
+		} else {
+			peerlist4Pool.Set(0)
+		}
+		if cfg.GetPeerlist6PoolCreated != nil {
+			peerlist6Pool.Set(cfg.GetPeerlist6PoolCreated())
+		} else {
+			peerlist6Pool.Set(0)
+		}
 
 		goroutines.Set(int64(runtime.NumGoroutine()))
 		uptime.Set(int64(time.Since(initTime) / time.Second))

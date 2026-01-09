@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage/database"
 	"github.com/crimist/trakx/tracker"
@@ -79,10 +78,9 @@ func TestMain(m *testing.M) {
 	findOpenPort()
 	zap.L().Debug("Found open port for HTTP tracker", zap.Int("port", testNetworkPort))
 
-	pools.Initialize(int(testTrackerConfig.MaximumNumwant))
-
 	peerDB, err := database.NewDatabase(database.Config{
-		Collector: stats.NewCollectors(false, false, 0),
+		Collector:          stats.NewCollectors(false, false, 0),
+		PeerlistMaxNumwant: testTrackerConfig.MaximumNumwant,
 	})
 	if err != nil {
 		zap.L().Fatal("TCP tracker received shutdown")

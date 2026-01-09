@@ -3,14 +3,14 @@ package http
 import (
 	"net"
 
-	"github.com/crimist/trakx/pools"
+	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/storage"
 )
 
 func (tracker *Tracker) scrape(conn net.Conn, infohashes parameters) {
 	tracker.collector.Scrape()
 
-	dictionary := pools.Dictionaries.Get()
+	dictionary := bencoding.AcquireDictionary()
 	dictionary.StartDictionary("files")
 
 	for _, infohash := range infohashes {
@@ -37,5 +37,5 @@ func (tracker *Tracker) scrape(conn net.Conn, infohashes parameters) {
 	dictionary.EndDictionary()
 
 	conn.Write(append(httpSuccessBytes, dictionary.GetBytes()...))
-	pools.Dictionaries.Put(dictionary)
+	bencoding.ReleaseDictionary(dictionary)
 }

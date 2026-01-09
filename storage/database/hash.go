@@ -3,7 +3,7 @@ package database
 import (
 	"encoding/binary"
 
-	"github.com/crimist/trakx/pools"
+	"github.com/crimist/trakx/bencoding"
 	"github.com/crimist/trakx/storage"
 )
 
@@ -45,7 +45,7 @@ func (db *Database) TorrentPeers(hash storage.Hash, numWant uint, includePeerID 
 
 	var i uint
 	peers = make([][]byte, numWant)
-	dictionary := pools.Dictionaries.Get()
+	dictionary := bencoding.AcquireDictionary()
 
 	torrent.mutex.RLock()
 	for id, peer := range torrent.Peers {
@@ -67,51 +67,86 @@ func (db *Database) TorrentPeers(hash storage.Hash, numWant uint, includePeerID 
 	}
 	torrent.mutex.RUnlock()
 
-	pools.Dictionaries.Put(dictionary)
+	bencoding.ReleaseDictionary(dictionary)
 	return
 }
 
-func (db *Database) TorrentPeersCompact(hash storage.Hash, numWant uint, wantedIPs storage.IPVersion) (peers4 []byte, peers6 []byte) {
-	if wantedIPs&storage.IPv4 != 0 {
-		peers4 = pools.Peerlists4.Get()
-	}
-	if wantedIPs&storage.IPv6 != 0 {
-		peers6 = pools.Peerlists6.Get()
-	}
-
+func (db *Database) TorrentPeersCompact(hash storage.Hash, numWant uint, wantedIPs storage.IPVersion) storage.PeerLists {
 	db.mutex.RLock()
 	torrent, ok := db.torrents[hash]
 	db.mutex.RUnlock()
 	if !ok {
-		return
+		return storage.NewPeerLists(nil, nil, nil)
 	}
 
 	torrent.mutex.RLock()
 	numPeers := uint(len(torrent.Peers))
+	torrent.mutex.RUnlock()
+
 	if numWant > numPeers {
 		numWant = numPeers
 	}
 	if numWant == 0 {
-		torrent.mutex.RUnlock()
-		return
+		return storage.NewPeerLists(nil, nil, nil)
+	}
+	if wantedIPs == 0 {
+		return storage.NewPeerLists(nil, nil, nil)
+	}
+
+	var peers4, peers6 []byte
+	if wantedIPs&storage.IPv4 != 0 {
+		if db.peerLists != nil {
+			peers4 = db.peerLists.getV4()
+		} else {
+			peers4 = make([]byte, int(numWant)*peerlist4Stride)
+		}
+	}
+	if wantedIPs&storage.IPv6 != 0 {
+		if db.peerLists != nil {
+			peers6 = db.peerLists.getV6()
+		} else {
+			peers6 = make([]byte, int(numWant)*peerlist6Stride)
+		}
 	}
 
 	var pos4, pos6 int
+	max4Bytes := int(numWant) * peerlist4Stride
+	max6Bytes := int(numWant) * peerlist6Stride
+	if peers4 != nil && max4Bytes > len(peers4) {
+		max4Bytes = len(peers4)
+	}
+	if peers6 != nil && max6Bytes > len(peers6) {
+		max6Bytes = len(peers6)
+	}
+
+	torrent.mutex.RLock()
 	for _, peer := range torrent.Peers {
-		if peer.IP.Is6() && wantedIPs&storage.IPv6 != 0 {
+		if peer.IP.Is6() {
+			if wantedIPs&storage.IPv6 == 0 {
+				continue
+			}
+			if pos6+peerlist6Stride > max6Bytes {
+				break
+			}
 			copy(peers6[pos6:pos6+16], peer.IP.AsSlice())
 			binary.BigEndian.PutUint16(peers6[pos6+16:pos6+18], peer.Port)
-			pos6 += 18
-			if pos6+18 > cap(peers6) {
+			pos6 += peerlist6Stride
+			if pos6+peerlist6Stride > max6Bytes {
 				break
 			}
-		} else if wantedIPs&storage.IPv4 != 0 {
-			copy(peers4[pos4:pos4+4], peer.IP.AsSlice())
-			binary.BigEndian.PutUint16(peers4[pos4+4:pos4+6], peer.Port)
-			pos4 += 6
-			if pos4+6 > cap(peers4) {
-				break
-			}
+			continue
+		}
+		if wantedIPs&storage.IPv4 == 0 {
+			continue
+		}
+		if pos4+peerlist4Stride > max4Bytes {
+			break
+		}
+		copy(peers4[pos4:pos4+4], peer.IP.AsSlice())
+		binary.BigEndian.PutUint16(peers4[pos4+4:pos4+6], peer.Port)
+		pos4 += peerlist4Stride
+		if pos4+peerlist4Stride > max4Bytes {
+			break
 		}
 	}
 	torrent.mutex.RUnlock()
@@ -123,5 +158,12 @@ func (db *Database) TorrentPeersCompact(hash storage.Hash, numWant uint, wantedI
 		peers6 = peers6[:pos6]
 	}
 
-	return
+	release := func() {
+		if db.peerLists != nil {
+			db.peerLists.putV4(peers4)
+			db.peerLists.putV6(peers6)
+		}
+	}
+
+	return storage.NewPeerLists(peers4, peers6, release)
 }
