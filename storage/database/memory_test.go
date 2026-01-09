@@ -13,7 +13,6 @@ import (
 func TestNewDatabase(t *testing.T) {
 	_, err := NewDatabase(Config{
 		InitalSize:         1,
-		Persistance:        nil,
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
@@ -27,7 +26,6 @@ func TestNewDatabase(t *testing.T) {
 func TestTorrents(t *testing.T) {
 	db, err := NewDatabase(Config{
 		InitalSize:         1,
-		Persistance:        nil,
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Microsecond,
@@ -58,7 +56,6 @@ func TestTorrents(t *testing.T) {
 func TestEviction(t *testing.T) {
 	db, err := NewDatabase(Config{
 		InitalSize:         1,
-		Persistance:        nil,
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Microsecond,
@@ -98,7 +95,6 @@ func BenchmarkEvictionSingle(b *testing.B) {
 
 			db, err := NewDatabase(Config{
 				InitalSize:         1,
-				Persistance:        nil,
 				PersistanceAddress: "",
 				EvictionFrequency:  1 * time.Hour,
 				ExpirationTime:     1 * time.Hour,
@@ -133,7 +129,6 @@ func BenchmarkEvictionMulti(b *testing.B) {
 
 			db, err := NewDatabase(Config{
 				InitalSize:         1,
-				Persistance:        nil,
 				PersistanceAddress: "",
 				EvictionFrequency:  1 * time.Hour,
 				ExpirationTime:     1 * time.Hour,

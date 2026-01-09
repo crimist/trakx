@@ -22,7 +22,7 @@ var (
 )
 
 func Load() (*Configuration, error) {
-	logger := zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()), zapcore.Lock(os.Stdout), loggerAtom))
+	logger := zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()), zapcore.Lock(os.Stderr), loggerAtom))
 	zap.ReplaceGlobals(logger)
 
 	configDir, err := os.UserConfigDir()

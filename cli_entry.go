@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/crimist/trakx/cmd"
 	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/controller"
 )
@@ -21,6 +22,8 @@ func printHelp() {
 	help += fmt.Sprintf("  %-12s executes trakx, doesn't return\n", "execute")
 	help += fmt.Sprintf("  %-12s wipes trakx pid file\n", "reset")
 	help += fmt.Sprintf("  %-12s prints default config\n", "dump")
+	help += fmt.Sprintf("  %-12s streams fresh DB backup to stdout\n", "backup-export")
+	help += fmt.Sprintf("  %-12s loads DB backup from stdin\n", "backup-import")
 
 	help += "\nFlags:\n"
 	fmt.Fprint(os.Stderr, help)
@@ -97,6 +100,14 @@ func main() {
 		fmt.Println("wiped!")
 	case "dump":
 		if err = config.DumpDefaultConfig(); err != nil {
+			logFatal(err)
+		}
+	case "backup-export":
+		if err = cmd.ExportBackup(conf, os.Stdout); err != nil {
+			logFatal(err)
+		}
+	case "backup-import":
+		if err = cmd.ImportBackup(conf, os.Stdin); err != nil {
 			logFatal(err)
 		}
 	default:

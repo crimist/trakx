@@ -15,49 +15,68 @@ import (
 
 func encodeBinary(db *Database) ([]byte, error) {
 	var buff bytes.Buffer
-	writer := bufio.NewWriter(&buff)
+	if err := encodeBinaryToWriter(db, &buff); err != nil {
+		return nil, err
+	}
 
+	return buff.Bytes(), nil
+}
+
+func encodeBinaryToWriter(db *Database, writer io.Writer) error {
+	bufWriter, ok := writer.(*bufio.Writer)
+	if !ok {
+		bufWriter = bufio.NewWriter(writer)
+		if err := encodeBinaryBuffered(db, bufWriter); err != nil {
+			return err
+		}
+		return bufWriter.Flush()
+	}
+
+	return encodeBinaryBuffered(db, bufWriter)
+}
+
+func encodeBinaryBuffered(db *Database, writer *bufio.Writer) error {
 	db.mutex.RLock()
 	for hash, torrent := range db.torrents {
 		db.mutex.RUnlock()
 
 		// hash + number of torrent peers
 		if err := binary.Write(writer, binary.LittleEndian, &hash); err != nil {
-			return nil, err
+			return err
 		}
 		torrent.mutex.RLock()
 		if err := binary.Write(writer, binary.LittleEndian, uint32(len(torrent.Peers))); err != nil {
 			torrent.mutex.RUnlock()
-			return nil, err
+			return err
 		}
 
 		// peerid + peer
 		for id, peer := range torrent.Peers {
 			if err := binary.Write(writer, binary.LittleEndian, &id); err != nil {
 				torrent.mutex.RUnlock()
-				return nil, err
+				return err
 			}
 
 			addrSlice := peer.IP.AsSlice()
 			if err := binary.Write(writer, binary.LittleEndian, peer.Complete); err != nil {
 				torrent.mutex.RUnlock()
-				return nil, err
+				return err
 			}
 			if err := binary.Write(writer, binary.LittleEndian, int32(len(addrSlice))); err != nil {
 				torrent.mutex.RUnlock()
-				return nil, err
+				return err
 			}
 			if err := binary.Write(writer, binary.LittleEndian, addrSlice); err != nil {
 				torrent.mutex.RUnlock()
-				return nil, err
+				return err
 			}
 			if err := binary.Write(writer, binary.LittleEndian, peer.Port); err != nil {
 				torrent.mutex.RUnlock()
-				return nil, err
+				return err
 			}
 			if err := binary.Write(writer, binary.LittleEndian, peer.LastSeen); err != nil {
 				torrent.mutex.RUnlock()
-				return nil, err
+				return err
 			}
 		}
 		torrent.mutex.RUnlock()
@@ -66,20 +85,23 @@ func encodeBinary(db *Database) ([]byte, error) {
 	}
 	db.mutex.RUnlock()
 
-	if err := writer.Flush(); err != nil {
-		return nil, err
-	}
-
-	return buff.Bytes(), nil
+	return nil
 }
 
 func decodeBinary(db *Database, data []byte) (numPeers, numTorrents int, err error) {
-	reader := bufio.NewReader(bytes.NewBuffer(data))
+	return decodeBinaryFromReader(db, bytes.NewReader(data))
+}
+
+func decodeBinaryFromReader(db *Database, reader io.Reader) (numPeers, numTorrents int, err error) {
+	bufReader, ok := reader.(*bufio.Reader)
+	if !ok {
+		bufReader = bufio.NewReader(reader)
+	}
 
 	for {
 		// decode hash + number of torrent peers
 		var hash storage.Hash
-		err = binary.Read(reader, binary.LittleEndian, &hash)
+		err = binary.Read(bufReader, binary.LittleEndian, &hash)
 		if errors.Is(err, io.EOF) {
 			err = nil
 			break
@@ -90,27 +112,27 @@ func decodeBinary(db *Database, data []byte) (numPeers, numTorrents int, err err
 		var peerCount uint32
 		var seeds uint16
 		torrent := db.createTorrent(hash)
-		if err = binary.Read(reader, binary.LittleEndian, &peerCount); err != nil {
+		if err = binary.Read(bufReader, binary.LittleEndian, &peerCount); err != nil {
 			return
 		}
 
 		// decode peerid and peers
 		for ; peerCount > 0; peerCount-- {
 			var id storage.PeerID
-			if err = binary.Read(reader, binary.LittleEndian, &id); err != nil {
+			if err = binary.Read(bufReader, binary.LittleEndian, &id); err != nil {
 				return
 			}
 
 			peer := db.peerPool.Get()
 			var addrSliceLen int32
-			if err = binary.Read(reader, binary.LittleEndian, &peer.Complete); err != nil {
+			if err = binary.Read(bufReader, binary.LittleEndian, &peer.Complete); err != nil {
 				return
 			}
-			if err = binary.Read(reader, binary.LittleEndian, &addrSliceLen); err != nil {
+			if err = binary.Read(bufReader, binary.LittleEndian, &addrSliceLen); err != nil {
 				return
 			}
 			addrSlice := make([]byte, addrSliceLen)
-			if err = binary.Read(reader, binary.LittleEndian, &addrSlice); err != nil {
+			if err = binary.Read(bufReader, binary.LittleEndian, &addrSlice); err != nil {
 				return
 			}
 			ip, ok := netip.AddrFromSlice(addrSlice)
@@ -119,10 +141,10 @@ func decodeBinary(db *Database, data []byte) (numPeers, numTorrents int, err err
 				return
 			}
 			peer.IP = ip
-			if err = binary.Read(reader, binary.LittleEndian, &peer.Port); err != nil {
+			if err = binary.Read(bufReader, binary.LittleEndian, &peer.Port); err != nil {
 				return
 			}
-			if err = binary.Read(reader, binary.LittleEndian, &peer.LastSeen); err != nil {
+			if err = binary.Read(bufReader, binary.LittleEndian, &peer.LastSeen); err != nil {
 				return
 			}
 			torrent.Peers[id] = peer

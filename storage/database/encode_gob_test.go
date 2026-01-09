@@ -14,7 +14,6 @@ import (
 func TestGobCoder(t *testing.T) {
 	db, err := NewDatabase(Config{
 		InitalSize:         1,
-		Persistance:        nil,
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
@@ -37,7 +36,6 @@ func TestGobCoder(t *testing.T) {
 	oldtorrents := db.torrents
 	db, err = NewDatabase(Config{
 		InitalSize:         1,
-		Persistance:        nil,
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
@@ -74,7 +72,6 @@ func BenchmarkEncodeGob(b *testing.B) {
 
 			db, err := NewDatabase(Config{
 				InitalSize:         1,
-				Persistance:        nil,
 				PersistanceAddress: "",
 				EvictionFrequency:  1 * time.Hour,
 				ExpirationTime:     1 * time.Hour,
@@ -111,7 +108,6 @@ func BenchmarkDecodeGob(b *testing.B) {
 
 			db, err := NewDatabase(Config{
 				InitalSize:         1,
-				Persistance:        nil,
 				PersistanceAddress: "",
 				EvictionFrequency:  1 * time.Hour,
 				ExpirationTime:     1 * time.Hour,

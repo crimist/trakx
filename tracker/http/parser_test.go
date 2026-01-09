@@ -36,6 +36,18 @@ func TestParse(t *testing.T) {
 		t.Fatalf("Incorrect method")
 	}
 
+	req = []byte("GET /announce? HTTP/1.1")
+	p, err = parse(req)
+	if err != nil {
+		t.Fatalf("Error when parsing: %v", err)
+	}
+	if p.Path != "/announce" {
+		t.Fatal("Incorrect path")
+	}
+	if p.Parameters[0] != nil {
+		t.Fatal("Expected empty params for empty query")
+	}
+
 	req = []byte("GET /url?key=value HTTP/1.1")
 	p, err = parse(req)
 	if err != nil {
@@ -72,6 +84,7 @@ func TestUnescapeFast(t *testing.T) {
 		{"multiple escapes", []byte("1%002%ba~L"), []byte("1\x002\xba~L")},
 		{"invalid escapes", []byte("1%2"), nil},
 		{"invalid escapes 2", []byte("%"), nil},
+		{"invalid hex escapes", []byte("1%zz2"), nil},
 	}
 
 	for _, c := range cases {

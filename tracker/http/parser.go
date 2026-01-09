@@ -73,6 +73,10 @@ func parse(data []byte) (requestData, error) {
 		}
 
 		paramsBytes := data[p.pathEnd+1 : p.UrlEnd]
+		if len(paramsBytes) == 0 {
+			p.Path = utils.BytesToStringUnsafe(data[p.pathStart:p.pathEnd])
+			return p, nil
+		}
 
 		var pos, pIndex int
 		for i := 0; i < len(paramsBytes) && pIndex < maxParameters; i++ {
@@ -106,17 +110,17 @@ func parse(data []byte) (requestData, error) {
 	return p, nil
 }
 
-func fromHexChar(c byte) byte {
+func fromHexChar(c byte) (byte, bool) {
 	switch {
 	case '0' <= c && c <= '9':
-		return c - '0'
+		return c - '0', true
 	case 'a' <= c && c <= 'f':
-		return c - 'a' + 10
+		return c - 'a' + 10, true
 	case 'A' <= c && c <= 'F':
-		return c - 'A' + 10
+		return c - 'A' + 10, true
 	}
 
-	return 0
+	return 0, false
 }
 
 // unescapeFast unescapes url encoded []byte
@@ -132,8 +136,11 @@ func unescapeFast(msg []byte) []byte {
 			}
 
 			// get hex chars
-			a := fromHexChar(msg[i+1])
-			b := fromHexChar(msg[i+2])
+			a, okA := fromHexChar(msg[i+1])
+			b, okB := fromHexChar(msg[i+2])
+			if !okA || !okB {
+				return nil
+			}
 			// change percent to real byte
 			msg[i] = (a << 4) | b
 

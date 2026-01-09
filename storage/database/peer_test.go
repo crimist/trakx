@@ -22,7 +22,6 @@ var (
 func TestPeerAdd(t *testing.T) {
 	db, err := NewDatabase(Config{
 		InitalSize:         1,
-		Persistance:        nil,
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
@@ -61,7 +60,6 @@ func TestPeerAdd(t *testing.T) {
 func TestPeerRemove(t *testing.T) {
 	db, err := NewDatabase(Config{
 		InitalSize:         1,
-		Persistance:        nil,
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
@@ -90,7 +88,6 @@ func BenchmarkPeerAddSingle(b *testing.B) {
 
 	db, err := NewDatabase(Config{
 		InitalSize:         1,
-		Persistance:        nil,
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
@@ -118,7 +115,6 @@ func BenchmarkPeerAddSingleParallell(b *testing.B) {
 		b.Run(fmt.Sprintf("%d", routines), func(b *testing.B) {
 			db, err := NewDatabase(Config{
 				InitalSize:         1,
-				Persistance:        nil,
 				PersistanceAddress: "",
 				EvictionFrequency:  1 * time.Minute,
 				ExpirationTime:     1 * time.Minute,
@@ -153,7 +149,6 @@ func BenchmarkPeerAddMulti(b *testing.B) {
 
 	db, err := NewDatabase(Config{
 		InitalSize:         1,
-		Persistance:        nil,
 		PersistanceAddress: "",
 		EvictionFrequency:  1 * time.Minute,
 		ExpirationTime:     1 * time.Minute,
@@ -183,7 +178,6 @@ func BenchmarkPeerAddMultiParallell(b *testing.B) {
 		b.Run(fmt.Sprintf("%d", routines), func(b *testing.B) {
 			db, err := NewDatabase(Config{
 				InitalSize:         1,
-				Persistance:        nil,
 				PersistanceAddress: "",
 				EvictionFrequency:  1 * time.Minute,
 				ExpirationTime:     1 * time.Minute,

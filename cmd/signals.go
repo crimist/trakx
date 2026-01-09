@@ -16,9 +16,11 @@ var SigStop = os.Interrupt
 
 const exitSuccess = 0
 
-func signalHandler(db storage.Database, trackers []tracker.Tracker) {
+func signalHandler(db storage.Database, trackers []tracker.Tracker, persist func() error) {
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
+
+	zap.L().Debug("Started signal handler")
 
 	for {
 		sig := <-signalChannel
@@ -39,7 +41,12 @@ func signalHandler(db storage.Database, trackers []tracker.Tracker) {
 		case syscall.SIGUSR1: // persist
 			zap.L().Info("Received persist signal", zap.Any("signal", sig))
 
-			// TODO: write db
+			if persist != nil {
+				if err := persist(); err != nil {
+					zap.L().Error("Failed to persist databases", zap.Error(err))
+				}
+			}
+
 			// TODO: write udp conn db
 
 			zap.L().Info("Persisted databases")

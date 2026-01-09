@@ -7,6 +7,7 @@ Performance focused BitTorrent tracker supporting HTTP, UDP, IPv4 and IPv6.
   - [🚀 Install](#-install)
   - [🔧 Configuration](#-configuration)
     - [Configuration file](#configuration-file)
+    - [Database backups](#database-backups)
     - [Default configuration \& webserver files](#default-configuration--webserver-files)
     - [Binding to privileged ports](#binding-to-privileged-ports)
     - [Netdata setup](#netdata-setup)
@@ -68,6 +69,18 @@ Trakx attempts to load the config file from the following directories in order:
 
 * `.`
 * `~/.config/trakx/`
+
+### Database backups
+
+Trakx persists the in-memory database to a binary snapshot at `db.backup.path`.
+`backup-export` requests a fresh snapshot from the running daemon when available,
+and otherwise streams the on-disk backup file.
+You can stream the snapshot bytes to external storage using:
+
+```sh
+trakx backup-export > trakx.snapshot
+cat trakx.snapshot | trakx backup-import
+```
 
 ### Default configuration & webserver files
 

@@ -6,7 +6,7 @@
 loglevel: info
 
 # Cache is the directory in which trakx will write it's PID, logs, and database
-# persistence files. Leave blank for default of XDG_CACHE_HOME/trakx
+# backup files. Leave blank for default of XDG_CACHE_HOME/trakx
 cache:
 
 # Trakx can track statistic such as the number of announces, seeds, unique ips, etc.

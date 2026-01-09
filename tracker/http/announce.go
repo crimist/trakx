@@ -71,7 +71,7 @@ func (tracker *Tracker) announce(conn net.Conn, parameters *announceParameters, 
 
 	interval := tracker.config.Interval
 	if tracker.config.IntervalVariance > 0 {
-		interval += uint(rand.Int31n(int32(tracker.config.IntervalVariance)))
+		interval += uint(rand.Int63n(int64(tracker.config.IntervalVariance)))
 	}
 
 	dictionary := pools.Dictionaries.Get()

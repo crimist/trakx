@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	gohttp "net/http"
+	"time"
 
 	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/pools"
@@ -36,16 +37,19 @@ func Run(conf *config.Configuration) {
 
 	pools.Initialize(int(conf.Numwant.Limit))
 
+	baseIntervalSeconds := uint(conf.Announce.Base / time.Second)
+	fuzzIntervalSeconds := uint(conf.Announce.Fuzz / time.Second)
+
 	// TODO: cache the prev IP collector map size :D
 	collector := stats.NewCollectors(conf.Stats.General, conf.Stats.IP, 0)
 
 	db, err := database.NewDatabase(database.Config{
-		InitalSize:         0, // TODO: cache this on exit and load on startup
-		Persistance:        &database.FilePersistance{},
-		PersistanceAddress: conf.DB.Backup.Path,
-		EvictionFrequency:  conf.DB.GC,
-		ExpirationTime:     conf.DB.Expiry,
-		Collector:          collector,
+		InitalSize:          0, // TODO: cache this on exit and load on startup
+		PersistanceAddress:  conf.DB.Backup.Path,
+		PersistanceInterval: conf.DB.Backup.Interval,
+		EvictionFrequency:   conf.DB.GC,
+		ExpirationTime:      conf.DB.Expiry,
+		Collector:           collector,
 	})
 
 	if err != nil {
@@ -62,8 +66,8 @@ func Run(conf *config.Configuration) {
 		trackers = append(trackers, udp.NewTracker(db, tracker.TrackerConfig{
 			DefaultNumwant:   conf.Numwant.Default,
 			MaximumNumwant:   conf.Numwant.Limit,
-			Interval:         uint(conf.Announce.Base),
-			IntervalVariance: uint(conf.Announce.Fuzz),
+			Interval:         baseIntervalSeconds,
+			IntervalVariance: fuzzIntervalSeconds,
 		}, collector, connectionsDB, conf.UDP.Connections.Validate))
 
 		ip := net.ParseIP(conf.UDP.IP)
@@ -84,8 +88,8 @@ func Run(conf *config.Configuration) {
 		trackers = append(trackers, http.NewTracker(db, tracker.TrackerConfig{
 			DefaultNumwant:   conf.Numwant.Default,
 			MaximumNumwant:   conf.Numwant.Limit,
-			Interval:         uint(conf.Announce.Base),
-			IntervalVariance: uint(conf.Announce.Fuzz),
+			Interval:         baseIntervalSeconds,
+			IntervalVariance: fuzzIntervalSeconds,
 		}, collector, conf.HTTP.Serve, conf.HTTP.Timeout.Read, conf.HTTP.Timeout.Write))
 
 		ip := net.ParseIP(conf.HTTP.IP)
@@ -124,7 +128,9 @@ func Run(conf *config.Configuration) {
 		}()
 	}
 
-	go signalHandler(db, trackers)
+	go signalHandler(db, trackers, func() error {
+		return persistDatabase(db, conf.DB.Backup.Path)
+	})
 
 	if conf.Stats.General {
 		go stats.PublishPeriodic(stats.PeriodicConfig{

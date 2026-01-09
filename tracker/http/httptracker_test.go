@@ -1,11 +1,13 @@
 package http
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -34,6 +36,15 @@ var (
 	testNetworkPort = 10000
 )
 
+func isFuzzWorker() bool {
+	flagValue := flag.Lookup("test.fuzzworker")
+	if flagValue == nil {
+		return false
+	}
+	enabled, err := strconv.ParseBool(flagValue.Value.String())
+	return err == nil && enabled
+}
+
 func findOpenPort() int {
 	for {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%d", testNetworkPort))
@@ -54,6 +65,13 @@ func findOpenPort() int {
 }
 
 func TestMain(m *testing.M) {
+	flag.Parse()
+
+	if isFuzzWorker() {
+		zap.ReplaceGlobals(zap.NewNop())
+		os.Exit(m.Run())
+	}
+
 	loggerConfig := zap.NewDevelopmentConfig()
 	logger := zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(loggerConfig.EncoderConfig), zapcore.Lock(os.Stdout), zap.NewAtomicLevelAt(zap.DebugLevel)))
 	zap.ReplaceGlobals(logger)
@@ -85,9 +103,9 @@ func TestMain(m *testing.M) {
 	}()
 
 	time.Sleep(testMockStartupDelay)
-	m.Run()
-
+	exitCode := m.Run()
 	tracker.Shutdown()
+	os.Exit(exitCode)
 }
 
 func dialMockTracker(address string) (*net.TCPConn, error) {

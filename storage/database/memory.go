@@ -41,37 +41,33 @@ func NewDatabase(config Config) (*Database, error) {
 		}, nil),
 	}
 
-	if config.Persistance != nil {
-		if config.PersistanceAddress == "" {
-			return nil, errors.New("persistance enabled but no persistence address set")
-		}
-
+	if config.PersistanceAddress != "" {
 		stat, err := os.Stat(config.PersistanceAddress)
 
 		if os.IsNotExist(err) {
-			zap.L().Debug("Persistance address does not exist", zap.String("path", config.PersistanceAddress))
+			zap.L().Debug("Database backup file does not exist", zap.String("path", config.PersistanceAddress))
 		} else {
 			if err != nil {
-				return nil, errors.Wrap(err, "failed to stat persistance address")
+				return nil, errors.Wrap(err, "failed to stat database backup file")
 			}
 
 			if stat.IsDir() {
-				return nil, errors.New("database persistance address is a directory")
+				return nil, errors.New("database backup path is a directory")
 			}
 
-			if err := config.Persistance.read(db, config.PersistanceAddress); err != nil {
-				zap.L().Warn("Failed to load database from persistance", zap.Any("persistance", config.Persistance), zap.String("address", config.PersistanceAddress), zap.Error(err))
+			if err := ReadSnapshotFile(db, config.PersistanceAddress); err != nil {
+				zap.L().Warn("Failed to load database from backup file", zap.String("path", config.PersistanceAddress), zap.Error(err))
 			} else {
-				zap.L().Info("Loaded database from persistance", zap.Any("persistance", config.Persistance), zap.String("address", config.PersistanceAddress), zap.Int("torrents", db.Torrents()))
+				zap.L().Info("Loaded database from backup file", zap.String("path", config.PersistanceAddress), zap.Int("torrents", db.Torrents()))
 			}
 		}
 
 		if config.PersistanceInterval > 0 {
-			zap.L().Debug("Database persisting on interval", zap.Duration("interval", config.PersistanceInterval))
-			utils.RunOn(config.PersistanceInterval, func() {
-				err := config.Persistance.write(db, config.PersistanceAddress)
+			zap.L().Debug("Database backup on interval", zap.Duration("interval", config.PersistanceInterval))
+			go utils.RunOn(config.PersistanceInterval, func() {
+				err := WriteSnapshotFile(db, config.PersistanceAddress)
 				if err != nil {
-					zap.L().Error("failed to write database persistence on interval", zap.Error(err))
+					zap.L().Error("failed to write database backup on interval", zap.Error(err))
 				}
 			})
 		}
