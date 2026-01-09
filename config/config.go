@@ -114,14 +114,12 @@ func (conf *Configuration) validate() error {
 	return nil
 }
 
-// TODO: consider removing trakx prefixes here
-
 // LogPath returns the log path as defined by the configuration and current time
 func (conf *Configuration) LogPath() string {
-	return filepath.Join(conf.Cache, "trakx_"+time.Now().Format("06-01-02-15-04-05")+".log")
+	return filepath.Join(conf.Cache, time.Now().Format("06-01-02-15-04-05")+".log")
 }
 
 // PIDPath retuirns the pid file path
 func (conf *Configuration) PIDPath() string {
-	return filepath.Join(conf.Cache, "trakx.pid")
+	return filepath.Join(conf.Cache, "pid")
 }
