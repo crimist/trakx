@@ -1,8 +1,9 @@
-package controller
+package main
 
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -16,31 +17,27 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TODO: look into how caddy controller is handled
-
 const (
 	logFilePermissions = 0644
 )
 
-type Controller struct {
-	processIDFile *ProcessIDFile
+type daemonController struct {
+	processIDFile *processIDFile
 	config        *config.Configuration
 }
 
-func NewController(conf *config.Configuration) *Controller {
-	return &Controller{
-		processIDFile: NewProcessIDFile(conf.PIDPath()),
+func newDaemonController(conf *config.Configuration) *daemonController {
+	return &daemonController{
+		processIDFile: newProcessIDFile(conf.PIDPath()),
 		config:        conf,
 	}
 }
 
-// Execute executes trakx in the current process
-func (controller *Controller) Execute() {
+func (controller *daemonController) Execute() {
 	cmd.Run(controller.config)
 }
 
-// Start starts trakx as a service
-func (controller *Controller) Start() error {
+func (controller *daemonController) Start(opts GlobalOptions, importPath string) error {
 	pidFileExists, processAlive, heartbeat := controller.Status()
 	if pidFileExists || processAlive || heartbeat {
 		return errors.New("trakx is already running")
@@ -52,7 +49,15 @@ func (controller *Controller) Start() error {
 	}
 	defer logFile.Close()
 
-	cmd := exec.Command(os.Args[0], "execute")
+	args := []string{"run"}
+	if opts.ConfigPath != "" {
+		args = append(args, "--config", opts.ConfigPath)
+	}
+	if importPath != "" {
+		args = append(args, "--import", importPath)
+	}
+
+	cmd := exec.Command(os.Args[0], args...)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 	if err := cmd.Start(); err != nil {
@@ -63,12 +68,10 @@ func (controller *Controller) Start() error {
 		return errors.Wrap(err, "failed to write process id to file")
 	}
 
-	fmt.Println("started trakx!")
 	return nil
 }
 
-// Stop gracefully stops the process by sending a stop signal
-func (controller *Controller) Stop() error {
+func (controller *daemonController) Stop(out io.Writer) error {
 	process, err := controller.processIDFile.Process()
 	if err != nil {
 		return errors.Wrap(err, "failed to get process from process id file")
@@ -82,44 +85,39 @@ func (controller *Controller) Stop() error {
 		return errors.Wrap(err, "failed to read process id file")
 	}
 
-	fmt.Print("waiting for process to exit")
+	fmt.Fprint(out, "waiting for process to exit")
 	i := 0
-	for ; err == nil || i == 100; err = syscall.Kill(processid, syscall.Signal(0)) {
+	for err == nil && i < 100 {
 		time.Sleep(100 * time.Millisecond)
-		fmt.Print(".")
+		fmt.Fprint(out, ".")
 		i++
+		err = syscall.Kill(processid, syscall.Signal(0))
 	}
+	fmt.Fprintln(out)
 	if i == 100 {
-		return errors.New(" trakx failed to stop within 10s")
+		return errors.New("trakx failed to stop within 10s")
 	}
-	if err.Error() != "no such process" {
+	if err != nil && err.Error() != "no such process" {
 		return errors.Wrap(err, "failed to kill trakx process id")
 	}
 
-	fmt.Println(" stopped trakx!")
 	return errors.Wrap(controller.processIDFile.Clear(), "failed to clear trakx process id file")
 }
 
-// Clear clears the trakx process id file
-func (controller *Controller) Clear() error {
+func (controller *daemonController) Clear() error {
 	return errors.Wrap(controller.processIDFile.Clear(), "failed to clear trakx process id file")
 }
 
-// Status returns the status of trakx by checking the following:
-// process id file exists, process id file has pid, proces is alive, heartbeat to trakx
-func (controller *Controller) Status() (pidFileExists bool, processAlive bool, heartbeat bool) {
-	// check process id file exists
+func (controller *daemonController) Status() (pidFileExists bool, processAlive bool, heartbeat bool) {
 	processid, _ := controller.processIDFile.Read()
-	if processid != ProcessIDFailed {
+	if processid != processIDFailed {
 		pidFileExists = true
 
-		// check process is alive
 		if err := syscall.Kill(processid, syscall.Signal(0)); err == nil {
 			processAlive = true
 		}
 	}
 
-	// heartbeat checks
 	if controller.config.UDP.Port != 0 {
 		conn, err := net.Dial("udp", fmt.Sprintf("localhost:%d", controller.config.UDP.Port))
 		if err == nil {

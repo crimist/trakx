@@ -36,7 +36,7 @@ func TestWriteEmbeddedConfig(t *testing.T) {
 		}
 	}()
 
-	_, err := Load()
+	_, err := Load(LoadOptions{})
 	if err != nil {
 		t.Fatal("failed to load config")
 	}

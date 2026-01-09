@@ -5,6 +5,7 @@
 package database
 
 import (
+	"io"
 	"os"
 	"sync"
 	"time"
@@ -41,7 +42,18 @@ func NewDatabase(config Config) (*Database, error) {
 		}, nil),
 	}
 
-	if config.PersistanceAddress != "" {
+	if config.ImportReader != nil {
+		if err := db.Restore(config.ImportReader); err != nil {
+			zap.L().Warn("Failed to restore database from import stream", zap.Error(err))
+		} else {
+			zap.L().Info("Loaded database from import stream", zap.Int("torrents", db.Torrents()))
+		}
+		if closer, ok := config.ImportReader.(io.Closer); ok {
+			if err := closer.Close(); err != nil {
+				zap.L().Warn("Failed to close import reader", zap.Error(err))
+			}
+		}
+	} else if config.PersistanceAddress != "" {
 		stat, err := os.Stat(config.PersistanceAddress)
 
 		if os.IsNotExist(err) {

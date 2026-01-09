@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/binary"
 	"io"
 	"net"
 	"net/netip"
@@ -111,5 +112,38 @@ func TestExportBackupFallbackFile(t *testing.T) {
 	}
 	if !bytes.Equal(buf.Bytes(), expected) {
 		t.Fatalf("backup bytes = %q, want %q", buf.Bytes(), expected)
+	}
+}
+
+func TestImportBackupRejectsInvalidData(t *testing.T) {
+	tmpDir := t.TempDir()
+	backupPath := filepath.Join(tmpDir, "db")
+	original := []byte("original-backup")
+	if err := os.WriteFile(backupPath, original, backupFilePermissions); err != nil {
+		t.Fatal(err)
+	}
+
+	conf := &config.Configuration{}
+	conf.Cache = tmpDir
+	conf.DB.Backup.Path = backupPath
+
+	invalid := bytes.NewBuffer(nil)
+	if _, err := invalid.WriteString("TRAKXDB"); err != nil {
+		t.Fatal(err)
+	}
+	if err := binary.Write(invalid, binary.LittleEndian, uint16(2)); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ImportBackup(conf, invalid); err == nil {
+		t.Fatal("expected ImportBackup to fail for invalid snapshot")
+	}
+
+	contents, err := os.ReadFile(backupPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(contents, original) {
+		t.Fatalf("backup contents changed: %q != %q", contents, original)
 	}
 }

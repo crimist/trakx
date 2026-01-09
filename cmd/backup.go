@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/crimist/trakx/config"
+	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage/database"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -40,7 +41,7 @@ func ExportBackup(conf *config.Configuration, writer io.Writer) error {
 	return exportBackupFile(conf, writer)
 }
 
-// ImportBackup writes snapshot data from the reader into the configured backup file.
+// ImportBackup validates and writes snapshot data from the reader into the configured backup file.
 func ImportBackup(conf *config.Configuration, reader io.Reader) (err error) {
 	backupPath := conf.DB.Backup.Path
 	if backupPath == "" {
@@ -62,8 +63,16 @@ func ImportBackup(conf *config.Configuration, reader io.Reader) (err error) {
 		}
 	}()
 
-	if _, err = io.Copy(tmpFile, reader); err != nil {
-		return errors.Wrap(err, "failed to write backup file")
+	validationDB, err := database.NewDatabase(database.Config{
+		Collector: stats.NewCollectors(false, false, 0),
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize validation database")
+	}
+
+	tee := io.TeeReader(reader, tmpFile)
+	if err = validationDB.Restore(tee); err != nil {
+		return errors.Wrap(err, "backup validation failed")
 	}
 	if err = tmpFile.Sync(); err != nil {
 		return errors.Wrap(err, "failed to sync backup file")

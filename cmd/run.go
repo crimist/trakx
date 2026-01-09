@@ -3,6 +3,7 @@ package cmd
 import (
 	"expvar"
 	"fmt"
+	"io"
 	"net"
 	gohttp "net/http"
 	"time"
@@ -20,8 +21,17 @@ import (
 	"github.com/crimist/trakx/storage/database"
 )
 
+type RunOptions struct {
+	ImportReader io.Reader
+}
+
 // Run initializes and runs the tracker with the requested configuration settings.
 func Run(conf *config.Configuration) {
+	RunWithOptions(conf, RunOptions{})
+}
+
+// RunWithOptions initializes and runs the tracker with the requested configuration settings.
+func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 	type serveConfig struct {
 		ip       net.IP
 		port     int
@@ -50,6 +60,7 @@ func Run(conf *config.Configuration) {
 		EvictionFrequency:   conf.DB.GC,
 		ExpirationTime:      conf.DB.Expiry,
 		Collector:           collector,
+		ImportReader:        opts.ImportReader,
 	})
 
 	if err != nil {

@@ -11,8 +11,11 @@ import (
 )
 
 const (
-	snapshotMagic   = "TRAKXDB"
-	snapshotVersion = uint16(1)
+	snapshotMagic       = "TRAKXDB"
+	snapshotVersion     = uint16(1)
+	snapshotMagicSize   = len(snapshotMagic)
+	snapshotVersionSize = 2 // uint16, little endian
+	snapshotHeaderSize  = snapshotMagicSize + snapshotVersionSize
 )
 
 var errSnapshotVersion = errors.New("unsupported snapshot version")
@@ -34,7 +37,7 @@ func (db *Database) Snapshot(writer io.Writer) error {
 // It also supports the legacy headerless binary format.
 func (db *Database) Restore(reader io.Reader) error {
 	bufReader := bufio.NewReader(reader)
-	header := make([]byte, len(snapshotMagic))
+	header := make([]byte, snapshotMagicSize)
 	if _, err := io.ReadFull(bufReader, header); err != nil {
 		return err
 	}

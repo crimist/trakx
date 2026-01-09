@@ -2,6 +2,7 @@ package database
 
 import (
 	"bytes"
+	"encoding/binary"
 	"reflect"
 	"testing"
 	"time"
@@ -35,6 +36,14 @@ func TestSnapshotRoundTrip(t *testing.T) {
 
 	if !bytes.HasPrefix(buf.Bytes(), []byte(snapshotMagic)) {
 		t.Fatalf("snapshot missing magic header %q", snapshotMagic)
+	}
+	if len(buf.Bytes()) < snapshotHeaderSize {
+		t.Fatalf("snapshot header size = %d, want >= %d", len(buf.Bytes()), snapshotHeaderSize)
+	}
+	versionOffset := snapshotMagicSize
+	version := binary.LittleEndian.Uint16(buf.Bytes()[versionOffset : versionOffset+snapshotVersionSize])
+	if version != snapshotVersion {
+		t.Fatalf("snapshot version = %d, want %d", version, snapshotVersion)
 	}
 
 	oldtorrents := db.torrents

@@ -4,7 +4,6 @@ Config holds configuration information for trakx.
 package config
 
 import (
-	"flag"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -17,25 +16,37 @@ import (
 )
 
 var (
-	loggerAtom     zap.AtomicLevel = zap.NewAtomicLevelAt(zap.DebugLevel)
-	configPathFlag                 = flag.String("config", "", "optional path to configuration file")
+	loggerAtom zap.AtomicLevel = zap.NewAtomicLevelAt(zap.DebugLevel)
 )
 
-func Load() (*Configuration, error) {
+type LoadOptions struct {
+	Path string
+}
+
+func DefaultPath() (string, error) {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get user config directory")
+	}
+	return filepath.Join(configDir, "trakx", "trakx.yaml"), nil
+}
+
+func Load(opts LoadOptions) (*Configuration, error) {
 	logger := zap.New(zapcore.NewCore(zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()), zapcore.Lock(os.Stderr), loggerAtom))
 	zap.ReplaceGlobals(logger)
 
-	configDir, err := os.UserConfigDir()
+	defaultConfigPath, err := DefaultPath()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get user config directory")
+		return nil, err
 	}
-	defaultConfigPath := filepath.Join(configDir, "trakx", "trakx.yaml")
-	installDefaultConfig(defaultConfigPath)
+	if err := installDefaultConfig(defaultConfigPath); err != nil {
+		return nil, err
+	}
 
 	configPath := defaultConfigPath
-	if *configPathFlag != "" {
-		configPath = *configPathFlag
-		zap.L().Debug("Using default config path", zap.String("path", configPath))
+	if opts.Path != "" {
+		configPath = opts.Path
+		zap.L().Debug("Using config path", zap.String("path", configPath))
 	}
 
 	var conf Configuration

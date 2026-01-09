@@ -4,10 +4,6 @@
 
 ## to do
 
-* Refactor controller / command line interface - KISS!
-  * Look at caddy for inspiration
-  * Include the ability to pass database in on startup with stdin (or a similar approach that will help match backup export functionality)
-
 * Deal w/ every TODO
 
 * Refactor the 'pools' package, see TODOs inside
