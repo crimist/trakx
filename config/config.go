@@ -19,7 +19,11 @@ const (
 type Configuration struct {
 	LogLevel string
 	Cache    string
-	Stats    struct {
+	Maximums struct {
+		Interval time.Duration
+		Decay    int
+	}
+	Stats struct {
 		General  bool
 		IP       bool
 		Interval time.Duration
@@ -97,6 +101,13 @@ func (conf *Configuration) validate() error {
 		if conf.HTTP.Port == 0 {
 			zap.L().Warn("Configuration warning: Statistics collection enabled but no HTTP server is running to publish them")
 		}
+	}
+
+	if conf.Maximums.Interval < 0 {
+		return errors.New("invalid configuration: Maximums.UpdateInterval must be >= 0")
+	}
+	if conf.Maximums.Decay < 0 {
+		return errors.New("invalid configuration: Maximums.DecayHalfLifeUpdates must be >= 0")
 	}
 
 	if conf.HTTP.Serve != "" {

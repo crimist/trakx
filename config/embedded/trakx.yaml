@@ -9,6 +9,13 @@ loglevel: info
 # backup files. Leave blank for default of XDG_CACHE_HOME/trakx
 cache:
 
+# Record map size maxima for preallocation between runs.
+maximums:
+  # How often to update stored maxima. Set to 0 to disable maximums tracking.
+  update_interval: 5m
+  # Decay half-life in update ticks (larger = slower decay). Set to 0 to disable decay.
+  decay_half_life_updates: 2000
+
 # Trakx can track statistic such as the number of announces, seeds, unique ips, etc.
 # They are published via go's expvar standard at '/stats'.
 stats:

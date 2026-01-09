@@ -56,9 +56,14 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 	baseIntervalSeconds := uint(conf.Announce.Base / time.Second)
 	fuzzIntervalSeconds := uint(conf.Announce.Fuzz / time.Second)
 
-	maxStore, err := maxcache.New(conf.Cache)
-	if err != nil {
-		zap.L().Warn("Failed to load maximums cache", zap.Error(err))
+	var maxStore *maxcache.Store
+	if conf.Maximums.Interval > 0 {
+		maxStore, err = maxcache.New(conf.Cache, maxcache.Options{
+			DecayHalfLifeUpdates: conf.Maximums.Decay,
+		})
+		if err != nil {
+			zap.L().Warn("Failed to load maximums cache", zap.Error(err))
+		}
 	}
 
 	ipCollectorSize := 0
@@ -202,6 +207,8 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 			return
 		}
 
+		zap.L().Info("Updating maximums cache")
+
 		if conf.Stats.General && conf.Stats.IP {
 			ips := collector.IPs().Total()
 			zap.L().Debug("Setting maximum", zap.Int("ips", ips))
@@ -212,13 +219,13 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 
 		torrents := db.Torrents()
 		zap.L().Debug("Setting maximum", zap.Int("torrents", torrents))
-		if err := maxStore.Update(maxKeyDBTorrents, db.Torrents()); err != nil {
+		if err := maxStore.Update(maxKeyDBTorrents, torrents); err != nil {
 			zap.L().Warn("Failed to update maximums cache", zap.String("key", maxKeyDBTorrents), zap.Error(err))
 		}
 	}
 
 	if maxStore != nil {
-		go utils.RunOn(maxcache.UpdateFrequency, updateMaximums)
+		go utils.RunOn(conf.Maximums.Interval, updateMaximums)
 	}
 
 	go signalHandler(trackers, func() error {

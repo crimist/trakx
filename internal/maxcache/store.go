@@ -4,44 +4,52 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 const (
-	fileSuffix = ".maximum"
+	fileSuffix = ".json"
 	dirName    = "maximums"
-
-	UpdateFrequency = time.Minute
 )
 
 var ErrInvalidKey = errors.New("invalid maximums key")
 
 type Store struct {
-	dir    string
-	mu     sync.Mutex
-	values map[string]int
+	dir         string
+	decayFactor float64
+	mu          sync.Mutex
+	values      map[string]int
 }
 
 type record struct {
 	Max int `json:"max"`
 }
 
+type Options struct {
+	DecayHalfLifeUpdates int
+}
+
 // New creates a maximums store rooted at cacheDir/maximums.
 // It loads existing maxima if present.
-func New(cacheDir string) (*Store, error) {
+func New(cacheDir string, opts Options) (*Store, error) {
 	dir := filepath.Join(cacheDir, dirName)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
 
+	decayFactor := 1.0
+	if opts.DecayHalfLifeUpdates > 0 {
+		decayFactor = math.Pow(0.5, 1.0/float64(opts.DecayHalfLifeUpdates))
+	}
+
 	store := &Store{
-		dir:    dir,
-		values: make(map[string]int),
+		dir:         dir,
+		decayFactor: decayFactor,
+		values:      make(map[string]int),
 	}
 
 	if err := store.load(); err != nil {
@@ -75,12 +83,20 @@ func (s *Store) Update(key string, value int) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if value <= s.values[key] {
+	current := s.values[key]
+	next := current
+	if s.decayFactor < 1 && current > 0 {
+		next = int(math.Floor(float64(current) * s.decayFactor))
+	}
+	if value > next {
+		next = value
+	}
+	if next == current {
 		return nil
 	}
 
-	s.values[key] = value
-	return s.writeLocked(key, value)
+	s.values[key] = next
+	return s.writeLocked(key, next)
 }
 
 func (s *Store) load() error {
@@ -172,15 +188,10 @@ func (s *Store) writeLocked(key string, value int) error {
 
 func parseValue(data []byte) (int, error) {
 	var rec record
-	if err := json.Unmarshal(data, &rec); err == nil {
-		return rec.Max, nil
-	}
-
-	value, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	if err != nil {
+	if err := json.Unmarshal(data, &rec); err != nil {
 		return 0, err
 	}
-	return value, nil
+	return rec.Max, nil
 }
 
 func validateKey(key string) error {
