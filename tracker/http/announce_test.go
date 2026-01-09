@@ -8,7 +8,7 @@ import (
 	"sort"
 	"testing"
 
-	_ "github.com/crimist/trakx/storage/inmemory"
+	_ "github.com/crimist/trakx/storage/database"
 	"github.com/go-torrent/bencode"
 	"github.com/pkg/errors"
 )

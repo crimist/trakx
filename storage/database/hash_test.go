@@ -1,4 +1,4 @@
-package inmemory
+package database
 
 // import (
 // 	"math/rand"
@@ -8,8 +8,8 @@ package inmemory
 // 	"github.com/crimist/trakx/tracker/storage"
 // )
 
-// func dbWithHashesAndPeers(hashes, peers int) *InMemory {
-// 	var db InMemory
+// func dbWithHashesAndPeers(hashes, peers int) *Database {
+// 	var db Database
 // 	db.make()
 
 // 	peerid := storage.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
@@ -35,8 +35,8 @@ package inmemory
 // 	return &db
 // }
 
-// func dbWithHashes(count int) *InMemory {
-// 	var db InMemory
+// func dbWithHashes(count int) *Database {
+// 	var db Database
 // 	db.make()
 
 // 	peerid := storage.PeerID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
@@ -59,8 +59,8 @@ package inmemory
 // 	return &db
 // }
 
-// func dbWithPeers(count int) (*InMemory, storage.Hash) {
-// 	var db InMemory
+// func dbWithPeers(count int) (*Database, storage.Hash) {
+// 	var db Database
 // 	db.make()
 
 // 	bytes := [20]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}

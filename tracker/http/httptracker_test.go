@@ -11,7 +11,7 @@ import (
 
 	"github.com/crimist/trakx/pools"
 	"github.com/crimist/trakx/stats"
-	"github.com/crimist/trakx/storage/inmemory"
+	"github.com/crimist/trakx/storage/database"
 	"github.com/crimist/trakx/tracker"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -63,7 +63,7 @@ func TestMain(m *testing.M) {
 
 	pools.Initialize(int(testTrackerConfig.MaximumNumwant))
 
-	peerDB, err := inmemory.NewInMemory(inmemory.Config{
+	peerDB, err := database.NewDatabase(database.Config{
 		Collector: stats.NewCollectors(false, false, 0),
 	})
 	if err != nil {

@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap"
 
 	// import database types so init is called
-	"github.com/crimist/trakx/storage/inmemory"
+	"github.com/crimist/trakx/storage/database"
 )
 
 // Run initializes and runs the tracker with the requested configuration settings.
@@ -39,9 +39,9 @@ func Run(conf *config.Configuration) {
 	// TODO: cache the prev IP collector map size :D
 	collector := stats.NewCollectors(conf.Stats.General, conf.Stats.IP, 0)
 
-	db, err := inmemory.NewInMemory(inmemory.Config{
+	db, err := database.NewDatabase(database.Config{
 		InitalSize:         0, // TODO: cache this on exit and load on startup
-		Persistance:        &inmemory.FilePersistance{},
+		Persistance:        &database.FilePersistance{},
 		PersistanceAddress: conf.DB.Backup.Path,
 		EvictionFrequency:  conf.DB.GC,
 		ExpirationTime:     conf.DB.Expiry,

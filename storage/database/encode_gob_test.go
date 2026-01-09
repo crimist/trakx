@@ -1,4 +1,4 @@
-package inmemory
+package database
 
 import (
 	"fmt"
@@ -11,8 +11,8 @@ import (
 	"github.com/crimist/trakx/storage"
 )
 
-func TestBinaryCoder(t *testing.T) {
-	db, err := NewInMemory(Config{
+func TestGobCoder(t *testing.T) {
+	db, err := NewDatabase(Config{
 		InitalSize:         1,
 		Persistance:        nil,
 		PersistanceAddress: "",
@@ -30,12 +30,12 @@ func TestBinaryCoder(t *testing.T) {
 	}
 	db.PeerAdd(testTorrentHash1, testPeerID1, testPeer.IP, testPeer.Port, testPeer.Complete)
 
-	data, err := encodeBinary(db)
+	data, err := encodeGob(db)
 	if err != nil {
-		t.Fatal("encodeBinary threw error: ", err)
+		t.Fatal("encodeGob threw error: ", err)
 	}
 	oldtorrents := db.torrents
-	db, err = NewInMemory(Config{
+	db, err = NewDatabase(Config{
 		InitalSize:         1,
 		Persistance:        nil,
 		PersistanceAddress: "",
@@ -46,8 +46,8 @@ func TestBinaryCoder(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to create database")
 	}
-	if _, _, err = decodeBinary(db, data); err != nil {
-		t.Fatal("decodeBinary threw error: ", err)
+	if err = decodeGob(db, data); err != nil {
+		t.Fatal("decodeGob threw error: ", err)
 	}
 
 	if _, ok := db.torrents[testTorrentHash1]; !ok {
@@ -64,7 +64,7 @@ func TestBinaryCoder(t *testing.T) {
 	}
 }
 
-func BenchmarkEncodeBinary(b *testing.B) {
+func BenchmarkEncodeGob(b *testing.B) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	for peers := 1000; peers < 1e7; peers *= 10 {
@@ -72,7 +72,7 @@ func BenchmarkEncodeBinary(b *testing.B) {
 			b.StopTimer()
 			b.ResetTimer()
 
-			db, err := NewInMemory(Config{
+			db, err := NewDatabase(Config{
 				InitalSize:         1,
 				Persistance:        nil,
 				PersistanceAddress: "",
@@ -94,14 +94,14 @@ func BenchmarkEncodeBinary(b *testing.B) {
 				}
 
 				b.StartTimer()
-				encodeBinary(db)
+				encodeGob(db)
 				b.StopTimer()
 			}
 		})
 	}
 }
 
-func BenchmarkDecodeBinary(b *testing.B) {
+func BenchmarkDecodeGob(b *testing.B) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	for peers := 1000; peers < 1e7; peers *= 10 {
@@ -109,7 +109,7 @@ func BenchmarkDecodeBinary(b *testing.B) {
 			b.StopTimer()
 			b.ResetTimer()
 
-			db, err := NewInMemory(Config{
+			db, err := NewDatabase(Config{
 				InitalSize:         1,
 				Persistance:        nil,
 				PersistanceAddress: "",
@@ -130,9 +130,9 @@ func BenchmarkDecodeBinary(b *testing.B) {
 					db.PeerAdd(hash, peerid, testPeerIP, 1234, true)
 				}
 
-				data, _ := encodeBinary(db)
+				data, _ := encodeGob(db)
 				b.StartTimer()
-				decodeBinary(db, data)
+				decodeGob(db, data)
 				b.StopTimer()
 			}
 		})

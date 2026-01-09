@@ -1,4 +1,4 @@
-package inmemory
+package database
 
 import (
 	"bufio"
@@ -13,7 +13,7 @@ import (
 
 // binary coders are better than gob coders below ~1.5 million peers
 
-func encodeBinary(db *InMemory) ([]byte, error) {
+func encodeBinary(db *Database) ([]byte, error) {
 	var buff bytes.Buffer
 	writer := bufio.NewWriter(&buff)
 
@@ -73,7 +73,7 @@ func encodeBinary(db *InMemory) ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func decodeBinary(db *InMemory, data []byte) (numPeers, numTorrents int, err error) {
+func decodeBinary(db *Database, data []byte) (numPeers, numTorrents int, err error) {
 	reader := bufio.NewReader(bytes.NewBuffer(data))
 
 	for {

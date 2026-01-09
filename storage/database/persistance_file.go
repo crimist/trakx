@@ -1,4 +1,4 @@
-package inmemory
+package database
 
 import (
 	"os"
@@ -13,7 +13,7 @@ const defaultFilePermission = 0640 // rw-r-----
 
 type FilePersistance struct{}
 
-func (fp *FilePersistance) write(db *InMemory, path string) error {
+func (fp *FilePersistance) write(db *Database, path string) error {
 	zap.L().Info("Persisting database to file", zap.String("path", path))
 	start := time.Now()
 
@@ -27,7 +27,7 @@ func (fp *FilePersistance) write(db *InMemory, path string) error {
 	return nil
 }
 
-func (fp *FilePersistance) read(db *InMemory, path string) error {
+func (fp *FilePersistance) read(db *Database, path string) error {
 	zap.L().Info("Loading database from file", zap.String("path", path))
 	start := time.Now()
 

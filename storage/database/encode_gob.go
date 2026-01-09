@@ -1,4 +1,4 @@
-package inmemory
+package database
 
 import (
 	"bufio"
@@ -8,7 +8,7 @@ import (
 
 // gob coders scale better than binary coders, the break even point is around 1.5 million peers
 
-func encodeGob(db *InMemory) ([]byte, error) {
+func encodeGob(db *Database) ([]byte, error) {
 	var buff bytes.Buffer
 	writer := bufio.NewWriter(&buff)
 
@@ -26,7 +26,7 @@ func encodeGob(db *InMemory) ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-func decodeGob(db *InMemory, data []byte) (err error) {
+func decodeGob(db *Database, data []byte) (err error) {
 	buff := bytes.NewBuffer(data)
 	decoder := gob.NewDecoder(bufio.NewReader(buff))
 

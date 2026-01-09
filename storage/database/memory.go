@@ -2,7 +2,7 @@
 	Map implements a trakx database through go maps in local memory. It is heavily optimized for performance but cannot be shared accross multiple trackers as it resides in local memory.
 */
 
-package inmemory
+package database
 
 import (
 	"os"
@@ -26,15 +26,15 @@ type Torrent struct {
 	Peers   map[storage.PeerID]*storage.Peer
 }
 
-type InMemory struct {
+type Database struct {
 	mutex     sync.RWMutex
 	torrents  map[storage.Hash]*Torrent
 	collector stats.Collector
 	peerPool  *pools.Pool[*storage.Peer]
 }
 
-func NewInMemory(config Config) (*InMemory, error) {
-	db := &InMemory{
+func NewDatabase(config Config) (*Database, error) {
+	db := &Database{
 		collector: config.Collector,
 		peerPool: pools.NewPool[*storage.Peer](func() any {
 			return new(storage.Peer)
@@ -108,14 +108,14 @@ func NewInMemory(config Config) (*InMemory, error) {
 }
 
 // Torrents returns the number of torrents registered in the database
-func (db *InMemory) Torrents() int {
+func (db *Database) Torrents() int {
 	db.mutex.RLock()
 	torrents := len(db.torrents)
 	db.mutex.RUnlock()
 	return torrents
 }
 
-func (db *InMemory) createTorrent(h storage.Hash) *Torrent {
+func (db *Database) createTorrent(h storage.Hash) *Torrent {
 	torrent := new(Torrent)
 	torrent.Peers = make(map[storage.PeerID]*storage.Peer, torrentPeerPrealloc)
 
@@ -126,9 +126,9 @@ func (db *InMemory) createTorrent(h storage.Hash) *Torrent {
 	return torrent
 }
 
-func (db *InMemory) evictExpired(expirationTime int64) {
+func (db *Database) evictExpired(expirationTime int64) {
 	now := time.Now()
-	zap.L().Info("trimming inmemory database")
+	zap.L().Info("trimming in-memory database")
 
 	trimmedPeers, trimmedTorrents := 0, 0
 	nowUnix := now.Unix()
@@ -169,5 +169,5 @@ func (db *InMemory) evictExpired(expirationTime int64) {
 	}
 	db.mutex.RUnlock()
 
-	zap.L().Info("trimmed inmemory database", zap.Int("peers", trimmedPeers), zap.Int("torrents", trimmedTorrents), zap.Duration("elapsed", time.Since(now)))
+	zap.L().Info("trimmed in-memory database", zap.Int("peers", trimmedPeers), zap.Int("torrents", trimmedTorrents), zap.Duration("elapsed", time.Since(now)))
 }

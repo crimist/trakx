@@ -1,4 +1,4 @@
-package inmemory
+package database
 
 import (
 	"net/netip"
@@ -7,7 +7,7 @@ import (
 	"github.com/crimist/trakx/storage"
 )
 
-func (db *InMemory) PeerAdd(hash storage.Hash, id storage.PeerID, ip netip.Addr, port uint16, complete bool) {
+func (db *Database) PeerAdd(hash storage.Hash, id storage.PeerID, ip netip.Addr, port uint16, complete bool) {
 	db.mutex.RLock()
 	torrent, torrentExists := db.torrents[hash]
 	db.mutex.RUnlock()
@@ -74,7 +74,7 @@ func (db *InMemory) PeerAdd(hash storage.Hash, id storage.PeerID, ip netip.Addr,
 }
 
 // PeerRemove removes the given peer with id from the torrent with hash
-func (db *InMemory) PeerRemove(hash storage.Hash, id storage.PeerID) {
+func (db *Database) PeerRemove(hash storage.Hash, id storage.PeerID) {
 	db.mutex.RLock()
 	torrent, torrentExists := db.torrents[hash]
 	db.mutex.RUnlock()

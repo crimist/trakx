@@ -1,4 +1,4 @@
-package inmemory
+package database
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ var (
 )
 
 func TestPeerAdd(t *testing.T) {
-	db, err := NewInMemory(Config{
+	db, err := NewDatabase(Config{
 		InitalSize:         1,
 		Persistance:        nil,
 		PersistanceAddress: "",
@@ -59,7 +59,7 @@ func TestPeerAdd(t *testing.T) {
 }
 
 func TestPeerRemove(t *testing.T) {
-	db, err := NewInMemory(Config{
+	db, err := NewDatabase(Config{
 		InitalSize:         1,
 		Persistance:        nil,
 		PersistanceAddress: "",
@@ -88,7 +88,7 @@ func TestPeerRemove(t *testing.T) {
 func BenchmarkPeerAddSingle(b *testing.B) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	db, err := NewInMemory(Config{
+	db, err := NewDatabase(Config{
 		InitalSize:         1,
 		Persistance:        nil,
 		PersistanceAddress: "",
@@ -116,7 +116,7 @@ func BenchmarkPeerAddSingle(b *testing.B) {
 func BenchmarkPeerAddSingleParallell(b *testing.B) {
 	for routines := 1; routines < 1000; routines *= 10 {
 		b.Run(fmt.Sprintf("%d", routines), func(b *testing.B) {
-			db, err := NewInMemory(Config{
+			db, err := NewDatabase(Config{
 				InitalSize:         1,
 				Persistance:        nil,
 				PersistanceAddress: "",
@@ -151,7 +151,7 @@ func BenchmarkPeerAddSingleParallell(b *testing.B) {
 func BenchmarkPeerAddMulti(b *testing.B) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	db, err := NewInMemory(Config{
+	db, err := NewDatabase(Config{
 		InitalSize:         1,
 		Persistance:        nil,
 		PersistanceAddress: "",
@@ -181,7 +181,7 @@ func BenchmarkPeerAddMulti(b *testing.B) {
 func BenchmarkPeerAddMultiParallell(b *testing.B) {
 	for routines := 1; routines < 1000; routines *= 10 {
 		b.Run(fmt.Sprintf("%d", routines), func(b *testing.B) {
-			db, err := NewInMemory(Config{
+			db, err := NewDatabase(Config{
 				InitalSize:         1,
 				Persistance:        nil,
 				PersistanceAddress: "",

@@ -1,4 +1,4 @@
-package inmemory
+package database
 
 import (
 	"encoding/binary"
@@ -7,7 +7,7 @@ import (
 	"github.com/crimist/trakx/storage"
 )
 
-func (db *InMemory) TorrentStats(hash storage.Hash) (seeds, leeches uint16) {
+func (db *Database) TorrentStats(hash storage.Hash) (seeds, leeches uint16) {
 	db.mutex.RLock()
 	torrent, ok := db.torrents[hash]
 	db.mutex.RUnlock()
@@ -23,7 +23,7 @@ func (db *InMemory) TorrentStats(hash storage.Hash) (seeds, leeches uint16) {
 	return
 }
 
-func (db *InMemory) TorrentPeers(hash storage.Hash, numWant uint, includePeerID bool) (peers [][]byte) {
+func (db *Database) TorrentPeers(hash storage.Hash, numWant uint, includePeerID bool) (peers [][]byte) {
 	db.mutex.RLock()
 	torrent, ok := db.torrents[hash]
 	db.mutex.RUnlock()
@@ -71,7 +71,7 @@ func (db *InMemory) TorrentPeers(hash storage.Hash, numWant uint, includePeerID 
 	return
 }
 
-func (db *InMemory) TorrentPeersCompact(hash storage.Hash, numWant uint, wantedIPs storage.IPVersion) (peers4 []byte, peers6 []byte) {
+func (db *Database) TorrentPeersCompact(hash storage.Hash, numWant uint, wantedIPs storage.IPVersion) (peers4 []byte, peers6 []byte) {
 	if wantedIPs&storage.IPv4 != 0 {
 		peers4 = pools.Peerlists4.Get()
 	}
