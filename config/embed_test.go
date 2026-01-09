@@ -2,16 +2,17 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
-
-	"github.com/pkg/errors"
 )
 
 func TestWriteEmbeddedConfig(t *testing.T) {
-	const testHomeDir = "test_home"
-	const testConfigPath = testHomeDir + "/.config/trakx/trakx.yaml"
-	const testCachePath = testHomeDir + "/.cache/trakx/"
+	testHomeDir := t.TempDir()
+	xdgConfigHome := filepath.Join(testHomeDir, "config")
+	xdgCacheHome := filepath.Join(testHomeDir, "cache")
+	testConfigPath := filepath.Join(xdgConfigHome, "trakx", "trakx.yaml")
+	testCachePath := filepath.Join(xdgCacheHome, "trakx")
 
 	homeEnv := "HOME"
 	switch runtime.GOOS {
@@ -21,20 +22,9 @@ func TestWriteEmbeddedConfig(t *testing.T) {
 		homeEnv = "home"
 	}
 
-	originalHomePath := os.Getenv(homeEnv)
-	if err := os.Setenv(homeEnv, testHomeDir); err != nil {
-		t.Fatal(errors.Wrap(err, "Failed to set home env var"))
-	}
-
-	defer func() {
-		if err := os.Setenv(homeEnv, originalHomePath); err != nil {
-			t.Log(errors.Wrap(err, "failed to restore original home environment variable"))
-		}
-
-		if err := os.RemoveAll(testHomeDir + "/"); err != nil {
-			t.Log(errors.Wrap(err, "failed to remove test home directory"))
-		}
-	}()
+	t.Setenv(homeEnv, testHomeDir)
+	t.Setenv("XDG_CONFIG_HOME", xdgConfigHome)
+	t.Setenv("XDG_CACHE_HOME", xdgCacheHome)
 
 	_, err := Load(LoadOptions{})
 	if err != nil {
