@@ -105,6 +105,14 @@ def wait_for_udp(host: str, port: int, timeout: float) -> bool:
     return False
 
 
+def tracker_alive(http_host: str, http_port: int, udp_host: str, udp_port: int) -> bool:
+    if http_port > 0 and wait_for_http(http_host, http_port, 1.0):
+        return True
+    if udp_port > 0 and wait_for_udp(udp_host, udp_port, 1.0):
+        return True
+    return False
+
+
 def default_cache_dir() -> Optional[Path]:
     xdg = os.environ.get("XDG_CACHE_HOME")
     if xdg:
@@ -196,7 +204,17 @@ def main() -> int:
             if http_routines is not None:
                 env["TRAKX_HTTP_ROUTINES"] = str(http_routines)
 
-            _ = run_cmd([args.trakx_bin, "--config", args.config, "stop"], env=env)
+            if tracker_alive(args.http_host, args.http_port, args.udp_host, args.udp_port):
+                _ = run_cmd([args.trakx_bin, "--config", args.config, "stop"], env=env)
+                stop_deadline = time.time() + args.ready_timeout
+                while time.time() < stop_deadline:
+                    if not tracker_alive(args.http_host, args.http_port, args.udp_host, args.udp_port):
+                        break
+                    time.sleep(0.2)
+                if tracker_alive(args.http_host, args.http_port, args.udp_host, args.udp_port):
+                    send_msg(conn_file, {"type": "ERROR", "message": "tracker already running; stop it and retry"})
+                    continue
+
             clear_cache(cache_dir)
 
             start = run_cmd([args.trakx_bin, "--config", args.config, "start"], env=env)
