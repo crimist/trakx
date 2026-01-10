@@ -48,7 +48,7 @@ Run these commands from the repo root so relative paths resolve.
 ### 1) On the server (runs Trakx)
 
 ```bash
-bench/orchestrator_server.py --listen 0.0.0.0:9077 --config bench/trakx.yaml --cache-dir /tmp/trakx-bench-cache
+bench/orchestrator_server.py --listen 0.0.0.0:9077 --config bench/trakx.yaml
 ```
 
 Notes:
@@ -56,8 +56,8 @@ Notes:
 - The server listens for control messages on port 9077.
 - It uses `trakx start` / `trakx stop` with the provided config.
 - It clears the cache directory between runs (database reset).
-- It sets `TRAKX_CACHE` so old backups are never reused.
-- Do not point `--cache-dir` at any important data; it is deleted every run.
+- The cache directory is defined by the Trakx config (`cache` in `bench/trakx.yaml`).
+- Do not point the config cache path at any important data; it is deleted every run.
 - The server script builds `trakx` every run (override path with `--trakx-bin`).
 
 ### 2) On the client (runs trakxbench)

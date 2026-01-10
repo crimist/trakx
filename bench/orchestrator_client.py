@@ -12,6 +12,13 @@ from typing import List, Tuple, Optional
 
 
 def parse_hostport(value: str) -> Tuple[str, int]:
+    if value.startswith("["):
+        if "]" not in value:
+            raise ValueError("expected [host]:port")
+        host, _, rest = value[1:].partition("]")
+        if not rest.startswith(":"):
+            raise ValueError("expected [host]:port")
+        return host, int(rest[1:])
     if ":" not in value:
         raise ValueError("expected host:port")
     host, port_s = value.rsplit(":", 1)

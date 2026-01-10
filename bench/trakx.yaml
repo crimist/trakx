@@ -2,7 +2,7 @@
 loglevel: info
 
 # Use a dedicated cache directory for benchmarks. The server orchestrator
-# overrides this via TRAKX_CACHE to ensure a clean slate each run.
+# deletes this directory between runs to reset state.
 cache: /tmp/trakx-bench-cache
 
 maximums:

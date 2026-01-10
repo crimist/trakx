@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import socket
+import shutil
 import subprocess
 import sys
 import time
@@ -14,6 +15,13 @@ HEARTBEAT_OK = bytes([0xFF])
 
 
 def parse_hostport(value: str) -> Tuple[str, int]:
+    if value.startswith("["):
+        if "]" not in value:
+            raise ValueError("expected [host]:port")
+        host, _, rest = value[1:].partition("]")
+        if not rest.startswith(":"):
+            raise ValueError("expected [host]:port")
+        return host, int(rest[1:])
     if ":" not in value:
         raise ValueError("expected host:port")
     host, port_s = value.rsplit(":", 1)
@@ -98,6 +106,8 @@ def wait_for_udp(host: str, port: int, timeout: float) -> bool:
 
 
 def clear_cache(cache_dir: str) -> None:
+    if not cache_dir:
+        return
     shutil.rmtree(cache_dir, ignore_errors=True)
 
 
@@ -106,7 +116,6 @@ def main() -> int:
     parser.add_argument("--listen", default="0.0.0.0:9077", help="control listen address")
     parser.add_argument("--trakx-bin", default="bench/bin/trakx", help="path to trakx binary (auto-built every run)")
     parser.add_argument("--config", default="bench/trakx.yaml", help="trakx config path")
-    parser.add_argument("--cache-dir", default="/tmp/trakx-bench-cache", help="cache dir to reset between runs")
     parser.add_argument("--http-host", default="127.0.0.1", help="host for readiness check")
     parser.add_argument("--http-port", type=int, default=1337, help="http port for readiness check")
     parser.add_argument("--udp-host", default="127.0.0.1", help="host for udp heartbeat")
@@ -123,7 +132,6 @@ def main() -> int:
 
     listen_host, listen_port = parse_hostport(args.listen)
     env_base = os.environ.copy()
-    env_base["TRAKX_CACHE"] = args.cache_dir
 
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -153,7 +161,9 @@ def main() -> int:
                 env["TRAKX_HTTP_ROUTINES"] = str(http_routines)
 
             _ = run_cmd([args.trakx_bin, "--config", args.config, "stop"], env=env)
-            clear_cache(args.cache_dir)
+            cache_dir = env.get("TRAKX_CACHE")
+            if cache_dir:
+                clear_cache(cache_dir)
 
             start = run_cmd([args.trakx_bin, "--config", args.config, "start"], env=env)
             if start.returncode != 0:
