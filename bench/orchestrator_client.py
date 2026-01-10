@@ -7,6 +7,7 @@ import socket
 import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import List, Tuple, Optional
 
 
@@ -46,13 +47,44 @@ def run_trakxbench(cmd: List[str]) -> int:
     return proc.returncode
 
 
+def resolve_repo_root(value: Optional[str]) -> Path:
+    if value:
+        return Path(value).expanduser().resolve()
+    return Path(__file__).resolve().parents[1]
+
+
+def has_path_sep(value: str) -> bool:
+    return os.sep in value or (os.altsep and os.altsep in value)
+
+
+def ensure_trakxbench_binary(bin_arg: str, repo_root: Path) -> str:
+    if not has_path_sep(bin_arg) and not bin_arg.startswith("."):
+        bin_path = repo_root / bin_arg
+    else:
+        bin_path = Path(bin_arg)
+        if not bin_path.is_absolute():
+            bin_path = repo_root / bin_path
+
+    bin_path.parent.mkdir(parents=True, exist_ok=True)
+    build = subprocess.run(
+        ["go", "build", "-o", str(bin_path), "./cmd/trakxbench"],
+        cwd=str(repo_root),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    if build.returncode != 0:
+        raise RuntimeError(f"failed to build trakxbench: {build.stdout.strip()}")
+    return str(bin_path)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Trakx benchmark client orchestrator")
     parser.add_argument("--server", default="127.0.0.1:9077", help="server control address")
     parser.add_argument("--mode", choices=["udp", "http"], required=True, help="benchmark mode")
     parser.add_argument("--goroutines", nargs="+", default=["1,2,4,6,8,12,16,24,32,48,64"], help="goroutine sweep list")
     parser.add_argument("--other-routines", type=int, default=1, help="routines for the non-tested tracker")
-    parser.add_argument("--bench-bin", default="bench/trakxbench", help="path to trakxbench binary")
+    parser.add_argument("--bench-bin", default="bench/bin/trakxbench", help="path to trakxbench binary (auto-built every run)")
     parser.add_argument("--out-dir", default="", help="output directory (default: bench/results/<timestamp>-<mode>)")
     parser.add_argument("--udp", default="", help="udp target host:port (default: <server>:1337)")
     parser.add_argument("--http", default="", help="http target host:port (default: <server>:1337)")
@@ -73,7 +105,11 @@ def main() -> int:
     parser.add_argument("--label", default="", help="label prefix")
     parser.add_argument("--pause", action="store_true", help="pause for Enter between runs")
     parser.add_argument("--bench-args", default="", help="extra args passed to trakxbench")
+    parser.add_argument("--repo-root", default="", help="repo root (default: inferred)")
     args = parser.parse_args()
+
+    repo_root = resolve_repo_root(args.repo_root)
+    args.bench_bin = ensure_trakxbench_binary(args.bench_bin, repo_root)
 
     goroutines = parse_list(args.goroutines)
     if not goroutines:
@@ -96,7 +132,7 @@ def main() -> int:
 
     if not args.out_dir:
         ts = time.strftime("%Y%m%d-%H%M%S")
-        args.out_dir = f"bench/results/{ts}-{args.mode}"
+        args.out_dir = str((repo_root / "bench" / "results" / f"{ts}-{args.mode}").resolve())
     os.makedirs(args.out_dir, exist_ok=True)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

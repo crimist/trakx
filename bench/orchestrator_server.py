@@ -2,11 +2,11 @@
 import argparse
 import json
 import os
-import shutil
 import socket
 import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import Optional, Tuple
 
 HEARTBEAT_REQUEST = bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0])
@@ -33,8 +33,33 @@ def recv_msg(fileobj) -> Optional[dict]:
     return json.loads(line.decode("utf-8"))
 
 
-def run_cmd(args, env=None) -> subprocess.CompletedProcess:
-    return subprocess.run(args, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+def run_cmd(args, env=None, cwd=None) -> subprocess.CompletedProcess:
+    return subprocess.run(args, env=env, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+
+
+def resolve_repo_root(value: Optional[str]) -> Path:
+    if value:
+        return Path(value).expanduser().resolve()
+    return Path(__file__).resolve().parents[1]
+
+
+def has_path_sep(value: str) -> bool:
+    return os.sep in value or (os.altsep and os.altsep in value)
+
+
+def ensure_trakx_binary(bin_arg: str, repo_root: Path) -> str:
+    if not has_path_sep(bin_arg) and not bin_arg.startswith("."):
+        bin_path = repo_root / bin_arg
+    else:
+        bin_path = Path(bin_arg)
+        if not bin_path.is_absolute():
+            bin_path = repo_root / bin_path
+
+    bin_path.parent.mkdir(parents=True, exist_ok=True)
+    build = run_cmd(["go", "build", "-o", str(bin_path), "./cli"], env=os.environ.copy(), cwd=str(repo_root))
+    if build.returncode != 0:
+        raise RuntimeError(f"failed to build trakx: {build.stdout.strip()}")
+    return str(bin_path)
 
 
 def wait_for_http(host: str, port: int, timeout: float) -> bool:
@@ -79,7 +104,7 @@ def clear_cache(cache_dir: str) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Trakx benchmark server orchestrator")
     parser.add_argument("--listen", default="0.0.0.0:9077", help="control listen address")
-    parser.add_argument("--trakx-bin", default="trakx", help="path to trakx binary")
+    parser.add_argument("--trakx-bin", default="bench/bin/trakx", help="path to trakx binary (auto-built every run)")
     parser.add_argument("--config", default="bench/trakx.yaml", help="trakx config path")
     parser.add_argument("--cache-dir", default="/tmp/trakx-bench-cache", help="cache dir to reset between runs")
     parser.add_argument("--http-host", default="127.0.0.1", help="host for readiness check")
@@ -88,7 +113,13 @@ def main() -> int:
     parser.add_argument("--udp-port", type=int, default=1337, help="udp port for udp heartbeat")
     parser.add_argument("--ready-timeout", type=float, default=8.0, help="seconds to wait for readiness")
     parser.add_argument("--manual", action="store_true", help="pause for Enter before each start")
+    parser.add_argument("--repo-root", default="", help="repo root (default: inferred)")
     args = parser.parse_args()
+
+    repo_root = resolve_repo_root(args.repo_root)
+    args.trakx_bin = ensure_trakx_binary(args.trakx_bin, repo_root)
+    if not os.path.isabs(args.config):
+        args.config = str((repo_root / args.config).resolve())
 
     listen_host, listen_port = parse_hostport(args.listen)
     env_base = os.environ.copy()

@@ -42,7 +42,7 @@ It also sets `TRAKX_CACHE` to a benchmark-only directory and deletes it between 
 You run one script on the server and one on the client. They coordinate automatically
 so each goroutine count is started, benchmarked, stopped, and cleaned up.
 
-Requirements: Python 3 on both machines.
+Requirements: Python 3 and Go on both machines (the orchestrators build binaries every run).
 Run these commands from the repo root so relative paths resolve.
 
 ### 1) On the server (runs Trakx)
@@ -58,18 +58,20 @@ Notes:
 - It clears the cache directory between runs (database reset).
 - It sets `TRAKX_CACHE` so old backups are never reused.
 - Do not point `--cache-dir` at any important data; it is deleted every run.
+- The server script builds `trakx` every run (override path with `--trakx-bin`).
 
 ### 2) On the client (runs trakxbench)
 
 ```bash
-bench/orchestrator_client.py --server 10.0.0.10:9077 --mode udp --goroutines 1,2,4,6,8,12,16,24,32,48,64 \\
-  --udp 10.0.0.10:1337 --http 10.0.0.10:1337 --stats-url http://10.0.0.10:1337/stats \\
+bench/orchestrator_client.py --server 192.168.1.100:9077 --mode udp --goroutines 1,2,4,6,8,12,16,24,32,48,64 \
+  --udp 192.168.1.100:1337 --http 192.168.1.100:1337 --stats-url http://192.168.1.100:1337/stats \
   --duration 2m --warmup 20s --concurrency 512 --scrape-ratio 0.03
 ```
 
 The client will create `bench/results/<timestamp>-udp/` with one JSON file per run.
 
 If you need extra `trakxbench` flags, pass them through with `--bench-args`.
+The client script builds `trakxbench` every run (override path with `--bench-bin`).
 
 ### Manual step-through (optional)
 
@@ -99,13 +101,13 @@ Common flags you will use:
 UDP example (closed-loop, max throughput):
 
 ```bash
-bench/trakxbench --mode udp --udp 10.0.0.10:1337 --duration 2m --warmup 20s --concurrency 512 --scrape-ratio 0.03 --stats http://10.0.0.10:1337/stats --out results-udp.json
+bench/trakxbench --mode udp --udp 192.168.1.100:1337 --duration 2m --warmup 20s --concurrency 512 --scrape-ratio 0.03 --stats http://192.168.1.100:1337/stats --out results-udp.json
 ```
 
 HTTP example (open-loop, 1000 req/s target):
 
 ```bash
-bench/trakxbench --mode http --http 10.0.0.10:1337 --rate 1000 --duration 2m --warmup 20s --concurrency 256 --scrape-ratio 0.03 --stats http://10.0.0.10:1337/stats --out results-http.json
+bench/trakxbench --mode http --http 192.168.1.100:1337 --rate 1000 --duration 2m --warmup 20s --concurrency 256 --scrape-ratio 0.03 --stats http://192.168.1.100:1337/stats --out results-http.json
 ```
 
 ## Seeding the DB (optional but recommended)
