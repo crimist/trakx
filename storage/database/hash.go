@@ -31,7 +31,6 @@ func (db *Database) TorrentPeers(hash storage.Hash, numWant uint, includePeerID 
 		return
 	}
 
-	// TODO: benchmark the performance of mutex placement
 	torrent.mutex.RLock()
 	numPeers := uint(len(torrent.Peers))
 	torrent.mutex.RUnlock()
