@@ -35,7 +35,7 @@ The orchestrator will launch Trakx with:
 trakx --config bench/trakx.yaml start
 ```
 
-It also sets `TRAKX_CACHE` to a benchmark-only directory and deletes it between runs.
+It deletes the configured cache directory between runs to reset state.
 
 ## Orchestrated workflow (recommended)
 

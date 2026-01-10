@@ -55,7 +55,7 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to open TCP listen socket")
 	}
-	zap.L().Info("Serving HTTP tracker on", zap.String("address", listener.Addr().String()))
+	zap.L().Info("Serving HTTP tracker", zap.String("address", listener.Addr().String()), zap.Int("routines", routines))
 
 	// TODO: figure out what optimal number of goroutines is (benchmark)
 	// Going to need to write a tool that can simulate a large number of clients

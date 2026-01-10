@@ -105,8 +105,42 @@ def wait_for_udp(host: str, port: int, timeout: float) -> bool:
     return False
 
 
-def clear_cache(cache_dir: str) -> None:
+def default_cache_dir() -> Optional[Path]:
+    xdg = os.environ.get("XDG_CACHE_HOME")
+    if xdg:
+        return Path(xdg) / "trakx"
+    home = Path.home()
+    if home:
+        return home / ".cache" / "trakx"
+    return None
+
+
+def read_cache_path(config_path: str, repo_root: Path) -> Optional[Path]:
+    try:
+        with open(config_path, "r", encoding="utf-8") as fh:
+            for line in fh:
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#"):
+                    continue
+                if stripped.startswith("cache:"):
+                    value = stripped[len("cache:") :].strip()
+                    if not value:
+                        return default_cache_dir()
+                    value = value.strip("\"'")
+                    path = Path(value).expanduser()
+                    if not path.is_absolute():
+                        path = repo_root / path
+                    return path
+    except OSError:
+        return default_cache_dir()
+    return default_cache_dir()
+
+
+def clear_cache(cache_dir: Optional[Path]) -> None:
     if not cache_dir:
+        return
+    cache_dir = cache_dir.resolve()
+    if cache_dir == Path("/"):
         return
     shutil.rmtree(cache_dir, ignore_errors=True)
 
@@ -132,6 +166,8 @@ def main() -> int:
 
     listen_host, listen_port = parse_hostport(args.listen)
     env_base = os.environ.copy()
+    env_base.pop("TRAKX_CACHE", None)
+    cache_dir = read_cache_path(args.config, repo_root)
 
     server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -161,9 +197,7 @@ def main() -> int:
                 env["TRAKX_HTTP_ROUTINES"] = str(http_routines)
 
             _ = run_cmd([args.trakx_bin, "--config", args.config, "stop"], env=env)
-            cache_dir = env.get("TRAKX_CACHE")
-            if cache_dir:
-                clear_cache(cache_dir)
+            clear_cache(cache_dir)
 
             start = run_cmd([args.trakx_bin, "--config", args.config, "start"], env=env)
             if start.returncode != 0:

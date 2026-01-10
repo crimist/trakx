@@ -66,7 +66,7 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to open UDP listen socket")
 	}
-	zap.L().Info("Serving UDP tracker on", zap.String("address", tracker.socket.LocalAddr().String()))
+	zap.L().Info("Serving UDP tracker", zap.String("address", tracker.socket.LocalAddr().String()), zap.Int("routines", routines))
 
 	// TODO: figure out what optimal number of goroutines is (benchmark)
 	// Going to need to write a tool that can simulate a large number of clients
