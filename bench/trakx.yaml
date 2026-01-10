@@ -1,0 +1,57 @@
+# Benchmark-safe Trakx configuration
+loglevel: info
+
+# Use a dedicated cache directory for benchmarks. The server orchestrator
+# overrides this via TRAKX_CACHE to ensure a clean slate each run.
+cache: /tmp/trakx-bench-cache
+
+maximums:
+  # Disable periodic maximums updates to avoid background work during tests.
+  update_interval: 0
+  decay_half_life_updates: 0
+
+stats:
+  general: true
+  ip: false
+  interval: 1s
+
+debug:
+  pprof:
+
+announce:
+  base: 30m
+  fuzz: 5m
+
+http:
+  tracker: true
+  port: 1337
+  ip: 0.0.0.0
+  routines:
+  timeout:
+    read: 5s
+    write: 8s
+  serve:
+
+udp:
+  port: 1337
+  ip: 0.0.0.0
+  routines:
+  connections:
+    validate: true
+    # Disable connection GC during benchmarks.
+    gc: 0
+    expiry: 30m
+
+numwant:
+  default: 50
+  limit: 200
+
+db:
+  # Disable DB GC during benchmarks.
+  gc: 0
+  # Keep default expiry behavior based on announce interval.
+  expiry:
+  backup:
+    # Disable periodic backups.
+    interval: 0
+    path:
