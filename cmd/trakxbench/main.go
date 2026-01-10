@@ -23,6 +23,10 @@ type result struct {
 
 func main() {
 	cfg := parseFlags()
+	if err := cfg.finalize(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
 	if cfg.mode != "udp" && cfg.mode != "http" && cfg.mode != "both" {
 		fmt.Fprintln(os.Stderr, "mode must be udp, http, or both")
 		os.Exit(2)
@@ -113,11 +117,19 @@ func main() {
 			"scrape_ratio":           cfg.scrapeRatio,
 			"scrape_hashes":          cfg.scrapeHashes,
 			"numwant":                cfg.numwant,
+			"numwant_dist":           cfg.numwantDist,
+			"numwant_weights":        cfg.numwantWeights,
 			"compact":                cfg.compact,
 			"torrents":               cfg.torrents,
 			"torrents_per_peer":      cfg.torrentsPerPeer,
 			"seed_torrents":          cfg.seedTorrents,
 			"seed_peers_per_torrent": cfg.seedPeersPerTor,
+			"seed_peers_dist":        cfg.seedPeersDist,
+			"seed_peers_median":      cfg.seedPeersMedian,
+			"seed_peers_mean":        cfg.seedPeersMean,
+			"seed_peers_sigma":       cfg.seedPeersSigma,
+			"seed_peers_min":         cfg.seedPeersMin,
+			"seed_peers_max":         cfg.seedPeersMax,
 			"seed_fraction":          cfg.seedFraction,
 			"timeout":                cfg.timeout.String(),
 			"udp_conn_refresh":       cfg.udpConnRefresh.String(),

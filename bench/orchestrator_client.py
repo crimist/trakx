@@ -36,6 +36,10 @@ def parse_list(values: List[str]) -> List[int]:
     return out
 
 
+def make_seed() -> int:
+    return time.time_ns() & 0x7FFFFFFFFFFFFFFF
+
+
 def send_msg(fileobj, msg: dict) -> None:
     payload = json.dumps(msg).encode("utf-8") + b"\n"
     fileobj.write(payload)
@@ -104,11 +108,12 @@ def main() -> int:
     parser.add_argument("--scrape-hashes", type=int, default=5, help="hashes per scrape")
     parser.add_argument("--numwant", type=int, default=-1, help="numwant (-1 to omit)")
     parser.add_argument("--compact", action="store_true", help="use compact responses")
-    parser.add_argument("--seed-torrents", type=int, default=0, help="seed torrents")
-    parser.add_argument("--seed-peers-per-torrent", type=int, default=0, help="seed peers per torrent")
+    parser.add_argument("--seed-torrents", type=int, default=2048, help="seed torrents")
+    parser.add_argument("--seed-peers-per-torrent", type=int, default=30, help="seed peers per torrent")
     parser.add_argument("--seed-fraction", type=float, default=0.2, help="fraction of peers that are seeds")
     parser.add_argument("--timeout", default="3s", help="per-request timeout")
     parser.add_argument("--udp-conn-refresh", default="10m", help="udp conn refresh interval")
+    parser.add_argument("--rng-seed", type=int, default=0, help="rng seed (0 for random)")
     parser.add_argument("--label", default="", help="label prefix")
     parser.add_argument("--pause", action="store_true", help="pause for Enter between runs")
     parser.add_argument("--bench-args", default="", help="extra args passed to trakxbench")
@@ -122,6 +127,8 @@ def main() -> int:
     if not goroutines:
         print("no goroutine values provided", file=sys.stderr)
         return 2
+
+    rng_seed = args.rng_seed if args.rng_seed != 0 else make_seed()
 
     server_host, server_port = parse_hostport(args.server)
     if args.udp:
@@ -170,6 +177,8 @@ def main() -> int:
         if label:
             label = f"{label}-{g}"
 
+        seed_torrents = args.seed_torrents if args.seed_torrents > 0 else 0
+        torrents = seed_torrents if seed_torrents > 0 else 2048
         cmd = [
             args.bench_bin,
             "--mode", args.mode,
@@ -183,17 +192,27 @@ def main() -> int:
             "--scrape-ratio", str(args.scrape_ratio),
             "--scrape-hashes", str(args.scrape_hashes),
             "--numwant", str(args.numwant),
+            "--numwant-dist", "weighted",
+            "--numwant-weights", "20:0.90,30:0.08,50:0.02",
             "--timeout", args.timeout,
             "--udp-conn-refresh", args.udp_conn_refresh,
+            "--rng-seed", str(rng_seed),
+            "--torrents", str(torrents),
+            "--torrents-per-peer", "4",
             "--out", out_path,
         ]
         if args.compact:
             cmd.append("--compact")
-        if args.seed_torrents > 0 and args.seed_peers_per_torrent > 0:
+        if seed_torrents > 0 and args.seed_peers_per_torrent > 0:
             cmd.extend([
-                "--seed-torrents", str(args.seed_torrents),
+                "--seed-torrents", str(seed_torrents),
                 "--seed-peers-per-torrent", str(args.seed_peers_per_torrent),
                 "--seed-fraction", str(args.seed_fraction),
+                "--seed-peers-dist", "lognormal",
+                "--seed-peers-median", "30",
+                "--seed-peers-sigma", "1.2",
+                "--seed-peers-min", "10",
+                "--seed-peers-max", "1000",
             ])
         if label:
             cmd.extend(["--label", label])

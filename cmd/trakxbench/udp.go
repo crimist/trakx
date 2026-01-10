@@ -197,8 +197,12 @@ func (w *udpBenchWorker) run(ctx context.Context, cfg config, ds *dataset, limit
 		start := time.Now()
 		var err error
 		if reqType == requestAnnounce {
+			numwant := cfg.pickNumwant(rng)
+			if numwant < 0 {
+				numwant = 0
+			}
 			hash := ds.torrents[hashIndexes[rng.Intn(len(hashIndexes))]]
-			err = w.client.announce(rng, hash, peerID, left, int32(cfg.numwant), uint16(defaultPort))
+			err = w.client.announce(rng, hash, peerID, left, int32(numwant), uint16(defaultPort))
 		} else {
 			hashes := make([][]byte, cfg.scrapeHashes)
 			for i := 0; i < cfg.scrapeHashes; i++ {

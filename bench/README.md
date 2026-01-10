@@ -73,6 +73,22 @@ The client will create `bench/results/<timestamp>-udp/` with one JSON file per r
 If you need extra `trakxbench` flags, pass them through with `--bench-args`.
 The client script builds `trakxbench` every run (override path with `--bench-bin`).
 
+Default realism settings (orchestrator):
+
+- Seeds the benchmark torrents each run.
+- Peers per torrent follow a lognormal distribution (median ~30, heavy tail up to ~1000).
+- `numwant` is weighted: 20 (90%), 30 (8%), 50 (2%).
+
+You can override any of these with `--bench-args`.
+The orchestrator also uses a single RNG seed for the entire sweep so results are comparable
+across goroutine counts.
+
+If you want identical results across separate orchestrator runs, pass a fixed seed:
+
+```bash
+bench/orchestrator_client.py --server 192.168.1.100:9077 --mode udp --rng-seed 12345 ...
+```
+
 ### Manual step-through (optional)
 
 If you want to press Enter between runs:
@@ -113,9 +129,10 @@ bench/trakxbench --mode http --http 192.168.1.100:1337 --rate 1000 --duration 2m
 ## Seeding the DB (optional but recommended)
 
 Seeding pre-populates the in-memory DB with a stable dataset so each run is comparable.
+The orchestrator already does this by default with a realistic distribution.
 
 ```bash
-bench/trakxbench --mode udp --seed-torrents 10000 --seed-peers-per-torrent 25 --seed-only
+bench/trakxbench --mode udp --seed-torrents 2048 --seed-peers-dist lognormal --seed-peers-median 30 --seed-peers-sigma 1.2 --seed-peers-min 10 --seed-peers-max 1000 --seed-only
 ```
 
 Notes:
@@ -123,6 +140,18 @@ Notes:
 - Seeding sends announces with unique peer IDs.
 - It does not simulate unique client IPs (Trakx uses remote IPs directly).
 - Keep seed parameters the same across all goroutine runs.
+
+## Realistic manual run (no orchestrator)
+
+If you want to run `trakxbench` directly and still simulate realistic loads:
+
+```bash
+bench/trakxbench --mode udp --udp 192.168.1.100:1337 --stats http://192.168.1.100:1337/stats \\
+  --duration 2m --warmup 20s --concurrency 512 --scrape-ratio 0.03 \\
+  --torrents 2048 --torrents-per-peer 4 \\
+  --seed-torrents 2048 --seed-peers-dist lognormal --seed-peers-median 30 --seed-peers-sigma 1.2 --seed-peers-min 10 --seed-peers-max 1000 \\
+  --numwant-dist weighted --numwant-weights \"20:0.90,30:0.08,50:0.02\" --rng-seed 12345
+```
 
 ## Testing a sweep of goroutine counts
 
@@ -146,7 +175,7 @@ and fully automated. See the “Orchestrated workflow” section above.
 - Avoid mixing UDP and HTTP tests in the same run.
 - Keep system power and CPU settings stable (avoid thermal throttling).
 - If possible, pin `GOMAXPROCS` and record it for reproducibility.
- - Ensure the server cache directory is benchmark-only; the orchestrator deletes it per run.
+- Ensure the server cache directory is benchmark-only; the orchestrator deletes it per run.
 
 ## How to determine the optimal goroutine count
 

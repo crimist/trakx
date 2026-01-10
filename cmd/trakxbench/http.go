@@ -126,8 +126,9 @@ func (w *httpBenchWorker) run(ctx context.Context, cfg config, ds *dataset, limi
 		start := time.Now()
 		var err error
 		if reqType == requestAnnounce {
+			numwant := cfg.pickNumwant(rng)
 			hash := ds.encodedHashes[hashIndexes[rng.Intn(len(hashIndexes))]]
-			payload := buildHTTPAnnounce(hash, peer, cfg.httpHostHeader, defaultPort, left, cfg.numwant, cfg.compact)
+			payload := buildHTTPAnnounce(hash, peer, cfg.httpHostHeader, defaultPort, left, numwant, cfg.compact)
 			err = w.client.doRequest(payload)
 		} else {
 			hashes := make([]string, cfg.scrapeHashes)
