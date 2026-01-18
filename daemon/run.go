@@ -68,7 +68,7 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 
 	ipCollectorSize := 0
 	if maxStore != nil {
-		ipCollectorSize = maxStore.ReadMax(maxKeyIPCollector)
+		ipCollectorSize = maxStore.Get(maxKeyIPCollector)
 		zap.L().Debug("Loaded maximum ip collector size", zap.Int("entries", ipCollectorSize))
 	}
 
@@ -106,7 +106,7 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 
 	dbInitialSize := 0
 	if maxStore != nil {
-		dbInitialSize = maxStore.ReadMax(maxKeyDBTorrents)
+		dbInitialSize = maxStore.Get(maxKeyDBTorrents)
 		zap.L().Debug("Loaded maximum db size", zap.Int("entries", ipCollectorSize))
 	}
 

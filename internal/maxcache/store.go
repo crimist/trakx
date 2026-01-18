@@ -59,8 +59,8 @@ func New(cacheDir string, opts Options) (*Store, error) {
 	return store, nil
 }
 
-// ReadMax returns the cached maximum for key, or 0 if missing/invalid.
-func (s *Store) ReadMax(key string) int {
+// Get returns the cached maximum for key, or 0 if missing/invalid.
+func (s *Store) Get(key string) int {
 	if err := validateKey(key); err != nil {
 		return 0
 	}
@@ -96,7 +96,7 @@ func (s *Store) Update(key string, value int) error {
 	}
 
 	s.values[key] = next
-	return s.writeLocked(key, next)
+	return s.write(key, next)
 }
 
 func (s *Store) load() error {
@@ -127,27 +127,26 @@ func (s *Store) load() error {
 			continue
 		}
 
-		value, err := parseValue(data)
-		if err != nil {
+		var rec record
+		if err := json.Unmarshal(data, &rec); err != nil {
 			errs = errors.Join(errs, err)
 			continue
 		}
 
-		if value > s.values[key] {
-			s.values[key] = value
-		}
+		s.values[key] = rec.Max
 	}
 
 	return errs
 }
 
-func (s *Store) writeLocked(key string, value int) error {
+func (s *Store) write(key string, value int) error {
 	path := filepath.Join(s.dir, key+fileSuffix)
 
 	tmp, err := os.CreateTemp(s.dir, "."+key+".tmp-*")
 	if err != nil {
 		return err
 	}
+	defer tmp.Close()
 
 	tmpName := tmp.Name()
 	removeTmp := true
@@ -159,19 +158,13 @@ func (s *Store) writeLocked(key string, value int) error {
 
 	data, err := json.Marshal(record{Max: value})
 	if err != nil {
-		_ = tmp.Close()
 		return err
 	}
 
 	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close()
 		return err
 	}
 	if err := tmp.Sync(); err != nil {
-		_ = tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
 		return err
 	}
 	if err := os.Chmod(tmpName, 0o644); err != nil {
@@ -186,36 +179,15 @@ func (s *Store) writeLocked(key string, value int) error {
 	return nil
 }
 
-func parseValue(data []byte) (int, error) {
-	var rec record
-	if err := json.Unmarshal(data, &rec); err != nil {
-		return 0, err
-	}
-	return rec.Max, nil
-}
-
 func validateKey(key string) error {
 	if key == "" {
 		return ErrInvalidKey
 	}
-
-	for _, r := range key {
-		if r >= 'a' && r <= 'z' {
-			continue
-		}
-		if r >= 'A' && r <= 'Z' {
-			continue
-		}
-		if r >= '0' && r <= '9' {
-			continue
-		}
-		switch r {
-		case '.', '-', '_':
-			continue
-		default:
-			return ErrInvalidKey
-		}
+	if strings.ContainsFunc(key, func(r rune) bool {
+		return !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') || r == '.' || r == '-' || r == '_')
+	}) {
+		return ErrInvalidKey
 	}
-
 	return nil
 }
