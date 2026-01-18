@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -92,6 +94,7 @@ func (s *Store) Update(key string, value int) error {
 		next = value
 	}
 	if next == current {
+		zap.L().Debug("max not updated", zap.String("key", key), zap.Int("value", value), zap.Int("next", next))
 		return nil
 	}
 
@@ -134,6 +137,7 @@ func (s *Store) load() error {
 		}
 
 		s.values[key] = rec.Max
+		zap.L().Info("max loaded", zap.String("key", key), zap.Int("value", rec.Max))
 	}
 
 	return errs
@@ -176,6 +180,7 @@ func (s *Store) write(key string, value int) error {
 	}
 
 	removeTmp = false
+	zap.L().Info("max update written", zap.String("key", key), zap.Int("value", value))
 	return nil
 }
 
