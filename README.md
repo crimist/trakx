@@ -35,11 +35,11 @@ Go 1.21+ required.
 git clone https://github.com/crimist/trakx && cd trakx
 
 # install to go bin
-go install ./cli
+go install ./cmd/trakx
 trakx status # generates configuration
 
 # or build
-go build -o trakx ./cli
+go build -o trakx ./cmd/trakx
 ./trakx status # generates configuration
 ```
 
@@ -100,7 +100,7 @@ cat trakx.snapshot | trakx backup import
 
 ### Default configuration & webserver files
 
-You can modify the default configuration and files served by the webserver in the `config/embedded/` folder.
+You can modify the default configuration and files served by the webserver in the `internal/config/embedded/` folder.
 
 **NOTE:** Trakx webserver will only serve files at their full path. `dmca` will 404, `dmca.html` will 200.
 
@@ -119,8 +119,8 @@ $ TRAKX_TRACKER_HTTP_PORT=80 ./trakx run
 **Warning:** `install.sh` will overwrite `go_expvar.conf`. If you are using other expvar programs with netdata manually merge the two files.
 
 * Run `/etc/netdata/edit-config python.d.conf`, change `go_expvar` to `yes`.
-* Customize the url in `netdata/expvar.conf` if needed.
-* Install netdata plugins with `cd netdata; ./install.sh`.
+* Customize the url in `configs/netdata/expvar.conf` if needed.
+* Install netdata plugins with `cd configs/netdata; ./install.sh`.
 
 ### Build Customization
 
@@ -136,15 +136,15 @@ The following metrics were collected on Heroku free tier running an HTTP tracker
 
 Heroku dashboard:
 
-![performance](img/performance.png)
+![performance](assets/img/performance.png)
 
 Database stats:
 
-![performance](img/stats.png)
+![performance](assets/img/stats.png)
 
 Flamegraph:
 
-![flame](img/flame.png)
+![flame](assets/img/flame.png)
 
 Trakx has been optimized to use a little CPU time as possible. In most cases, almost all CPU time will be spent handing (negotiating/send/recv) connections, especially for TCP (HTTP).
 

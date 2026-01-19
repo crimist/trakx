@@ -8,7 +8,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/crimist/trakx/tracker/udp/udpprotocol"
+	"github.com/crimist/trakx/internal/tracker/udp/udpprotocol"
 )
 
 type udpWorker struct {
