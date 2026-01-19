@@ -10,7 +10,7 @@ import (
 
 // UDP tracker scrape request
 type ScrapeRequest struct {
-	ConnectionID  int64
+	ConnectionID  uint64
 	Action        Action
 	TransactionID int32
 	InfoHashes    []storage.Hash

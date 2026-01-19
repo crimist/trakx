@@ -10,7 +10,7 @@ import (
 
 // UDP tracker announce request
 type AnnounceRequest struct {
-	ConnectionID  int64
+	ConnectionID  uint64
 	Action        Action
 	TransactionID int32
 	InfoHash      storage.Hash

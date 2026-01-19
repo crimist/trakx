@@ -42,7 +42,7 @@ func NewConnectRequest(data []byte) (*ConnectRequest, error) {
 type ConnectResponse struct {
 	Action        Action
 	TransactionID int32
-	ConnectionID  int64
+	ConnectionID  uint64
 }
 
 // Marshal encodes a ConnectResponse to a byte slice.

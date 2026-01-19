@@ -18,7 +18,12 @@ func (tracker *Tracker) connect(udpAddr *net.UDPAddr, addrPort netip.AddrPort, t
 		return
 	}
 
-	connectionID := tracker.connections.Create(addrPort)
+	connectionID, err := tracker.connections.Create(addrPort)
+	if err != nil {
+		tracker.error(udpAddr, []byte("failed to create connection"), connectRequest.TransactionID)
+		zap.L().Error("failed to create connection ID", zap.Error(err), zap.Any("remote", addrPort))
+		return
+	}
 
 	resp := udpprotocol.ConnectResponse{
 		Action:        udpprotocol.ActionConnect,

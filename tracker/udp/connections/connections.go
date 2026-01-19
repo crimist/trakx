@@ -1,17 +1,19 @@
 package connections
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"encoding/binary"
 	"net/netip"
 	"sync"
 	"time"
 
 	"github.com/crimist/trakx/utils"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
 type associationEntry struct {
-	ID        int64
+	ID        uint64
 	TimeStamp int64
 }
 
@@ -43,8 +45,13 @@ func (connCache *Connections) Entries() int {
 	return count
 }
 
-func (connCache *Connections) Create(addr netip.AddrPort) (connectionID int64) {
-	connectionID = rand.Int63()
+func (connCache *Connections) Create(addr netip.AddrPort) (uint64, error) {
+	var connectionID uint64
+	err := binary.Read(rand.Reader, binary.BigEndian, &connectionID)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to generate connection ID")
+	}
+
 	epoch := time.Now().Unix()
 
 	connCache.mutex.Lock()
@@ -54,10 +61,10 @@ func (connCache *Connections) Create(addr netip.AddrPort) (connectionID int64) {
 	}
 	connCache.mutex.Unlock()
 
-	return
+	return connectionID, nil
 }
 
-func (connCache *Connections) Validate(addr netip.AddrPort, id int64) bool {
+func (connCache *Connections) Validate(addr netip.AddrPort, id uint64) bool {
 	connCache.mutex.RLock()
 	entry, ok := connCache.associations[addr]
 	connCache.mutex.RUnlock()

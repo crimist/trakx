@@ -9,9 +9,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/crimist/trakx/backup"
 	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/internal/maxcache"
 	"github.com/crimist/trakx/stats"
+	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/tracker"
 	"github.com/crimist/trakx/tracker/http"
 	"github.com/crimist/trakx/tracker/udp"
@@ -31,6 +33,16 @@ const (
 	maxKeyIPCollector = "stats.ip_collector"
 	maxKeyDBTorrents  = "db.torrents"
 )
+
+// daemonSnapshotProvider implements backup.SnapshotProvider for the daemon.
+type daemonSnapshotProvider struct {
+	db     *database.Database
+	connDB *connections.Connections
+}
+
+func (p *daemonSnapshotProvider) GetSnapshottables() (storage.Snapshotter, storage.Snapshotter) {
+	return p.db, p.connDB
+}
 
 // Run initializes and runs the tracker with the requested configuration settings.
 func Run(conf *config.Configuration) {
@@ -75,8 +87,17 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 	collector := stats.NewCollectors(conf.Stats.General, conf.Stats.IP, ipCollectorSize)
 
 	var importReader io.Reader
+
+	// Create backup manager early for restore operations
+	backupManager := backup.NewManager(backup.Config{
+		BackupFilePath: conf.DB.Backup.Path,
+		PIDFilePath:    conf.PIDPath(),
+		CacheDir:       conf.Cache,
+	})
+
 	if opts.ImportReader != nil {
-		connSnapshot, importReader, err = splitCombinedSnapshot(opts.ImportReader)
+		source := backup.NewStreamSource(opts.ImportReader, "import-stream")
+		connSnapshot, importReader, err = backupManager.RestoreCombined(source)
 		if err != nil {
 			if closer, ok := opts.ImportReader.(io.Closer); ok {
 				closer.Close()
@@ -86,21 +107,16 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 			connSnapshot = nil
 		}
 	} else if conf.DB.Backup.Path != "" {
-		backupFile, err := os.Open(conf.DB.Backup.Path)
+		source := backup.NewFileSource(conf.DB.Backup.Path)
+		connSnapshot, importReader, err = backupManager.RestoreCombined(source)
 		if err != nil {
 			if os.IsNotExist(err) {
 				zap.L().Debug("Database backup file does not exist", zap.String("path", conf.DB.Backup.Path))
 			} else {
-				zap.L().Warn("Failed to open database backup file", zap.String("path", conf.DB.Backup.Path), zap.Error(err))
-			}
-		} else {
-			connSnapshot, importReader, err = splitCombinedSnapshot(backupFile)
-			if err != nil {
-				backupFile.Close()
 				zap.L().Warn("Failed to load combined snapshot", zap.String("path", conf.DB.Backup.Path), zap.Error(err))
-				importReader = nil
-				connSnapshot = nil
 			}
+			importReader = nil
+			connSnapshot = nil
 		}
 	}
 
@@ -125,6 +141,18 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 		zap.L().Info("Initialized database", zap.Int("torrents", db.Torrents()))
 	}
 
+	// Update backup manager with provider after database is initialized
+	// This will be set again after connectionsDB is initialized
+	backupManager = backup.NewManager(backup.Config{
+		BackupFilePath: conf.DB.Backup.Path,
+		PIDFilePath:    conf.PIDPath(),
+		CacheDir:       conf.Cache,
+		Provider: &daemonSnapshotProvider{
+			db:     db,
+			connDB: nil,
+		},
+	})
+
 	if conf.UDP.Port != 0 {
 		zap.L().Debug("UDP tracker enabled", zap.String("ip", conf.UDP.IP), zap.Int("port", conf.UDP.Port))
 
@@ -136,6 +164,17 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 				zap.L().Info("Loaded UDP connections from snapshot", zap.Int("connections", connectionsDB.Entries()))
 			}
 		}
+
+		// Update backup manager with connectionsDB
+		backupManager = backup.NewManager(backup.Config{
+			BackupFilePath: conf.DB.Backup.Path,
+			PIDFilePath:    conf.PIDPath(),
+			CacheDir:       conf.Cache,
+			Provider: &daemonSnapshotProvider{
+				db:     db,
+				connDB: connectionsDB,
+			},
+		})
 
 		trackers = append(trackers, udp.NewTracker(db, tracker.TrackerConfig{
 			DefaultNumwant:   conf.Numwant.Default,
@@ -230,14 +269,14 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 
 	go signalHandler(trackers, func() error {
 		updateMaximums()
-		return persistSnapshot(db, connectionsDB, conf.DB.Backup.Path)
+		return backupManager.Persist()
 	})
 
 	if conf.DB.Backup.Interval > 0 && conf.DB.Backup.Path != "" {
 		zap.L().Debug("Combined backup on interval", zap.Duration("interval", conf.DB.Backup.Interval))
 		go utils.RunOn(conf.DB.Backup.Interval, func() {
-			if err := writeCombinedSnapshotFile(db, connectionsDB, conf.DB.Backup.Path); err != nil {
-				zap.L().Error("failed to write combined backup on interval", zap.Error(err))
+			if err := backupManager.Persist(); err != nil {
+				zap.L().Error("Failed to persist periodic backup", zap.Error(err))
 			}
 		})
 	}

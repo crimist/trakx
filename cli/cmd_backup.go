@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 
-	"github.com/crimist/trakx/daemon"
+	"github.com/crimist/trakx/backup"
 )
 
 func newBackupRootCommand() *Command {
@@ -35,20 +34,23 @@ func exportSubcommand() *Command {
 				return err
 			}
 
-			var out io.Writer = ctx.Stdout
-			var file *os.File
+			mgr := backup.NewManager(backup.Config{
+				BackupFilePath: conf.DB.Backup.Path,
+				PIDFilePath:    conf.PIDPath(),
+				CacheDir:       conf.Cache,
+			})
+
+			var dest backup.Destination
 			if *outPath != "" {
-				file, err = os.Create(*outPath)
-				if err != nil {
-					return err
-				}
-				defer file.Close()
-				out = file
+				dest = backup.NewFileDestination(*outPath)
+			} else {
+				dest = backup.NewStreamDestination(ctx.Stdout, "stdout")
 			}
 
-			if err := daemon.ExportBackup(conf, out); err != nil {
+			if err := mgr.Export(dest); err != nil {
 				return err
 			}
+
 			if *outPath != "" {
 				fmt.Fprintln(ctx.Stdout, "backup exported")
 			}
@@ -74,23 +76,24 @@ func importSubcommand() *Command {
 				return err
 			}
 
-			var in io.Reader = os.Stdin
-			var file *os.File
+			mgr := backup.NewManager(backup.Config{
+				BackupFilePath: conf.DB.Backup.Path,
+				PIDFilePath:    conf.PIDPath(),
+				CacheDir:       conf.Cache,
+			})
+
+			var source backup.Source
 			if *inPath != "" {
-				file, err = os.Open(*inPath)
-				if err != nil {
-					return err
-				}
-				defer file.Close()
-				in = file
+				source = backup.NewFileSource(*inPath)
+			} else {
+				source = backup.NewStreamSource(os.Stdin, "stdin")
 			}
 
-			if err := daemon.ImportBackup(conf, in); err != nil {
+			if err := mgr.Import(source); err != nil {
 				return err
 			}
-			if *inPath != "" {
-				fmt.Fprintln(ctx.Stdout, "backup imported")
-			}
+
+			fmt.Fprintln(ctx.Stdout, "backup imported")
 			return nil
 		},
 	}

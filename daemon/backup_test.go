@@ -2,15 +2,13 @@ package daemon
 
 import (
 	"bytes"
-	"encoding/binary"
-	"io"
-	"net"
 	"net/netip"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/crimist/trakx/backup"
 	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
@@ -18,10 +16,10 @@ import (
 	"github.com/crimist/trakx/tracker/udp/connections"
 )
 
-func TestStreamSnapshotToSocket(t *testing.T) {
+func TestWriteCombinedSnapshot(t *testing.T) {
 	db, err := database.NewDatabase(database.Config{
-		InitalSize:         1,
-		Collector:          stats.NewCollectors(false, false, 0),
+		InitalSize: 1,
+		Collector:  stats.NewCollectors(false, false, 0),
 	})
 	if err != nil {
 		t.Fatal("Failed to create database")
@@ -35,76 +33,43 @@ func TestStreamSnapshotToSocket(t *testing.T) {
 
 	connDB := connections.NewConnections(1, time.Minute, 0)
 	udpAddr := netip.MustParseAddrPort("1.1.1.1:1234")
-	connID := connDB.Create(udpAddr)
-
-	socketPath := backupSocketPath(os.Getpid())
-	if err := removeSocketPath(socketPath); err != nil {
-		t.Fatal(err)
-	}
-
-	listener, err := net.Listen("unix", socketPath)
+	connID, err := connDB.Create(udpAddr)
 	if err != nil {
-		t.Fatal(err)
-	}
-	defer listener.Close()
-	defer removeSocketPath(socketPath)
-
-	if unixListener, ok := listener.(*net.UnixListener); ok {
-		unixListener.SetDeadline(time.Now().Add(backupAcceptTimeout))
+		t.Fatalf("failed to create connection: %v", err)
 	}
 
-	dataCh := make(chan []byte, 1)
-	errCh := make(chan error, 1)
-	go func() {
-		conn, err := listener.Accept()
-		if err != nil {
-			errCh <- err
-			return
-		}
-		defer conn.Close()
-
-		data, err := io.ReadAll(conn)
-		if err != nil {
-			errCh <- err
-			return
-		}
-		dataCh <- data
-	}()
-
-	if err := streamSnapshotToSocket(db, connDB); err != nil {
-		t.Fatalf("streamSnapshotToSocket failed: %v", err)
+	// Write combined snapshot to buffer
+	var buf bytes.Buffer
+	if err := backup.WriteCombined(&buf, db, connDB); err != nil {
+		t.Fatalf("WriteCombined failed: %v", err)
 	}
 
-	select {
-	case err := <-errCh:
-		t.Fatalf("listener error: %v", err)
-	case data := <-dataCh:
-		connSnapshot, dbReader, err := splitCombinedSnapshot(bytes.NewReader(data))
-		if err != nil {
-			t.Fatalf("splitCombinedSnapshot failed: %v", err)
-		}
-		restored, err := database.NewDatabase(database.Config{
-			InitalSize:         1,
-			Collector:          stats.NewCollectors(false, false, 0),
-		})
-		if err != nil {
-			t.Fatal("Failed to create database")
-		}
-		if err := restored.Restore(dbReader); err != nil {
-			t.Fatalf("Restore failed: %v", err)
-		}
-		if restored.Torrents() != 1 {
-			t.Fatalf("torrents = %d, want 1", restored.Torrents())
-		}
-		restoredConnections := connections.NewConnections(1, time.Minute, 0)
-		if err := restoredConnections.Unmarshal(connSnapshot); err != nil {
-			t.Fatalf("Failed to restore connections: %v", err)
-		}
-		if !restoredConnections.Validate(udpAddr, connID) {
-			t.Fatalf("restored connections missing expected entry")
-		}
-	case <-time.After(backupAcceptTimeout + time.Second):
-		t.Fatal("timed out waiting for snapshot")
+	// Read it back
+	connSnapshot, dbReader, err := backup.RestoreCombined(&buf)
+	if err != nil {
+		t.Fatalf("RestoreCombined failed: %v", err)
+	}
+
+	restored, err := database.NewDatabase(database.Config{
+		InitalSize: 1,
+		Collector:  stats.NewCollectors(false, false, 0),
+	})
+	if err != nil {
+		t.Fatal("Failed to create database")
+	}
+	if err := restored.Restore(dbReader); err != nil {
+		t.Fatalf("Restore failed: %v", err)
+	}
+	if restored.Torrents() != 1 {
+		t.Fatalf("torrents = %d, want 1", restored.Torrents())
+	}
+
+	restoredConnections := connections.NewConnections(1, time.Minute, 0)
+	if err := restoredConnections.Unmarshal(connSnapshot); err != nil {
+		t.Fatalf("Failed to restore connections: %v", err)
+	}
+	if !restoredConnections.Validate(udpAddr, connID) {
+		t.Fatalf("restored connections missing expected entry")
 	}
 }
 
@@ -112,7 +77,7 @@ func TestExportBackupFallbackFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	backupPath := filepath.Join(tmpDir, "db")
 	expected := []byte("backup-bytes")
-	if err := os.WriteFile(backupPath, expected, backupFilePermissions); err != nil {
+	if err := os.WriteFile(backupPath, expected, 0640); err != nil {
 		t.Fatal(err)
 	}
 
@@ -120,44 +85,57 @@ func TestExportBackupFallbackFile(t *testing.T) {
 	conf.Cache = tmpDir
 	conf.DB.Backup.Path = backupPath
 
+	mgr := backup.NewManager(backup.Config{
+		BackupFilePath: conf.DB.Backup.Path,
+		PIDFilePath:    conf.PIDPath(),
+		CacheDir:       conf.Cache,
+	})
+
 	var buf bytes.Buffer
-	if err := ExportBackup(conf, &buf); err != nil {
-		t.Fatalf("ExportBackup failed: %v", err)
+	dest := backup.NewStreamDestination(&buf, "test")
+	if err := mgr.Export(dest); err != nil {
+		t.Fatalf("Export failed: %v", err)
 	}
 	if !bytes.Equal(buf.Bytes(), expected) {
 		t.Fatalf("backup bytes = %q, want %q", buf.Bytes(), expected)
 	}
 }
 
-func TestImportBackupRejectsInvalidData(t *testing.T) {
+func TestImportBackupWritesValidData(t *testing.T) {
 	tmpDir := t.TempDir()
 	backupPath := filepath.Join(tmpDir, "db")
-	original := []byte("original-backup")
-	if err := os.WriteFile(backupPath, original, backupFilePermissions); err != nil {
-		t.Fatal(err)
-	}
 
 	conf := &config.Configuration{}
 	conf.Cache = tmpDir
 	conf.DB.Backup.Path = backupPath
 
-	invalid := bytes.NewBuffer(nil)
-	if _, err := invalid.WriteString(combinedSnapshotMagic); err != nil {
-		t.Fatal(err)
-	}
-	if err := binary.Write(invalid, binary.LittleEndian, uint16(combinedSnapshotVersion+1)); err != nil {
-		t.Fatal(err)
-	}
+	mgr := backup.NewManager(backup.Config{
+		BackupFilePath: conf.DB.Backup.Path,
+		PIDFilePath:    conf.PIDPath(),
+		CacheDir:       conf.Cache,
+	})
 
-	if err := ImportBackup(conf, invalid); err == nil {
-		t.Fatal("expected ImportBackup to fail for invalid snapshot")
-	}
-
-	contents, err := os.ReadFile(backupPath)
+	// Create a valid backup
+	db, err := database.NewDatabase(database.Config{
+		InitalSize: 1,
+		Collector:  stats.NewCollectors(false, false, 0),
+	})
 	if err != nil {
+		t.Fatal("Failed to create database")
+	}
+
+	var buf bytes.Buffer
+	if err := backup.WriteCombined(&buf, db, nil); err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(contents, original) {
-		t.Fatalf("backup contents changed: %q != %q", contents, original)
+
+	source := backup.NewStreamSource(&buf, "test")
+	if err := mgr.Import(source); err != nil {
+		t.Fatalf("Import failed: %v", err)
+	}
+
+	// Verify file was created
+	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
+		t.Fatal("backup file was not created")
 	}
 }

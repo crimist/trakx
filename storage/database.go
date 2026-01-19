@@ -5,8 +5,17 @@
 package storage
 
 import (
+	"io"
 	"net/netip"
 )
+
+// Snapshotter defines the interface for components that can be snapshotted and restored.
+type Snapshotter interface {
+	// Snapshot writes the component's state to the provided writer
+	Snapshot(w io.Writer) error
+	// Restore reads the component's state from the provided reader
+	Restore(r io.Reader) error
+}
 
 type Database interface {
 	PeerAdd(hash Hash, peerID PeerID, addr netip.Addr, port uint16, complete bool)

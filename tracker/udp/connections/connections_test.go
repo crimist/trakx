@@ -23,7 +23,10 @@ func TestCreate(t *testing.T) {
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			epoch := time.Now().Unix()
-			id := connections.Create(testCase.addrPort)
+			id, err := connections.Create(testCase.addrPort)
+			if err != nil {
+				t.Fatalf("failed to create connection: %v", err)
+			}
 
 			entry := connections.associations[testCase.addrPort]
 			if entry.TimeStamp != epoch {
@@ -39,7 +42,10 @@ func TestCreate(t *testing.T) {
 func TestValidate(t *testing.T) {
 	connections := NewConnections(1, testTimeNever, testTimeNever)
 	addrPort := netip.MustParseAddrPort("1.1.1.1:1234")
-	id := connections.Create(addrPort)
+	id, err := connections.Create(addrPort)
+	if err != nil {
+		t.Fatalf("failed to create connection: %v", err)
+	}
 
 	if !connections.Validate(addrPort, id) {
 		t.Error("cache validate returned false; want true")
@@ -51,7 +57,10 @@ func TestEntries(t *testing.T) {
 	connections := NewConnections(entries, testTimeNever, testTimeNever)
 
 	for i := int64(0); i < entries; i++ {
-		connections.Create(netip.MustParseAddrPort(fmt.Sprintf("1.1.1.%d:1234", i)))
+		_, err := connections.Create(netip.MustParseAddrPort(fmt.Sprintf("1.1.1.%d:1234", i)))
+		if err != nil {
+			t.Fatalf("failed to create connection: %v", err)
+		}
 
 		if int64(connections.Entries()) != i+1 {
 			t.Errorf("cache entry count = %v; want %v", connections.Entries(), i+1)
@@ -65,7 +74,10 @@ func TestGarbageCollector(t *testing.T) {
 	connections := NewConnections(1, testTimeInstant, testTimeNever)
 	addrPort := netip.MustParseAddrPort("1.1.1.1:1234")
 
-	connections.Create(addrPort)
+	_, err := connections.Create(addrPort)
+	if err != nil {
+		t.Fatalf("failed to create connection: %v", err)
+	}
 	time.Sleep(1 * time.Second)
 	connections.garbageCollector()
 
@@ -78,7 +90,10 @@ func TestGarbageCollectorCron(t *testing.T) {
 	connections := NewConnections(1, testTimeInstant, 100*time.Millisecond)
 	addrPort := netip.MustParseAddrPort("1.1.1.1:1234")
 
-	connections.Create(addrPort)
+	_, err := connections.Create(addrPort)
+	if err != nil {
+		t.Fatalf("failed to create connection: %v", err)
+	}
 	time.Sleep(1 * time.Second)
 
 	if _, ok := connections.associations[addrPort]; ok {

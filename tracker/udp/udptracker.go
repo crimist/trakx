@@ -98,7 +98,7 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 	}
 
 	<-tracker.shutdown
-	zap.L().Info("UDP trakcer received shutdown")
+	zap.L().Info("UDP tracker received shutdown")
 
 	if err = tracker.socket.Close(); err != nil {
 		return errors.Wrap(err, "Failed to close UDP tracker socket")
@@ -143,11 +143,11 @@ func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr) {
 		return
 	}
 
-	connectionID := int64(binary.BigEndian.Uint64(data[0:8]))
+	connectionID := binary.BigEndian.Uint64(data[0:8])
 	if tracker.validateConnections {
 		if validConnectionID := tracker.connections.Validate(addrPort, connectionID); !validConnectionID {
 			tracker.error(udpAddr, fatalUnregisteredConnection, transactionID)
-			zap.L().Debug("client sent unregistered connection id", zap.Binary("packet", data), zap.Int64("connectionID", connectionID), zap.Any("remote", addrPort))
+			zap.L().Debug("client sent unregistered connection id", zap.Binary("packet", data), zap.Uint64("connectionID", connectionID), zap.Any("remote", addrPort))
 			return
 		}
 	} else {
