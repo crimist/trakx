@@ -9,10 +9,6 @@ import (
 
 func TestWriteEmbeddedConfig(t *testing.T) {
 	testHomeDir := t.TempDir()
-	xdgConfigHome := filepath.Join(testHomeDir, "config")
-	xdgCacheHome := filepath.Join(testHomeDir, "cache")
-	testConfigPath := filepath.Join(xdgConfigHome, "trakx", "trakx.yaml")
-	testCachePath := filepath.Join(xdgCacheHome, "trakx")
 
 	homeEnv := "HOME"
 	switch runtime.GOOS {
@@ -23,8 +19,20 @@ func TestWriteEmbeddedConfig(t *testing.T) {
 	}
 
 	t.Setenv(homeEnv, testHomeDir)
-	t.Setenv("XDG_CONFIG_HOME", xdgConfigHome)
-	t.Setenv("XDG_CACHE_HOME", xdgCacheHome)
+
+	// macOS: ~/Library/Application Support and ~/Library/Caches
+	// Linux: $XDG_CONFIG_HOME or ~/.config, $XDG_CACHE_HOME or ~/.cache
+	var testConfigPath, testCachePath string
+	switch runtime.GOOS {
+	case "darwin":
+		testConfigPath = filepath.Join(testHomeDir, "Library", "Application Support", "trakx", "trakx.yaml")
+		testCachePath = filepath.Join(testHomeDir, "Library", "Caches", "trakx")
+	default:
+		xdgConfigHome := filepath.Join(testHomeDir, ".config")
+		xdgCacheHome := filepath.Join(testHomeDir, ".cache")
+		testConfigPath = filepath.Join(xdgConfigHome, "trakx", "trakx.yaml")
+		testCachePath = filepath.Join(xdgCacheHome, "trakx")
+	}
 
 	_, err := Load(LoadOptions{})
 	if err != nil {
