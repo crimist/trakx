@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"syscall"
+
+	"github.com/crimist/trakx/internal/pidfile"
 )
 
 func newPidCommand() *Command {
@@ -32,7 +32,7 @@ func newPidShowCommand() *Command {
 			if err != nil {
 				return err
 			}
-			pidFile := newProcessIDFile(conf.PIDPath())
+			pidFile := pidfile.New(conf.PIDPath())
 			pid, err := pidFile.Read()
 			if err != nil {
 				return err
@@ -57,7 +57,7 @@ func newPidClearCommand() *Command {
 			if err != nil {
 				return err
 			}
-			pidFile := newProcessIDFile(conf.PIDPath())
+			pidFile := pidfile.New(conf.PIDPath())
 			if err := pidFile.Clear(); err != nil {
 				return err
 			}
@@ -81,17 +81,13 @@ func newPidAliveCommand() *Command {
 			if err != nil {
 				return err
 			}
-			pidFile := newProcessIDFile(conf.PIDPath())
+			pidFile := pidfile.New(conf.PIDPath())
 			pid, err := pidFile.Read()
 			if err != nil {
 				return err
 			}
-			if err := syscall.Kill(pid, syscall.Signal(0)); err == nil {
+			if pidfile.IsAlive(pid) {
 				fmt.Fprintln(ctx.Stdout, "alive")
-			} else if os.IsNotExist(err) {
-				fmt.Fprintln(ctx.Stdout, "dead")
-			} else if err.Error() == "no such process" {
-				fmt.Fprintln(ctx.Stdout, "dead")
 			} else {
 				fmt.Fprintln(ctx.Stdout, "dead")
 			}

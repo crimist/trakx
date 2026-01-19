@@ -1,4 +1,4 @@
-package main
+package pidfile
 
 import (
 	"os"
@@ -18,19 +18,19 @@ func cleanFile(t *testing.T) {
 	}
 }
 
-func TestProcessIDWrite(t *testing.T) {
+func TestWrite(t *testing.T) {
 	defer cleanFile(t)
 
-	pidFile := newProcessIDFile(testFilePath)
+	pidFile := New(testFilePath)
 	if err := pidFile.Write(testProcessID); err != nil {
 		t.Error("failed to write process id file:", err)
 	}
 }
 
-func TestProcessIDRead(t *testing.T) {
+func TestRead(t *testing.T) {
 	defer cleanFile(t)
 
-	pidFile := newProcessIDFile(testFilePath)
+	pidFile := New(testFilePath)
 	if err := pidFile.Write(testProcessID); err != nil {
 		t.Error("failed to write process id file:", err)
 	}
@@ -44,10 +44,10 @@ func TestProcessIDRead(t *testing.T) {
 	}
 }
 
-func TestProcessIDClear(t *testing.T) {
+func TestClear(t *testing.T) {
 	defer cleanFile(t)
 
-	pidFile := newProcessIDFile(testFilePath)
+	pidFile := New(testFilePath)
 	if err := pidFile.Write(testProcessID); err != nil {
 		t.Error("failed to write process id file:", err)
 	}
@@ -56,15 +56,15 @@ func TestProcessIDClear(t *testing.T) {
 		t.Error("failed to clear process id file:", err)
 	}
 
-	if _, err := pidFile.Read(); err != errFileEmpty {
-		t.Errorf("error = %v; want %v", err, errFileEmpty)
+	if _, err := pidFile.Read(); err != ErrFileEmpty {
+		t.Errorf("error = %v; want %v", err, ErrFileEmpty)
 	}
 }
 
-func TestProcessIDProcess(t *testing.T) {
+func TestProcess(t *testing.T) {
 	defer cleanFile(t)
 
-	pidFile := newProcessIDFile(testFilePath)
+	pidFile := New(testFilePath)
 	if err := pidFile.Write(os.Getpid()); err != nil {
 		t.Error("failed to write process id file:", err)
 	}
@@ -75,5 +75,37 @@ func TestProcessIDProcess(t *testing.T) {
 	}
 	if process.Pid != os.Getpid() {
 		t.Errorf("process pid = %v; want %v", process.Pid, os.Getpid())
+	}
+}
+
+func TestIsAlive(t *testing.T) {
+	// Current process should be alive
+	if !IsAlive(os.Getpid()) {
+		t.Error("current process should be alive")
+	}
+
+	// Invalid PIDs should not be alive
+	if IsAlive(0) {
+		t.Error("PID 0 should not be alive")
+	}
+	if IsAlive(-1) {
+		t.Error("PID -1 should not be alive")
+	}
+}
+
+func TestFileIsAlive(t *testing.T) {
+	defer cleanFile(t)
+
+	pidFile := New(testFilePath)
+	if err := pidFile.Write(os.Getpid()); err != nil {
+		t.Error("failed to write process id file:", err)
+	}
+
+	alive, err := pidFile.IsAlive()
+	if err != nil {
+		t.Error("failed to check if process is alive:", err)
+	}
+	if !alive {
+		t.Error("current process should be alive")
 	}
 }

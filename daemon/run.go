@@ -12,6 +12,7 @@ import (
 	"github.com/crimist/trakx/backup"
 	"github.com/crimist/trakx/config"
 	"github.com/crimist/trakx/internal/maxcache"
+	"github.com/crimist/trakx/internal/pidfile"
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/tracker"
@@ -91,7 +92,7 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 	// Create backup manager early for restore operations
 	backupManager := backup.NewManager(backup.Config{
 		BackupFilePath: conf.DB.Backup.Path,
-		PIDFilePath:    conf.PIDPath(),
+		PIDFile:        pidfile.New(conf.PIDPath()),
 		CacheDir:       conf.Cache,
 	})
 
@@ -145,7 +146,7 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 	// This will be set again after connectionsDB is initialized
 	backupManager = backup.NewManager(backup.Config{
 		BackupFilePath: conf.DB.Backup.Path,
-		PIDFilePath:    conf.PIDPath(),
+		PIDFile:        pidfile.New(conf.PIDPath()),
 		CacheDir:       conf.Cache,
 		Provider: &daemonSnapshotProvider{
 			db:     db,
@@ -168,7 +169,7 @@ func RunWithOptions(conf *config.Configuration, opts RunOptions) {
 		// Update backup manager with connectionsDB
 		backupManager = backup.NewManager(backup.Config{
 			BackupFilePath: conf.DB.Backup.Path,
-			PIDFilePath:    conf.PIDPath(),
+			PIDFile:        pidfile.New(conf.PIDPath()),
 			CacheDir:       conf.Cache,
 			Provider: &daemonSnapshotProvider{
 				db:     db,

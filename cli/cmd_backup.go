@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/crimist/trakx/backup"
+	"github.com/crimist/trakx/internal/pidfile"
 )
 
 func newBackupRootCommand() *Command {
@@ -36,7 +37,7 @@ func exportSubcommand() *Command {
 
 			mgr := backup.NewManager(backup.Config{
 				BackupFilePath: conf.DB.Backup.Path,
-				PIDFilePath:    conf.PIDPath(),
+				PIDFile:        pidfile.New(conf.PIDPath()),
 				CacheDir:       conf.Cache,
 			})
 
@@ -78,7 +79,7 @@ func importSubcommand() *Command {
 
 			mgr := backup.NewManager(backup.Config{
 				BackupFilePath: conf.DB.Backup.Path,
-				PIDFilePath:    conf.PIDPath(),
+				PIDFile:        pidfile.New(conf.PIDPath()),
 				CacheDir:       conf.Cache,
 			})
 

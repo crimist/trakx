@@ -8,11 +8,11 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"syscall"
 	"time"
 
-	"github.com/crimist/trakx/daemon"
 	"github.com/crimist/trakx/config"
+	"github.com/crimist/trakx/daemon"
+	"github.com/crimist/trakx/internal/pidfile"
 	"github.com/crimist/trakx/tracker/udp/udpprotocol"
 	"github.com/pkg/errors"
 )
@@ -22,13 +22,13 @@ const (
 )
 
 type daemonController struct {
-	processIDFile *processIDFile
+	processIDFile *pidfile.File
 	config        *config.Configuration
 }
 
 func newDaemonController(conf *config.Configuration) *daemonController {
 	return &daemonController{
-		processIDFile: newProcessIDFile(conf.PIDPath()),
+		processIDFile: pidfile.New(conf.PIDPath()),
 		config:        conf,
 	}
 }
@@ -87,18 +87,14 @@ func (controller *daemonController) Stop(out io.Writer) error {
 
 	fmt.Fprint(out, "waiting for process to exit")
 	i := 0
-	for err == nil && i < 100 {
+	for pidfile.IsAlive(processid) && i < 100 {
 		time.Sleep(100 * time.Millisecond)
 		fmt.Fprint(out, ".")
 		i++
-		err = syscall.Kill(processid, syscall.Signal(0))
 	}
 	fmt.Fprintln(out)
 	if i == 100 {
 		return errors.New("trakx failed to stop within 10s")
-	}
-	if err != nil && err.Error() != "no such process" {
-		return errors.Wrap(err, "failed to kill trakx process id")
 	}
 
 	return errors.Wrap(controller.processIDFile.Clear(), "failed to clear trakx process id file")
@@ -110,10 +106,10 @@ func (controller *daemonController) Clear() error {
 
 func (controller *daemonController) Status() (pidFileExists bool, processAlive bool, heartbeat bool) {
 	processid, _ := controller.processIDFile.Read()
-	if processid != processIDFailed {
+	if processid != pidfile.ProcessIDFailed {
 		pidFileExists = true
 
-		if err := syscall.Kill(processid, syscall.Signal(0)); err == nil {
+		if pidfile.IsAlive(processid) {
 			processAlive = true
 		}
 	}

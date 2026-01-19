@@ -10,6 +10,7 @@ import (
 
 	"github.com/crimist/trakx/backup"
 	"github.com/crimist/trakx/config"
+	"github.com/crimist/trakx/internal/pidfile"
 	"github.com/crimist/trakx/stats"
 	"github.com/crimist/trakx/storage"
 	"github.com/crimist/trakx/storage/database"
@@ -87,7 +88,7 @@ func TestExportBackupFallbackFile(t *testing.T) {
 
 	mgr := backup.NewManager(backup.Config{
 		BackupFilePath: conf.DB.Backup.Path,
-		PIDFilePath:    conf.PIDPath(),
+		PIDFile:        pidfile.New(conf.PIDPath()),
 		CacheDir:       conf.Cache,
 	})
 
@@ -111,7 +112,7 @@ func TestImportBackupWritesValidData(t *testing.T) {
 
 	mgr := backup.NewManager(backup.Config{
 		BackupFilePath: conf.DB.Backup.Path,
-		PIDFilePath:    conf.PIDPath(),
+		PIDFile:        pidfile.New(conf.PIDPath()),
 		CacheDir:       conf.Cache,
 	})
 
