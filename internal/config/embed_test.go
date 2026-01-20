@@ -3,46 +3,49 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 )
 
-func TestWriteEmbeddedConfig(t *testing.T) {
-	testHomeDir := t.TempDir()
+func TestInstallDefaultConfig(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "trakx", "trakx.yaml")
 
-	homeEnv := "HOME"
-	switch runtime.GOOS {
-	case "windows":
-		homeEnv = "USERPROFILE"
-	case "plan9":
-		homeEnv = "home"
+	if err := installDefaultConfig(path); err != nil {
+		t.Fatalf("installDefaultConfig failed: %v", err)
 	}
 
-	t.Setenv(homeEnv, testHomeDir)
-
-	// macOS: ~/Library/Application Support and ~/Library/Caches
-	// Linux: $XDG_CONFIG_HOME or ~/.config, $XDG_CACHE_HOME or ~/.cache
-	var testConfigPath, testCachePath string
-	switch runtime.GOOS {
-	case "darwin":
-		testConfigPath = filepath.Join(testHomeDir, "Library", "Application Support", "trakx", "trakx.yaml")
-		testCachePath = filepath.Join(testHomeDir, "Library", "Caches", "trakx")
-	default:
-		xdgConfigHome := filepath.Join(testHomeDir, ".config")
-		xdgCacheHome := filepath.Join(testHomeDir, ".cache")
-		testConfigPath = filepath.Join(xdgConfigHome, "trakx", "trakx.yaml")
-		testCachePath = filepath.Join(xdgCacheHome, "trakx")
-	}
-
-	_, err := Load(LoadOptions{})
+	content, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatal("failed to load config")
+		t.Fatalf("failed to read config file: %v", err)
 	}
 
-	if _, err := os.Stat(testConfigPath); os.IsNotExist(err) {
-		t.Error("load failed to write configuration to default path")
+	embedded, err := embeddedFS.ReadFile("embedded/trakx.yaml")
+	if err != nil {
+		t.Fatalf("failed to read embedded config: %v", err)
 	}
-	if _, err := os.Stat(testCachePath); os.IsNotExist(err) {
-		t.Error("load failed to create cache directory")
+
+	if string(content) != string(embedded) {
+		t.Error("installed config doesn't match embedded config")
+	}
+}
+
+func TestInstallDefaultConfigSkipsExisting(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "trakx.yaml")
+	existing := []byte("existing: config")
+
+	if err := os.WriteFile(path, existing, 0644); err != nil {
+		t.Fatalf("failed to write existing config: %v", err)
+	}
+
+	if err := installDefaultConfig(path); err != nil {
+		t.Fatalf("installDefaultConfig failed: %v", err)
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("failed to read config file: %v", err)
+	}
+
+	if string(content) != string(existing) {
+		t.Error("installDefaultConfig overwrote existing config")
 	}
 }
