@@ -5,6 +5,13 @@ services:
     ports:
       - "1337:1337"
       - "1337:1337/udp"
-    restart: "on-failure:3"
+    restart: unless-stopped
+    volumes:
+      - trakx-config:/home/trakx/.config/trakx
+      - trakx-cache:/home/trakx/.cache/trakx
     environment:
-      - "TRAKX_LOGLEVEL=debug"
+      - TRAKX_LOGLEVEL=info
+
+volumes:
+  trakx-config:
+  trakx-cache:
