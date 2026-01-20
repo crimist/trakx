@@ -11,7 +11,7 @@ func seedPhase(ctx context.Context, cfg config, ds *dataset) error {
 		return nil
 	}
 
-	rng := mrand.New(mrand.NewSource(cfg.rngSeed + 11))
+	rng := mrand.New(mrand.NewSource(cfg.rngSeed + rngOffsetSeed))
 
 	seedHashes := ds.torrents
 	if cfg.seed > 0 && cfg.seed < len(seedHashes) {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"time"
@@ -32,6 +33,11 @@ const (
 	defaultSeedFraction = 0.2 // 20% seeders
 
 	defaultPort = 6881
+
+	// RNG seed offsets for reproducible but distinct sequences per worker type.
+	rngOffsetUDP  = 7919
+	rngOffsetHTTP = 3571
+	rngOffsetSeed = 11
 )
 
 // Hardcoded numwant distribution: 20 (90%), 30 (8%), 50 (2%)
@@ -193,8 +199,7 @@ func main() {
 		Warnings: warnings,
 	}
 
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
+	var w io.Writer = os.Stdout
 	if cfg.outPath != "" {
 		f, err := os.Create(cfg.outPath)
 		if err != nil {
@@ -202,9 +207,10 @@ func main() {
 			os.Exit(1)
 		}
 		defer f.Close()
-		enc = json.NewEncoder(f)
-		enc.SetIndent("", "  ")
+		w = f
 	}
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
 	if err := enc.Encode(out); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to encode results: %v\n", err)
 		os.Exit(1)

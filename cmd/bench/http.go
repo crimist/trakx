@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io"
 	mrand "math/rand"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -55,15 +55,15 @@ func buildHTTPAnnounce(hash, peer, host string, port int, left int64, numwant in
 	b.WriteString("&peer_id=")
 	b.WriteString(peer)
 	b.WriteString("&port=")
-	b.WriteString(fmt.Sprintf("%d", port))
+	b.WriteString(strconv.Itoa(port))
 	b.WriteString("&uploaded=0&downloaded=0&left=")
-	b.WriteString(fmt.Sprintf("%d", left))
+	b.WriteString(strconv.FormatInt(left, 10))
 	if compact {
 		b.WriteString("&compact=1")
 	}
 	if numwant >= 0 {
 		b.WriteString("&numwant=")
-		b.WriteString(fmt.Sprintf("%d", numwant))
+		b.WriteString(strconv.Itoa(numwant))
 	}
 	b.WriteString(" HTTP/1.1\r\nHost: ")
 	b.WriteString(host)
@@ -95,7 +95,7 @@ type httpBenchWorker struct {
 
 func (w *httpBenchWorker) run(ctx context.Context, cfg config, ds *dataset, limiter *rateLimiter) *workerMetrics {
 	metrics := newWorkerMetrics()
-	rng := mrand.New(mrand.NewSource(cfg.rngSeed + int64(w.id*3571)))
+	rng := mrand.New(mrand.NewSource(cfg.rngSeed + int64(w.id*rngOffsetHTTP)))
 	peerIdx := w.id % len(ds.peers)
 	peer := ds.encodedPeers[peerIdx]
 

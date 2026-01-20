@@ -14,7 +14,7 @@ import (
 // Random number generation.
 
 func cryptoSeed() int64 {
-	n, err := rand.Int(rand.Reader, big.NewInt(maxInt64))
+	n, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
 	if err != nil {
 		return time.Now().UnixNano()
 	}
@@ -48,10 +48,10 @@ func chooseWeighted(rng *mrand.Rand, choices []weightedChoice, fallback int) int
 // Statistical distributions.
 
 func clampInt(val, minVal, maxVal int) int {
-	if minVal > 0 && val < minVal {
+	if val < minVal {
 		return minVal
 	}
-	if maxVal > 0 && val > maxVal {
+	if val > maxVal {
 		return maxVal
 	}
 	return val

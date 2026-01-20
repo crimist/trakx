@@ -131,36 +131,7 @@ func runLocal(args []string) error {
 	executor := NewLocalExecutor(tracker, benchBin, *target, *outputDir)
 	collector := NewResultCollector(*outputDir, scenario.Name, *mode)
 
-	slog.Info(fmt.Sprintf("\nRunning %d benchmark(s)...\n", len(runs)))
-
-	for i, run := range runs {
-		slog.Info(fmt.Sprintf("[%d/%d] %s (routines=%d)", i+1, len(runs), run.Name, run.Routines))
-
-		if *pause && i > 0 {
-			fmt.Fprint(os.Stderr, "Press Enter to continue...")
-			if err := WaitForInput(); err != nil {
-				return fmt.Errorf("wait for input: %w", err)
-			}
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		result := executor.Run(ctx, run)
-		collector.AddResult(result)
-
-		if result.Summary != nil {
-			slog.Info(fmt.Sprintf("  -> %.0f req/s | p50: %s | p90: %s | p95: %s | p99: %s",
-				result.Summary.Throughput, result.Summary.P50, result.Summary.P90, result.Summary.P95, result.Summary.P99))
-		} else if result.Error != "" {
-			slog.Error(fmt.Sprintf("  -> %s", result.Error))
-		}
-	}
-
-	return FinalizeResults(collector)
+	return runBenchmarkLoop(ctx, runs, executor, collector, *pause)
 }
 
 func runClient(args []string) error {
@@ -258,12 +229,19 @@ func runClient(args []string) error {
 	executor := NewClientExecutor(conn, benchBin, *target, *statsURL, *outputDir)
 	collector := NewResultCollector(*outputDir, scenario.Name, *mode)
 
-	slog.Info(fmt.Sprintf("Connected. Running %d benchmark(s)...\n", len(runs)))
+	slog.Info(fmt.Sprintf("Connected. Running %d benchmark(s)...", len(runs)))
+
+	return runBenchmarkLoop(ctx, runs, executor, collector, *pause)
+}
+
+// runBenchmarkLoop executes the benchmark runs and collects results.
+func runBenchmarkLoop(ctx context.Context, runs []BenchmarkRun, executor *Executor, collector *ResultCollector, pause bool) error {
+	slog.Info(fmt.Sprintf("Running %d benchmark(s)...\n", len(runs)))
 
 	for i, run := range runs {
 		slog.Info(fmt.Sprintf("[%d/%d] %s (routines=%d)", i+1, len(runs), run.Name, run.Routines))
 
-		if *pause && i > 0 {
+		if pause && i > 0 {
 			fmt.Fprint(os.Stderr, "Press Enter to continue...")
 			if err := WaitForInput(); err != nil {
 				return fmt.Errorf("wait for input: %w", err)

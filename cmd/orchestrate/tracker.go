@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -72,6 +73,23 @@ func (t *Tracker) Stop(ctx context.Context) error {
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// Restart stops any running tracker, clears cache, and starts fresh.
+// Returns an error if the tracker fails to start. Stop/clear errors are logged but not fatal.
+func (t *Tracker) Restart(ctx context.Context, udpRoutines, httpRoutines int) error {
+	if t.IsAlive() {
+		if err := t.Stop(ctx); err != nil {
+			slog.Warn("stop tracker", "error", err)
+		}
+		time.Sleep(time.Second)
+	}
+
+	if err := t.ClearCache(); err != nil {
+		slog.Warn("clear cache", "error", err)
+	}
+
+	return t.Start(ctx, udpRoutines, httpRoutines)
 }
 
 // WaitReady waits for the tracker to become ready.
@@ -176,7 +194,10 @@ func (t *Tracker) ClearCache() error {
 		errs = append(errs, fmt.Errorf("remove maximums: %w", err))
 	}
 
-	sockFiles, _ := filepath.Glob(filepath.Join(cachePath, "trakx-backup-*.sock"))
+	sockFiles, err := filepath.Glob(filepath.Join(cachePath, "trakx-backup-*.sock"))
+	if err != nil {
+		errs = append(errs, fmt.Errorf("glob sock files: %w", err))
+	}
 	for _, f := range sockFiles {
 		if err := os.Remove(f); err != nil && !os.IsNotExist(err) {
 			errs = append(errs, fmt.Errorf("remove %s: %w", filepath.Base(f), err))

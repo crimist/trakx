@@ -151,13 +151,9 @@ func handleClient(ctx context.Context, netConn net.Conn, tracker *Tracker, httpA
 
 			if tracker.IsAlive() {
 				slog.Info("  Stopping existing tracker...")
-				if err := tracker.Stop(ctx); err != nil {
-					slog.Warn("stop tracker", "error", err)
-				}
-				time.Sleep(time.Second)
-
 				deadline := time.Now().Add(serverTrackerStopWait)
 				for time.Now().Before(deadline) && tracker.IsAlive() {
+					tracker.Stop(ctx)
 					time.Sleep(200 * time.Millisecond)
 				}
 				if tracker.IsAlive() {
@@ -166,13 +162,8 @@ func handleClient(ctx context.Context, netConn net.Conn, tracker *Tracker, httpA
 				}
 			}
 
-			slog.Info("  Clearing cache...")
-			if err := tracker.ClearCache(); err != nil {
-				slog.Warn("clear cache", "error", err)
-			}
-
 			slog.Info("  Starting tracker...")
-			if err := tracker.Start(ctx, msg.UDPRoutines, msg.HTTPRoutines); err != nil {
+			if err := tracker.Restart(ctx, msg.UDPRoutines, msg.HTTPRoutines); err != nil {
 				slog.Error("start tracker failed", "error", err)
 				conn.SendError(ErrCodeTrackerStart, fmt.Sprintf("start tracker: %v", err), true)
 				continue
@@ -188,6 +179,8 @@ func handleClient(ctx context.Context, netConn net.Conn, tracker *Tracker, httpA
 			var msg DoneMessage
 			if err := json.Unmarshal(data, &msg); err != nil {
 				slog.Warn("invalid DONE message", "error", err)
+				conn.SendError(ErrCodeInvalidField, fmt.Sprintf("invalid DONE message: %v", err), true)
+				continue
 			}
 
 			status := "OK"

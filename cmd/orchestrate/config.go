@@ -392,7 +392,7 @@ type RunResult struct {
 	RunID       string                 `json:"run_id"`
 	Mode        string                 `json:"mode"`
 	Routines    int                    `json:"routines"`
-	OtherRoutes int                    `json:"other_routines"`
+	OtherRoutines int                    `json:"other_routines"`
 	ResultFile  string                 `json:"result_file"`
 	Status      string                 `json:"status"`
 	Error       string                 `json:"error,omitempty"`
@@ -478,6 +478,26 @@ func (rc *ResultCollector) GetResults() []RunResult {
 	return results
 }
 
+// benchResultFile represents the structure of a bench result JSON file.
+type benchResultFile struct {
+	Metrics map[string]benchMetric `json:"metrics"`
+}
+
+type benchMetric struct {
+	RatePerSec float64      `json:"rate_per_sec"`
+	Success    float64      `json:"success"`
+	Errors     float64      `json:"errors"`
+	Timeouts   float64      `json:"timeouts"`
+	Latency    benchLatency `json:"latency"`
+}
+
+type benchLatency struct {
+	P50 string `json:"p50"`
+	P90 string `json:"p90"`
+	P95 string `json:"p95"`
+	P99 string `json:"p99"`
+}
+
 // LoadResultFile loads and parses a bench result file.
 func LoadResultFile(path string) (*ResultSummary, map[string]interface{}, error) {
 	data, err := os.ReadFile(path)
@@ -490,40 +510,22 @@ func LoadResultFile(path string) (*ResultSummary, map[string]interface{}, error)
 		return nil, nil, err
 	}
 
-	summary := &ResultSummary{}
+	var result benchResultFile
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, nil, err
+	}
 
-	if metrics, ok := raw["metrics"].(map[string]interface{}); ok {
-		for _, v := range metrics {
-			if m, ok := v.(map[string]interface{}); ok {
-				if rate, ok := m["rate_per_sec"].(float64); ok {
-					summary.Throughput = rate
-				}
-				if success, ok := m["success"].(float64); ok {
-					summary.Success = int64(success)
-				}
-				if errors, ok := m["errors"].(float64); ok {
-					summary.Errors = int64(errors)
-				}
-				if timeouts, ok := m["timeouts"].(float64); ok {
-					summary.Timeouts = int64(timeouts)
-				}
-				if lat, ok := m["latency"].(map[string]interface{}); ok {
-					if p50, ok := lat["p50"].(string); ok {
-						summary.P50 = p50
-					}
-					if p90, ok := lat["p90"].(string); ok {
-						summary.P90 = p90
-					}
-					if p95, ok := lat["p95"].(string); ok {
-						summary.P95 = p95
-					}
-					if p99, ok := lat["p99"].(string); ok {
-						summary.P99 = p99
-					}
-				}
-				break
-			}
-		}
+	summary := &ResultSummary{}
+	for _, m := range result.Metrics {
+		summary.Throughput = m.RatePerSec
+		summary.Success = int64(m.Success)
+		summary.Errors = int64(m.Errors)
+		summary.Timeouts = int64(m.Timeouts)
+		summary.P50 = m.Latency.P50
+		summary.P90 = m.Latency.P90
+		summary.P95 = m.Latency.P95
+		summary.P99 = m.Latency.P99
+		break // Only need the first metric
 	}
 
 	return summary, raw, nil

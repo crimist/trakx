@@ -162,7 +162,7 @@ type udpBenchWorker struct {
 
 func (w *udpBenchWorker) run(ctx context.Context, cfg config, ds *dataset, limiter *rateLimiter) *workerMetrics {
 	metrics := newWorkerMetrics()
-	rng := mrand.New(mrand.NewSource(cfg.rngSeed + int64(w.id*7919)))
+	rng := mrand.New(mrand.NewSource(cfg.rngSeed + int64(w.id*rngOffsetUDP)))
 	peerIdx := w.id % len(ds.peers)
 	peerID := ds.peers[peerIdx]
 

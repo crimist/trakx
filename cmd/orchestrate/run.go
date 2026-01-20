@@ -55,7 +55,7 @@ func (e *Executor) Run(ctx context.Context, run BenchmarkRun) RunResult {
 		RunID:       run.Name,
 		Mode:        run.Mode,
 		Routines:    run.Routines,
-		OtherRoutes: run.OtherRoutines,
+		OtherRoutines: run.OtherRoutines,
 	}
 
 	udpRoutines, httpRoutines := DetermineRoutines(run)
@@ -128,23 +128,10 @@ func (e *Executor) startTracker(ctx context.Context, udpRoutines, httpRoutines i
 
 // startTrackerLocal handles local tracker startup.
 func (e *Executor) startTrackerLocal(ctx context.Context, udpRoutines, httpRoutines int, run BenchmarkRun) error {
-	if e.tracker.IsAlive() {
-		slog.Info("  Stopping existing tracker...")
-		if err := e.tracker.Stop(ctx); err != nil {
-			slog.Warn("stop tracker", "error", err)
-		}
-		time.Sleep(time.Second)
-	}
-
-	slog.Info("  Clearing cache...")
-	if err := e.tracker.ClearCache(); err != nil {
-		slog.Warn("failed to clear cache", "error", err)
-	}
-
 	slog.Info(fmt.Sprintf("  Starting tracker (%s_routines=%d, other=%d)...",
 		run.Mode, run.Routines, run.OtherRoutines))
 
-	return e.tracker.Start(ctx, udpRoutines, httpRoutines)
+	return e.tracker.Restart(ctx, udpRoutines, httpRoutines)
 }
 
 // startTrackerRemote handles remote tracker startup via protocol.
@@ -169,7 +156,9 @@ func (e *Executor) startTrackerRemote(udpRoutines, httpRoutines int) error {
 		return nil
 	case MsgTypeError:
 		var errMsg ErrorMessage
-		json.Unmarshal(data, &errMsg)
+		if err := json.Unmarshal(data, &errMsg); err != nil {
+			return fmt.Errorf("server error (failed to parse: %v)", err)
+		}
 		return fmt.Errorf("server error: %s", errMsg.ErrorMsg)
 	default:
 		return fmt.Errorf("unexpected response: %s", msgType)
@@ -207,7 +196,9 @@ func (e *Executor) notifyDone(udpRoutines, httpRoutines int, resultFile string, 
 		return nil
 	case MsgTypeError:
 		var errMsg ErrorMessage
-		json.Unmarshal(data, &errMsg)
+		if err := json.Unmarshal(data, &errMsg); err != nil {
+			return fmt.Errorf("server error on stop (failed to parse: %v)", err)
+		}
 		return fmt.Errorf("server error on stop: %s", errMsg.ErrorMsg)
 	default:
 		return fmt.Errorf("unexpected response: %s", msgType)

@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-const maxInt64 = int64(^uint64(0) >> 1)
-
 // Latency histogram.
 
 type latencyHistogram struct {
@@ -31,7 +29,7 @@ func newLatencyHistogram(start time.Duration, buckets int) *latencyHistogram {
 	return &latencyHistogram{
 		bounds: bounds,
 		counts: make([]int64, buckets+1),
-		min:    maxInt64,
+		min:    math.MaxInt64,
 	}
 }
 
@@ -74,7 +72,7 @@ func (h *latencyHistogram) merge(other *latencyHistogram) {
 
 func (h *latencyHistogram) quantile(q float64) time.Duration {
 	if q <= 0 {
-		if h.min == maxInt64 {
+		if h.min == math.MaxInt64 {
 			return 0
 		}
 		return time.Duration(h.min)
@@ -112,7 +110,7 @@ func (h *latencyHistogram) mean() time.Duration {
 }
 
 func formatDuration(d time.Duration) string {
-	if int64(d) == maxInt64 {
+	if int64(d) == math.MaxInt64 {
 		return "0s"
 	}
 	return d.String()
