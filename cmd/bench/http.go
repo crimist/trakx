@@ -98,14 +98,17 @@ func (w *httpBenchWorker) run(ctx context.Context, cfg config, ds *dataset, limi
 	rng := mrand.New(mrand.NewSource(cfg.rngSeed + int64(w.id*3571)))
 	peerIdx := w.id % len(ds.peers)
 	peer := ds.encodedPeers[peerIdx]
+
 	left := int64(1000)
-	if rng.Float64() < cfg.seedFraction {
+	if rng.Float64() < defaultSeedFraction {
 		left = 0
 	}
+
 	var hashIndexes []int
-	for i := 0; i < cfg.torrentsPerPeer; i++ {
+	for i := 0; i < defaultTorrentsPerPeer; i++ {
 		hashIndexes = append(hashIndexes, rng.Intn(len(ds.torrents)))
 	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -119,23 +122,25 @@ func (w *httpBenchWorker) run(ctx context.Context, cfg config, ds *dataset, limi
 			case <-limiter.tokens:
 			}
 		}
+
 		reqType := requestAnnounce
-		if rng.Float64() < cfg.scrapeRatio {
+		if rng.Float64() < defaultScrapeRatio {
 			reqType = requestScrape
 		}
+
 		start := time.Now()
 		var err error
 		if reqType == requestAnnounce {
-			numwant := cfg.pickNumwant(rng)
+			numwant := pickNumwant(rng)
 			hash := ds.encodedHashes[hashIndexes[rng.Intn(len(hashIndexes))]]
-			payload := buildHTTPAnnounce(hash, peer, cfg.httpHostHeader, defaultPort, left, numwant, cfg.compact)
+			payload := buildHTTPAnnounce(hash, peer, cfg.target, defaultPort, left, numwant, defaultCompact)
 			err = w.client.doRequest(payload)
 		} else {
-			hashes := make([]string, cfg.scrapeHashes)
-			for i := 0; i < cfg.scrapeHashes; i++ {
+			hashes := make([]string, defaultScrapeHashes)
+			for i := 0; i < defaultScrapeHashes; i++ {
 				hashes[i] = ds.encodedHashes[rng.Intn(len(ds.encodedHashes))]
 			}
-			payload := buildHTTPScrape(hashes, cfg.httpHostHeader)
+			payload := buildHTTPScrape(hashes, cfg.target)
 			err = w.client.doRequest(payload)
 		}
 		lat := time.Since(start)

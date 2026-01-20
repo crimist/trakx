@@ -165,14 +165,17 @@ func (w *udpBenchWorker) run(ctx context.Context, cfg config, ds *dataset, limit
 	rng := mrand.New(mrand.NewSource(cfg.rngSeed + int64(w.id*7919)))
 	peerIdx := w.id % len(ds.peers)
 	peerID := ds.peers[peerIdx]
+
 	left := int64(1000)
-	if rng.Float64() < cfg.seedFraction {
+	if rng.Float64() < defaultSeedFraction {
 		left = 0
 	}
+
 	var hashIndexes []int
-	for i := 0; i < cfg.torrentsPerPeer; i++ {
+	for i := 0; i < defaultTorrentsPerPeer; i++ {
 		hashIndexes = append(hashIndexes, rng.Intn(len(ds.torrents)))
 	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -190,22 +193,21 @@ func (w *udpBenchWorker) run(ctx context.Context, cfg config, ds *dataset, limit
 			metrics.errors++
 			continue
 		}
+
 		reqType := requestAnnounce
-		if rng.Float64() < cfg.scrapeRatio {
+		if rng.Float64() < defaultScrapeRatio {
 			reqType = requestScrape
 		}
+
 		start := time.Now()
 		var err error
 		if reqType == requestAnnounce {
-			numwant := cfg.pickNumwant(rng)
-			if numwant < 0 {
-				numwant = 0
-			}
+			numwant := pickNumwant(rng)
 			hash := ds.torrents[hashIndexes[rng.Intn(len(hashIndexes))]]
 			err = w.client.announce(rng, hash, peerID, left, int32(numwant), uint16(defaultPort))
 		} else {
-			hashes := make([][]byte, cfg.scrapeHashes)
-			for i := 0; i < cfg.scrapeHashes; i++ {
+			hashes := make([][]byte, defaultScrapeHashes)
+			for i := 0; i < defaultScrapeHashes; i++ {
 				hashes[i] = ds.torrents[rng.Intn(len(ds.torrents))]
 			}
 			err = w.client.scrape(rng, hashes)

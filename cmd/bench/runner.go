@@ -38,18 +38,21 @@ func runBenchmark(cfg config, ds *dataset) (metricView, []string, error) {
 		return metricView{}, warnings, err
 	}
 	defer closeWorkers(workers)
-	if cfg.warmup > 0 {
-		warmCtx, cancel := context.WithTimeout(context.Background(), cfg.warmup)
+
+	if defaultWarmup > 0 {
+		warmCtx, cancel := context.WithTimeout(context.Background(), defaultWarmup)
 		limiter := newRateLimiter(warmCtx, cfg.rate)
 		_ = runPhase(warmCtx, cfg, ds, workers, limiter)
 		cancel()
 	}
+
 	runCtx, cancel := context.WithTimeout(context.Background(), cfg.duration)
 	defer cancel()
 	limiter := newRateLimiter(runCtx, cfg.rate)
 	start := time.Now()
 	metrics := runPhase(runCtx, cfg, ds, workers, limiter)
 	elapsed := time.Since(start)
+
 	if elapsed < cfg.duration-(250*time.Millisecond) {
 		warnings = append(warnings, "benchmark completed earlier than expected")
 	}
@@ -60,13 +63,13 @@ func runBenchmark(cfg config, ds *dataset) (metricView, []string, error) {
 func buildWorkers(cfg config) ([]worker, error) {
 	switch cfg.mode {
 	case "udp":
-		addr, err := net.ResolveUDPAddr("udp", cfg.udpAddr)
+		addr, err := net.ResolveUDPAddr("udp", cfg.target)
 		if err != nil {
 			return nil, err
 		}
 		workers := make([]worker, 0, cfg.concurrency)
 		for i := 0; i < cfg.concurrency; i++ {
-			client, err := newUDPWorker(addr, cfg.timeout, cfg.udpConnRefresh)
+			client, err := newUDPWorker(addr, defaultTimeout, defaultConnRefresh)
 			if err != nil {
 				return nil, err
 			}
@@ -76,7 +79,7 @@ func buildWorkers(cfg config) ([]worker, error) {
 	case "http":
 		workers := make([]worker, 0, cfg.concurrency)
 		for i := 0; i < cfg.concurrency; i++ {
-			workers = append(workers, &httpBenchWorker{id: i, client: newHTTPWorker(cfg.httpAddr, cfg.timeout, cfg.httpHostHeader)})
+			workers = append(workers, &httpBenchWorker{id: i, client: newHTTPWorker(cfg.target, defaultTimeout, cfg.target)})
 		}
 		return workers, nil
 	default:

@@ -1,0 +1,14 @@
+name: default
+description: Standard goroutine sweep with realistic parameters
+
+defaults:
+  duration: 2m
+  concurrency: 64
+  seed: 2048
+  rate: 0  # max throughput
+
+runs:
+  - name: udp-sweep
+    mode: udp
+    routines: [1, 2, 4, 8, 16, 32, 64]
+    other_routines: 1

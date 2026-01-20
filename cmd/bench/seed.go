@@ -2,33 +2,27 @@ package main
 
 import (
 	"context"
-	"fmt"
 	mrand "math/rand"
 	"net"
 )
 
 func seedPhase(ctx context.Context, cfg config, ds *dataset) error {
-	if cfg.seedTorrents == 0 {
+	if cfg.seed == 0 {
 		return nil
 	}
 
 	rng := mrand.New(mrand.NewSource(cfg.rngSeed + 11))
-	if cfg.seedPeersDist == "fixed" && cfg.seedPeersPerTor <= 0 {
-		return fmt.Errorf("seed-peers-per-torrent must be > 0 for fixed distribution")
-	}
 
 	seedHashes := ds.torrents
-	if cfg.seedTorrents > 0 && cfg.seedTorrents < len(seedHashes) {
-		seedHashes = seedHashes[:cfg.seedTorrents]
+	if cfg.seed > 0 && cfg.seed < len(seedHashes) {
+		seedHashes = seedHashes[:cfg.seed]
 	}
 
+	// Use lognormal distribution for realistic peer counts.
 	peersPerTorrent := make([]int, len(seedHashes))
 	seedPeersTotal := 0
 	for i := range peersPerTorrent {
-		count, err := cfg.seedPeersForTorrent(rng)
-		if err != nil {
-			return err
-		}
+		count := seedPeersForTorrent(rng)
 		peersPerTorrent[i] = count
 		seedPeersTotal += count
 	}
@@ -36,17 +30,15 @@ func seedPhase(ctx context.Context, cfg config, ds *dataset) error {
 	seedData := newDataset(rng, 1, seedPeersTotal)
 	seedPeerIDs := seedData.peers
 	seedEncodedPeers := seedData.encodedPeers
-	seedNumwant := cfg.numwant
-	if seedNumwant < 0 {
-		seedNumwant = 0
-	}
+	seedNumwant := 0 // don't need peers returned
+
 	switch cfg.mode {
 	case "udp":
-		addr, err := net.ResolveUDPAddr("udp", cfg.udpAddr)
+		addr, err := net.ResolveUDPAddr("udp", cfg.target)
 		if err != nil {
 			return err
 		}
-		client, err := newUDPWorker(addr, cfg.timeout, cfg.udpConnRefresh)
+		client, err := newUDPWorker(addr, defaultTimeout, defaultConnRefresh)
 		if err != nil {
 			return err
 		}
@@ -62,14 +54,18 @@ func seedPhase(ctx context.Context, cfg config, ds *dataset) error {
 				}
 				peer := seedPeerIDs[peerIdx%len(seedPeerIDs)]
 				hash := seedHashes[t]
-				if err := client.announce(rng, hash, peer, 1000, int32(seedNumwant), uint16(defaultPort)); err != nil {
+				left := int64(1000)
+				if rng.Float64() < defaultSeedFraction {
+					left = 0
+				}
+				if err := client.announce(rng, hash, peer, left, int32(seedNumwant), uint16(defaultPort)); err != nil {
 					return err
 				}
 				peerIdx++
 			}
 		}
 	case "http":
-		client := newHTTPWorker(cfg.httpAddr, cfg.timeout, cfg.httpHostHeader)
+		client := newHTTPWorker(cfg.target, defaultTimeout, cfg.target)
 		peerIdx := 0
 		for t := 0; t < len(seedHashes); t++ {
 			for p := 0; p < peersPerTorrent[t]; p++ {
@@ -78,7 +74,11 @@ func seedPhase(ctx context.Context, cfg config, ds *dataset) error {
 				}
 				peer := seedEncodedPeers[peerIdx%len(seedEncodedPeers)]
 				hash := ds.encodedHashes[t%len(ds.encodedHashes)]
-				payload := buildHTTPAnnounce(hash, peer, cfg.httpHostHeader, defaultPort, 1000, seedNumwant, cfg.compact)
+				left := int64(1000)
+				if rng.Float64() < defaultSeedFraction {
+					left = 0
+				}
+				payload := buildHTTPAnnounce(hash, peer, cfg.target, defaultPort, left, seedNumwant, defaultCompact)
 				if err := client.doRequest(payload); err != nil {
 					return err
 				}
