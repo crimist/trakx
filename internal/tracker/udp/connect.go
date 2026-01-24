@@ -8,19 +8,19 @@ import (
 	"go.uber.org/zap"
 )
 
-func (tracker *Tracker) connect(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte) {
+func (tracker *Tracker) connect(udpAddr *net.UDPAddr, addrPort netip.AddrPort, transactionID int32, data []byte, socket *net.UDPConn) {
 	tracker.collector.Connect()
 
 	connectRequest, err := udpprotocol.NewConnectRequest(data)
 	if err != nil {
-		tracker.error(udpAddr, []byte("failed to parse connect request"), transactionID)
+		tracker.error(udpAddr, []byte("failed to parse connect request"), transactionID, socket)
 		zap.L().Debug("client sent invalid connect request", zap.Binary("packet", data), zap.Error(err), zap.Any("remote", addrPort))
 		return
 	}
 
 	connectionID, err := tracker.connections.Create(addrPort)
 	if err != nil {
-		tracker.error(udpAddr, []byte("failed to create connection"), connectRequest.TransactionID)
+		tracker.error(udpAddr, []byte("failed to create connection"), connectRequest.TransactionID, socket)
 		zap.L().Error("failed to create connection ID", zap.Error(err), zap.Any("remote", addrPort))
 		return
 	}
@@ -33,10 +33,10 @@ func (tracker *Tracker) connect(udpAddr *net.UDPAddr, addrPort netip.AddrPort, t
 
 	marshalledResp, err := resp.Marshal()
 	if err != nil {
-		tracker.error(udpAddr, []byte("failed to marshall connect response"), connectRequest.TransactionID)
+		tracker.error(udpAddr, []byte("failed to marshall connect response"), connectRequest.TransactionID, socket)
 		zap.L().Error("failed to marshall connect response", zap.Error(err), zap.Any("connect", connectRequest), zap.Any("remote", udpAddr))
 		return
 	}
 
-	tracker.socket.WriteToUDP(marshalledResp, udpAddr)
+	socket.WriteToUDP(marshalledResp, udpAddr)
 }

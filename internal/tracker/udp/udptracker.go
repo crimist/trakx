@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"net"
 	"net/netip"
+	"sync"
 
 	"github.com/crimist/trakx/internal/stats"
 	"github.com/crimist/trakx/internal/storage"
@@ -39,7 +40,7 @@ type Tracker struct {
 	config              tracker.TrackerConfig
 	collector           stats.Collector
 	shutdown            chan struct{}
-	socket              *net.UDPConn
+	sockets             []*net.UDPConn
 	connections         *connections.Connections
 	validateConnections bool
 }
@@ -57,26 +58,38 @@ func NewTracker(peerDB storage.Database, config tracker.TrackerConfig, collector
 
 // Serve begins listening and serving clients.
 func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
-	var err error
-
-	tracker.socket, err = net.ListenUDP("udp", &net.UDPAddr{
+	addr := &net.UDPAddr{
 		IP:   ip,
 		Port: port,
-	})
-	if err != nil {
-		return errors.Wrap(err, "Failed to open UDP listen socket")
 	}
-	zap.L().Info("Serving UDP tracker", zap.String("address", tracker.socket.LocalAddr().String()), zap.Int("routines", routines))
 
-	// TODO: figure out what optimal number of goroutines is (benchmark)
-	// Going to need to write a tool that can simulate a large number of clients
+	// Create N sockets with SO_REUSEPORT (one per worker)
+	tracker.sockets = make([]*net.UDPConn, routines)
 	for i := 0; i < routines; i++ {
-		go func() {
+		socket, err := listenReusePort("udp", addr)
+		if err != nil {
+			// Clean up any sockets already created
+			for j := 0; j < i; j++ {
+				tracker.sockets[j].Close()
+			}
+			return errors.Wrap(err, "Failed to open UDP listen socket with SO_REUSEPORT")
+		}
+		tracker.sockets[i] = socket
+	}
+	zap.L().Info("Serving UDP tracker", zap.String("address", addr.String()), zap.Int("sockets", routines))
+
+	var wg sync.WaitGroup
+	wg.Add(routines)
+
+	// Each worker gets its own socket (1:1 mapping)
+	for i := 0; i < routines; i++ {
+		go func(socket *net.UDPConn) {
+			defer wg.Done()
 			data := make([]byte, maximumRequestSize)
 
 			for {
 				data = data[:cap(data)]
-				size, remoteAddr, err := tracker.socket.ReadFromUDP(data)
+				size, remoteAddr, err := socket.ReadFromUDP(data)
 				if err != nil {
 					if errors.Unwrap(err).Error() == errSocketClosed {
 						break
@@ -87,23 +100,27 @@ func (tracker *Tracker) Serve(ip net.IP, port int, routines int) error {
 				}
 
 				if size < minimumRequestSize {
-					tracker.socket.WriteToUDP(fatalMinReqLen, remoteAddr)
+					socket.WriteToUDP(fatalMinReqLen, remoteAddr)
 					zap.L().Debug("client sent packet below minimum request size", zap.String("addr", remoteAddr.String()), zap.Int("size", size), zap.ByteString("data", (data)[:size]))
 				} else {
 					data = data[:size]
-					tracker.process(data, remoteAddr)
+					tracker.process(data, remoteAddr, socket)
 				}
 			}
-		}()
+		}(tracker.sockets[i])
 	}
 
 	<-tracker.shutdown
 	zap.L().Info("UDP tracker received shutdown")
 
-	if err = tracker.socket.Close(); err != nil {
-		return errors.Wrap(err, "Failed to close UDP tracker socket")
+	// Close all sockets
+	for _, socket := range tracker.sockets {
+		if err := socket.Close(); err != nil {
+			zap.L().Error("Failed to close UDP tracker socket", zap.Error(err))
+		}
 	}
 
+	wg.Wait()
 	return nil
 }
 
@@ -113,7 +130,7 @@ func (tracker *Tracker) Shutdown() {
 	tracker.shutdown <- signal
 }
 
-func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr) {
+func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr, socket *net.UDPConn) {
 	tracker.collector.Hit()
 
 	action := udpprotocol.Action(data[11])
@@ -121,7 +138,7 @@ func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr) {
 
 	addr, ok := netip.AddrFromSlice(udpAddr.IP)
 	if !ok {
-		tracker.error(udpAddr, []byte("failed to parse ip"), transactionID)
+		tracker.error(udpAddr, []byte("failed to parse ip"), transactionID, socket)
 		zap.L().DPanic("failed to parse remote ip slice as netip", zap.ByteString("ip", udpAddr.IP))
 		return
 	}
@@ -129,24 +146,24 @@ func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr) {
 	addrPort := netip.AddrPortFrom(addr, uint16(udpAddr.Port))
 
 	if !action.Valid() {
-		tracker.error(udpAddr, fatalInvalidAction, transactionID)
+		tracker.error(udpAddr, fatalInvalidAction, transactionID, socket)
 		zap.L().Debug("client set invalid action", zap.Binary("packet", data), zap.Uint8("action", data[11]), zap.Any("remote", addrPort))
 		return
 	}
 
 	switch action {
 	case udpprotocol.ActionHeartbeat:
-		tracker.socket.WriteToUDP(udpprotocol.HeartbeatOk, udpAddr)
+		socket.WriteToUDP(udpprotocol.HeartbeatOk, udpAddr)
 		return
 	case udpprotocol.ActionConnect:
-		tracker.connect(udpAddr, addrPort, transactionID, data)
+		tracker.connect(udpAddr, addrPort, transactionID, data, socket)
 		return
 	}
 
 	connectionID := binary.BigEndian.Uint64(data[0:8])
 	if tracker.validateConnections {
 		if validConnectionID := tracker.connections.Validate(addrPort, connectionID); !validConnectionID {
-			tracker.error(udpAddr, fatalUnregisteredConnection, transactionID)
+			tracker.error(udpAddr, fatalUnregisteredConnection, transactionID, socket)
 			zap.L().Debug("client sent unregistered connection id", zap.Binary("packet", data), zap.Uint64("connectionID", connectionID), zap.Any("remote", addrPort))
 			return
 		}
@@ -156,8 +173,8 @@ func (tracker *Tracker) process(data []byte, udpAddr *net.UDPAddr) {
 
 	switch action {
 	case udpprotocol.ActionAnnounce:
-		tracker.announce(udpAddr, addrPort, transactionID, data)
+		tracker.announce(udpAddr, addrPort, transactionID, data, socket)
 	case udpprotocol.ActionScrape:
-		tracker.scrape(udpAddr, addrPort, transactionID, data)
+		tracker.scrape(udpAddr, addrPort, transactionID, data, socket)
 	}
 }
